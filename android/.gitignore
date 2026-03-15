@@ -1,0 +1,23 @@
+.gradle/
+.idea/
+.cxx/
+.externalNativeBuild/
+
+# Build outputs
+build/
+**/build/
+captures/
+
+# Local config
+local.properties
+
+# Signing keys
+*.jks
+*.keystore
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
