@@ -1,0 +1,39 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Default indent untuk sebagian besar file
+indent_style = space
+indent_size = 2
+
+# Markdown tidak perlu trim whitespace
+[*.md]
+trim_trailing_whitespace = false
+
+# Golang gunakan space (sesuai gofmt)
+[*.go]
+indent_style = space
+indent_size = 2
+
+# React / JS / TS
+[*.{js,jsx,ts,tsx}]
+indent_style = space
+indent_size = 2
+
+# JSON config
+[*.json]
+indent_style = space
+indent_size = 2
+
+# YAML
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Makefile wajib tab
+[Makefile]
+indent_style = tab

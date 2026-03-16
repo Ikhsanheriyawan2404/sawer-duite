@@ -1,2 +1,15 @@
 ### Health Check
-GET http://localhost:8080/health
+GET http://localhost:3000/health
+
+### Login
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "email": "admin@gmail.com",
+  "password": "asintel"
+}
+
+### Get Profile (Paste Access Token below)
+GET http://localhost:3000/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzM2NjY4ODQsInR5cGUiOiJhY2Nlc3MiLCJ1c2VyX2lkIjo0fQ.WYFKvEK9QhsGgPvgOBMuSIhPvZhuZ-oHf5-oJY9ZACM

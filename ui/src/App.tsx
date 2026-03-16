@@ -1,120 +1,82 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import Landing from './pages/Landing'
+import Login from './pages/Login'
+import Home from './pages/Home'
+import Profile from './pages/Profile'
+import Donate from './pages/Donate'
+import Payment from './pages/Payment'
+import TestOverlay from './pages/TestOverlay'
+import AlertOverlay from './pages/overlays/AlertOverlay'
+import QueueOverlay from './pages/overlays/QueueOverlay'
+import MediaOverlay from './pages/overlays/MediaOverlay'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { clearTokens } from './lib/api'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+function Header() {
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const isHome = pathname === '/home'
+
+  function handleAuthAction() {
+    if (isHome) {
+      clearTokens()
+      navigate('/login')
+    } else {
+      navigate('/login')
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <header className="topbar">
+      <Link to="/" className="brand">
+        <span className="brand-mark" />
+        <span className="brand-name">Ongob</span>
+      </Link>
+      <button onClick={handleAuthAction} className="btn btn-secondary">
+        {isHome ? 'Keluar' : 'Masuk'}
+      </button>
+    </header>
+  )
+}
 
-      <div className="ticks"></div>
+function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
+  )
+}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+function AppShell() {
+  const { pathname } = useLocation()
+  const isOverlay = pathname === '/test' || pathname.startsWith('/overlays')
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+  return (
+    <div className={`app ${isOverlay ? 'app-overlay' : ''}`}>
+      {!isOverlay && <Header />}
+
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route 
+          path="/home" 
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="/test" element={<TestOverlay />} />
+        <Route path="/overlays/alert/:uuid" element={<AlertOverlay />} />
+        <Route path="/overlays/queue/:uuid" element={<QueueOverlay />} />
+        <Route path="/overlays/media/:uuid" element={<MediaOverlay />} />
+        <Route path="/:username" element={<Profile />} />
+        <Route path="/:username/donate" element={<Donate />} />
+        <Route path="/payment/:uuid" element={<Payment />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
   )
 }
 
