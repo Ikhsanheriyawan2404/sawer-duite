@@ -25,6 +25,10 @@ func main() {
 		Addr: cfg.RedisURL,
 	})
 
+	// Hub Init for WebSockets
+	hub := domain.NewHub()
+	go hub.Run()
+
 	authService := service.NewAuthService(cfg)
 	qrisService := service.NewQRISService()
 
@@ -33,12 +37,11 @@ func main() {
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.CORS)
-	// Global Rate Limiting
 	r.Use(middleware.RateLimit(rdb, cfg))
 
 	healthHandler := handler.NewHealthHandler()
 	authHandler := handler.NewAuthHandler(db, authService)
-	txHandler := handler.NewTransactionHandler(db, qrisService, cfg)
+	txHandler := handler.NewTransactionHandler(db, qrisService, hub, cfg)
 
 	r.Get("/health", healthHandler.Check)
 
@@ -46,10 +49,13 @@ func main() {
 	r.Post("/login", authHandler.Login)
 	r.Get("/user/{username}", authHandler.GetUserByUsername)
 
-	// Transaction Routes
+	// Transaction & WebSocket Routes
 	r.Post("/transactions", txHandler.CreateTransaction)
 	r.Get("/transactions/{uuid}", txHandler.GetTransaction)
-	// r.Post("/webhook", txHandler.Webhook)
+	r.Get("/user/{username}/stats", txHandler.GetUserStats)
+	r.Post("/notifications", txHandler.ProcessNotification) // From Android
+	r.Get("/ws/{uuid}", txHandler.WebSocketHandler)         // For Overlay
+	r.Post("/user/{uuid}/test-alert", txHandler.TestAlert)  // For Testing from Dashboard
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(authService))

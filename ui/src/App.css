@@ -155,6 +155,45 @@ body:has(.app-overlay) {
   color: var(--accent);
 }
 
+.payment-summary-card {
+  margin-top: 18px;
+  padding: 20px 22px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 82, 255, 0.18);
+  background: linear-gradient(180deg, #ffffff, #f4f7ff);
+  box-shadow: 0 14px 30px rgba(0, 82, 255, 0.12);
+  display: grid;
+  gap: 10px;
+}
+
+.payment-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.payment-summary-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.payment-summary-value {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.payment-summary-value--accent {
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.payment-summary-value--muted {
+  color: var(--muted-foreground);
+}
+
 .pulse-dot {
   width: 8px;
   height: 8px;

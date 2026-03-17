@@ -13,8 +13,8 @@ object NetworkClient {
     private const val TAG = "NetworkClient"
 
     // Backend URL - ganti dengan URL production
-    private const val BACKEND_URL = "http://192.168.1.10:3000/health"
-    // Untuk emulator Android gunakan: "http://10.0.2.2:3000/health"
+    private const val BACKEND_URL = "https://0be8-165-101-231-115.ngrok-free.app/notifications"
+    // Untuk emulator Android gunakan: "http://10.0.2.2:3000/notifications"
 
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 

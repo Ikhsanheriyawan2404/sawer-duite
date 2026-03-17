@@ -5,7 +5,6 @@ import Home from './pages/Home'
 import Profile from './pages/Profile'
 import Donate from './pages/Donate'
 import Payment from './pages/Payment'
-import TestOverlay from './pages/TestOverlay'
 import AlertOverlay from './pages/overlays/AlertOverlay'
 import QueueOverlay from './pages/overlays/QueueOverlay'
 import MediaOverlay from './pages/overlays/MediaOverlay'
@@ -59,15 +58,14 @@ function AppShell() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
-        <Route 
-          path="/home" 
+        <Route
+          path="/home"
           element={
             <ProtectedRoute>
               <Home />
             </ProtectedRoute>
-          } 
+          }
         />
-        <Route path="/test" element={<TestOverlay />} />
         <Route path="/overlays/alert/:uuid" element={<AlertOverlay />} />
         <Route path="/overlays/queue/:uuid" element={<QueueOverlay />} />
         <Route path="/overlays/media/:uuid" element={<MediaOverlay />} />

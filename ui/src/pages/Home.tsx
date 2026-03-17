@@ -95,10 +95,15 @@ function Home() {
 
   return (
     <main className="page">
-      <section className="dashboard-header">
+      <section className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2>Halo, {user?.name || '...'}</h2>
-          <p className="lead">Semua aktivitas pembayaranmu akan muncul di sini.</p>
+          <p className="lead">Kelola overlay streaming dan pantau dukungan yang masuk secara real-time.</p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <a href={`/${user?.username}`} target="_blank" rel="noreferrer" className="btn btn-secondary">
+            Buka Bio Profile
+          </a>
         </div>
       </section>
 
@@ -206,6 +211,18 @@ function Home() {
                   >
                     Buka
                   </a>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      if (!user) return
+                      fetchWithAuth(`/user/${user.uuid}/test-alert`, { method: 'POST' })
+                        .then(() => alert('Test alert dikirim ke overlay!'))
+                        .catch(() => alert('Gagal mengirim test alert'))
+                    }}
+                  >
+                    Test
+                  </button>
                 </div>
               </div>
             ))}
