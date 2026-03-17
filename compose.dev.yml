@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16
     container_name: ongob-postgres
     restart: unless-stopped
     environment:
@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-asintel}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,20 +29,20 @@ services:
       retries: 5
 
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/ongob-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: ongob-backend
     restart: unless-stopped
     environment:
-      DB_URL: host=postgres user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-postgres} dbname=${POSTGRES_DB:-asintel} port=5432 sslmode=disable
-      REDIS_URL: ${REDIS_URL}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      DB_URL: host=postgres user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-postgres} dbname=${POSTGRES_DB:-ongob} port=5432 sslmode=disable
+      REDIS_URL: redis:6379
+      JWT_SECRET: ${JWT_SECRET:-super-secret-access-key}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-super-secret-refresh-key}
       ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
       REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-168h}
       RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-100}
       RATE_LIMIT_DURATION: ${RATE_LIMIT_DURATION:-1m}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
-      DEFAULT_STATIC_QRIS: ${DEFAULT_STATIC_QRIS}
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,7 +50,9 @@ services:
         condition: service_healthy
 
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/ongob-frontend:latest
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
     container_name: ongob-frontend
     restart: unless-stopped
     depends_on:
