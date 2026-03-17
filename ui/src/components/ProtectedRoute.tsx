@@ -3,9 +3,9 @@ import { Navigate } from 'react-router-dom'
 import { getTokens } from '../lib/api'
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { accessToken } = getTokens()
+  const { accessToken, refreshToken } = getTokens()
 
-  if (!accessToken) {
+  if (!accessToken && !refreshToken) {
     return <Navigate to="/login" replace />
   }
 

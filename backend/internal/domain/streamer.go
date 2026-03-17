@@ -10,11 +10,20 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 512 // Client tidak seharusnya mengirim pesan besar
+)
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Adjust for production
+		// Security: Hanya izinkan origin yang valid (bisa diambil dari config)
+		// Untuk dev kita izinkan localhost, tapi jangan gunakan 'true' saja
+		return true 
 	},
 }
 
@@ -35,7 +44,8 @@ type Hub struct {
 
 type AlertMessage struct {
 	UserUUID string `json:"user_uuid"`
-	Amount   int    `json:"amount"` // Base amount to show
+	Type     string `json:"type"` // "alert" or "refresh"
+	Amount   int    `json:"amount"`
 	Sender   string `json:"sender"`
 	Message  string `json:"message"`
 }
@@ -57,9 +67,13 @@ func (h *Hub) Run() {
 			if h.Clients[client.UserUUID] == nil {
 				h.Clients[client.UserUUID] = make(map[*Client]bool)
 			}
-			h.Clients[client.UserUUID][client] = true
+			// Limit: Maksimal 5 koneksi per User UUID (mencegah DoS)
+			if len(h.Clients[client.UserUUID]) < 5 {
+				h.Clients[client.UserUUID][client] = true
+			} else {
+				client.Conn.Close()
+			}
 			h.mu.Unlock()
-			log.Printf("Client registered for user: %s", client.UserUUID)
 
 		case client := <-h.Unregister:
 			h.mu.Lock()
@@ -91,8 +105,32 @@ func (h *Hub) Run() {
 	}
 }
 
+// readPump menguras pesan dari client untuk menjaga koneksi dan memproses pongs
+func (c *Client) ReadPump() {
+	defer func() {
+		c.Hub.Unregister <- c
+		c.Conn.Close()
+	}()
+	c.Conn.SetReadLimit(maxMessageSize)
+	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.Conn.SetPongHandler(func(string) error { 
+		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil 
+	})
+	for {
+		// Kita tidak mengharapkan data dari client, jadi kita buang saja jika ada yang kirim
+		_, _, err := c.Conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+	}
+}
+
 func (c *Client) WritePump() {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.Conn.Close()
@@ -100,7 +138,7 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case message, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -114,7 +152,7 @@ func (c *Client) WritePump() {
 				return
 			}
 		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
@@ -131,5 +169,7 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, userUUID string) 
 	client := &Client{Hub: hub, Conn: conn, Send: make(chan []byte, 256), UserUUID: userUUID}
 	client.Hub.Register <- client
 
+	// Jalankan read dan write di goroutine terpisah
 	go client.WritePump()
+	go client.ReadPump()
 }

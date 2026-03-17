@@ -41,9 +41,9 @@ func SeedUser(db *gorm.DB) {
 	user := domain.User{
 		UUID:     uuid.New().String(),
 		Email:    "admin@gmail.com",
-		Username: "admin",
+		Username: "ongob",
 		Password: string(hashedPassword),
-		Name:     "Ongob",
+		Name:     "Ongob Kun",
 	}
 
 

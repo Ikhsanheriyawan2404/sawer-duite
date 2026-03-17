@@ -30,7 +30,7 @@ function Header() {
     <header className="topbar">
       <Link to="/" className="brand">
         <span className="brand-mark" />
-        <span className="brand-name">Ongob</span>
+        <span className="brand-name">Saweran</span>
       </Link>
       <button onClick={handleAuthAction} className="btn btn-secondary">
         {isHome ? 'Keluar' : 'Masuk'}

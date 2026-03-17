@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { API_URL } from '../lib/api'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 import QRCode from 'qrcode'
 
 function Payment() {
@@ -12,25 +13,25 @@ function Payment() {
   const [isExpired, setIsExpired] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
+  useDocumentTitle(isExpired ? 'Pembayaran Expired' : 'Pembayaran')
+
   useEffect(() => {
     fetch(`${API_URL}/transactions/${uuid}`)
       .then(res => res.json())
       .then(data => {
-        // Cek kadaluarsa langsung dari status database atau waktu sistem
         const now = new Date().getTime()
         const expiry = new Date(data.expired_at).getTime()
-        
+
         if (data.status === 'expired' || expiry - now <= 0) {
           setIsExpired(true)
         }
-        
+
         setTx(data)
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [uuid])
 
-  // Hanya generate QR jika benar-benar TIDAK expired
   useEffect(() => {
     if (tx?.qris_payload && canvasRef.current && !isExpired && !loading) {
       QRCode.toCanvas(canvasRef.current, tx.qris_payload, {
@@ -82,7 +83,7 @@ function Payment() {
 
   return (
     <main className="page page-center overlay-page">
-      <section className="login-card" style={{ width: 'min(500px, 100%)', textAlign: 'center' }}>
+      <section className="login-card" style={{ maxWidth: '500px', textAlign: 'center', alignItems: 'center' }}>
         <div className="section-label" style={{ background: isExpired ? '#fee2e2' : '#e6f0ff', color: isExpired ? '#dc2626' : '#0052ff' }}>
           <span className="pulse-dot" style={{ backgroundColor: isExpired ? '#ef4444' : '#0052ff', animation: isExpired ? 'none' : undefined }} />
           <span className="label-text">{isExpired ? 'SESSION EXPIRED' : 'QRIS DYNAMIC'}</span>
@@ -90,7 +91,7 @@ function Payment() {
 
         <div style={{ marginTop: '16px' }}>
           <p className="muted" style={{ fontSize: '14px' }}>Total Pembayaran</p>
-          <h1 style={{ color: isExpired ? '#999' : 'var(--accent)', fontSize: '2.5rem' }}>{formatCurrency(tx.amount)}</h1>
+          <h1 style={{ color: isExpired ? '#999' : 'var(--accent)', fontSize: 'clamp(2rem, 8vw, 3rem)' }}>{formatCurrency(tx.amount)}</h1>
 
           <div style={{
             display: 'inline-block',
@@ -106,7 +107,7 @@ function Payment() {
           </div>
         </div>
 
-        <div className="payment-summary-card">
+        <div className="payment-summary-card w-full">
           <div className="payment-summary-row">
             <span className="payment-summary-label">Total</span>
             <span className="payment-summary-value payment-summary-value--accent">{formatCurrency(tx.amount)}</span>
@@ -130,7 +131,8 @@ function Payment() {
           display: 'grid',
           placeItems: 'center',
           position: 'relative',
-          minHeight: '320px'
+          minHeight: '320px',
+          width: '100%'
         }}>
           {isExpired ? (
             <div style={{ padding: '20px' }}>
@@ -139,10 +141,9 @@ function Payment() {
               <p className="muted" style={{ fontSize: '14px', marginBottom: '24px', lineHeight: '1.5' }}>
                 QR Code ini sudah tidak berlaku karena melewati batas waktu 3 menit.
               </p>
-              <button 
-                onClick={() => navigate(`/${tx.target?.username || ''}`)} 
-                className="btn btn-primary"
-                style={{ width: '100%', justifyContent: 'center' }}
+              <button
+                onClick={() => navigate(`/${tx.target?.username || ''}`)}
+                className="btn btn-primary w-full"
               >
                 Buat Transaksi Baru
               </button>
@@ -165,11 +166,11 @@ function Payment() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span className="muted" style={{ fontSize: '13px' }}>Pengirim</span>
-                <span style={{ fontSize: '13px', fontWeight: '600' }}>{tx.sender || 'Someone'}</span>
+                <span style={{ fontSize: '13px', fontWeight: '600' }}>{tx.sender || 'Seseorang'}</span>
               </div>
             </div>
 
-            <p className="muted" style={{ fontSize: '12px', marginTop: '16px' }}>
+            <p className="muted" style={{ fontSize: '12px', marginTop: '16px', lineHeight: 1.4 }}>
               Silakan scan QR di atas menggunakan aplikasi mobile banking atau e-wallet kamu.
             </p>
           </>

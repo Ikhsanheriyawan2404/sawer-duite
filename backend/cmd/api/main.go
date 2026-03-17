@@ -41,26 +41,43 @@ func main() {
 
 	healthHandler := handler.NewHealthHandler()
 	authHandler := handler.NewAuthHandler(db, authService)
-	txHandler := handler.NewTransactionHandler(db, qrisService, hub, cfg)
+	txHandler := handler.NewTransactionHandler(db, qrisService, authService, hub, cfg)
 
 	r.Get("/health", healthHandler.Check)
 
-	// Auth Routes
+	// Auth Routes (Public)
 	r.Post("/login", authHandler.Login)
+	r.Post("/refresh", authHandler.Refresh)
 	r.Get("/user/{username}", authHandler.GetUserByUsername)
+	r.Get("/user/uuid/{uuid}", authHandler.GetUserByUUID)
 
-	// Transaction & WebSocket Routes
+	// Public Transaction Routes (untuk donor, tidak perlu login)
 	r.Post("/transactions", txHandler.CreateTransaction)
 	r.Get("/transactions/{uuid}", txHandler.GetTransaction)
-	r.Get("/user/{username}/stats", txHandler.GetUserStats)
-	r.Post("/notifications", txHandler.ProcessNotification) // From Android
-	r.Get("/ws/{uuid}", txHandler.WebSocketHandler)         // For Overlay
-	r.Post("/user/{uuid}/test-alert", txHandler.TestAlert)  // For Testing from Dashboard
+	r.Get("/user/{username}/stats", txHandler.GetUserStats) // Public stats untuk landing page
+	r.Get("/user/{username}/queue", txHandler.GetQueueList) // Public queue untuk overlay
 
+	// Webhook dari Android (protected by secret header)
+	r.Post("/notifications", txHandler.ProcessNotification)
+
+	// WebSocket (protected by JWT query param - handled in handler)
+	r.Get("/ws/{uuid}", txHandler.WebSocketHandler)
+
+	// Protected Routes (memerlukan JWT)
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(authService))
+
+		// User profile
 		r.Get("/me", authHandler.Me)
 		r.Post("/me", authHandler.UpdateProfile)
+
+		// Test alert (hanya owner yang bisa test)
+		r.Post("/user/{uuid}/test-alert", txHandler.TestAlert)
+
+		// Queue Management (hanya owner yang bisa manage)
+		r.Patch("/transactions/{uuid}/queue", txHandler.UpdateQueue)
+		r.Post("/transactions/{uuid}/queue/add", txHandler.AddToQueue)
+		r.Post("/transactions/{uuid}/queue/remove", txHandler.RemoveFromQueue)
 	})
 
 	log.Println("Server starting on :3000")

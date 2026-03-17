@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchWithAuth } from '../lib/api'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 interface User {
   id: number
@@ -11,12 +12,30 @@ interface User {
   updated_at: string
 }
 
+interface Transaction {
+  id: number
+  uuid: string
+  sender: string
+  amount: number
+  base_amount: number
+  note: string
+  status: string
+  is_queue: boolean
+  created_at: string
+}
+
 function Home() {
+  useDocumentTitle('Dashboard')
   const [user, setUser] = useState<User | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({ name: '', username: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [queue, setQueue] = useState<Transaction[]>([])
+  const [loadingQueue, setLoadingQueue] = useState(false)
+  
+  const [filter, setFilter] = useState<'all' | 'queue' | 'done'>('all')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user')
@@ -32,9 +51,87 @@ function Home() {
         setUser(data)
         setFormData({ name: data.name, username: data.username })
         localStorage.setItem('user', JSON.stringify(data))
+        fetchQueue(data.username)
       })
       .catch(err => console.error('Failed to fetch profile', err))
   }, [])
+
+  async function fetchQueue(username: string) {
+    setLoadingQueue(true)
+    try {
+      const res = await fetchWithAuth(`/user/${username}/queue?status=paid&sort_by=base_amount&order=desc`)
+      if (res.ok) {
+        const data = await res.json()
+        setQueue(data || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch queue', err)
+    } finally {
+      setLoadingQueue(false)
+    }
+  }
+
+  async function toggleQueue(tx: Transaction) {
+    try {
+      const endpoint = tx.is_queue
+        ? `/transactions/${tx.uuid}/queue/remove`
+        : `/transactions/${tx.uuid}/queue/add`
+      const res = await fetchWithAuth(endpoint, { method: 'POST' })
+      if (res.ok && user) {
+        setQueue(prev => prev.map(item => 
+          item.uuid === tx.uuid ? { ...item, is_queue: !item.is_queue } : item
+        ))
+      }
+    } catch (err) {
+      console.error('Failed to toggle queue', err)
+    }
+  }
+
+  async function handleBulkAction(action: 'clear' | 'reset') {
+    if (!user) return
+    const confirmMsg = action === 'clear' 
+      ? 'Kosongkan semua antrean saat ini?' 
+      : 'Masukkan semua donasi ke antrean?'
+    
+    if (!window.confirm(confirmMsg)) return
+
+    setLoadingQueue(true)
+    try {
+      const promises = queue
+        .filter(tx => action === 'clear' ? tx.is_queue : !tx.is_queue)
+        .map(tx => {
+          const endpoint = action === 'clear'
+            ? `/transactions/${tx.uuid}/queue/remove`
+            : `/transactions/${tx.uuid}/queue/add`
+          return fetchWithAuth(endpoint, { method: 'POST' })
+        })
+      
+      await Promise.all(promises)
+      fetchQueue(user.username)
+    } catch (err) {
+      console.error('Bulk action failed', err)
+    } finally {
+      setLoadingQueue(false)
+    }
+  }
+
+  const filteredQueue = queue.filter(tx => {
+    const matchesSearch = (tx.sender?.toLowerCase() || '').includes(search.toLowerCase()) || 
+                          (tx.note?.toLowerCase() || '').includes(search.toLowerCase())
+    if (!matchesSearch) return false
+    
+    if (filter === 'queue') return tx.is_queue
+    if (filter === 'done') return !tx.is_queue
+    return true
+  })
+
+  function formatCurrency(amount: number) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount)
+  }
 
   function handleEdit() {
     setIsEditing(true)
@@ -78,7 +175,7 @@ function Home() {
       setUser(updatedUser)
       localStorage.setItem('user', JSON.stringify(updatedUser))
       setIsEditing(false)
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan')
     } finally {
       setSaving(false)
@@ -95,12 +192,12 @@ function Home() {
 
   return (
     <main className="page">
-      <section className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <section className="dashboard-header">
         <div>
           <h2>Halo, {user?.name || '...'}</h2>
-          <p className="lead">Kelola overlay streaming dan pantau dukungan yang masuk secara real-time.</p>
+          <p className="lead">Kelola overlay streaming dan pantau dukungan secara real-time.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="form-actions">
           <a href={`/${user?.username}`} target="_blank" rel="noreferrer" className="btn btn-secondary">
             Buka Bio Profile
           </a>
@@ -122,43 +219,49 @@ function Home() {
           {error && <p className="error-text">{error}</p>}
 
           <div className="profile-form">
-            <div className="form-group">
-              <label>Nama</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="input"
-                />
-              ) : (
-                <p className="form-value">{user?.name || '-'}</p>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label>Username</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={e => setFormData({ ...formData, username: e.target.value })}
-                  className="input"
-                />
-              ) : (
-                <p className="form-value">@{user?.username || '-'}</p>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label>Email</label>
-              <p className="form-value">{user?.email || '-'}</p>
-            </div>
-
-            <div className="form-group">
-              <label>Bergabung sejak</label>
-              <p className="form-value">{user?.created_at ? formatDate(user.created_at) : '-'}</p>
-            </div>
+            {isEditing ? (
+              <>
+                <div className="form-group">
+                  <label>Nama</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Username</label>
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={e => setFormData({ ...formData, username: e.target.value })}
+                    className="input"
+                  />
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <div style={{ padding: '16px', background: 'var(--muted)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Nama Lengkap</p>
+                  <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent)' }}>{user?.name || '-'}</p>
+                </div>
+                <div style={{ padding: '16px', background: 'var(--muted)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Username</p>
+                  <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--foreground)' }}>@{user?.username || '-'}</p>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ padding: '12px', background: 'rgba(0,0,0,0.02)', borderRadius: '14px' }}>
+                    <p style={{ fontSize: '10px', color: 'var(--muted-foreground)', fontWeight: '600', marginBottom: '2px' }}>Email</p>
+                    <p style={{ fontSize: '13px', fontWeight: '600' }}>{user?.email || '-'}</p>
+                  </div>
+                  <div style={{ padding: '12px', background: 'rgba(0,0,0,0.02)', borderRadius: '14px' }}>
+                    <p style={{ fontSize: '10px', color: 'var(--muted-foreground)', fontWeight: '600', marginBottom: '2px' }}>Sejak</p>
+                    <p style={{ fontSize: '13px', fontWeight: '600' }}>{user?.created_at ? formatDate(user.created_at) : '-'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {isEditing && (
               <div className="form-actions">
@@ -177,25 +280,34 @@ function Home() {
         <article className="card">
           <div className="card-header">
             <h3>Overlay Widgets</h3>
-            <span className="badge">Streaming</span>
+            <span className="badge badge-active">Streaming</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[
-              { label: 'Alert Overlay', path: `/overlays/alert/${user?.uuid}` },
-              { label: 'Queue Overlay', path: `/overlays/queue/${user?.uuid}` },
-              { label: 'Media Overlay', path: `/overlays/media/${user?.uuid}` },
+              { label: 'Alert Overlay', path: `/overlays/alert/${user?.uuid}`, status: 'active' },
+              { label: 'Queue Overlay', path: `/overlays/queue/${user?.uuid}`, status: 'active' },
+              { label: 'MediaShare Overlay', path: `/overlays/media/${user?.uuid}`, status: 'soon' },
             ].map((overlay) => (
-              <div key={overlay.path} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
-                <p style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>{overlay.label}</p>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div key={overlay.path} className="widget-row">
+                <div className="widget-info">
+                  <div className="widget-header">
+                    <p>{overlay.label}</p>
+                    <span className={`badge ${overlay.status === 'soon' ? 'badge-soon' : 'badge-active'}`}>
+                      {overlay.status === 'soon' ? 'SOON' : 'LIVE'}
+                    </span>
+                  </div>
                   <input
                     readOnly
-                    value={`${window.location.origin}${overlay.path}`}
+                    value={overlay.status === 'soon' ? 'Fitur akan segera hadir' : `${window.location.origin}${overlay.path}`}
                     className="input"
-                    style={{ flex: 1, fontSize: '11px', padding: '8px' }}
+                    disabled={overlay.status === 'soon'}
+                    style={{ fontSize: '11px' }}
                   />
+                </div>
+                <div className="form-actions">
                   <button
                     className="btn btn-secondary btn-sm"
+                    disabled={overlay.status === 'soon'}
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}${overlay.path}`)
                       alert(`${overlay.label} link copied!`)
@@ -203,36 +315,97 @@ function Home() {
                   >
                     Salin
                   </button>
-                  <a
-                    href={overlay.path}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-primary btn-sm"
-                  >
-                    Buka
-                  </a>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      if (!user) return
-                      fetchWithAuth(`/user/${user.uuid}/test-alert`, { method: 'POST' })
-                        .then(() => alert('Test alert dikirim ke overlay!'))
-                        .catch(() => alert('Gagal mengirim test alert'))
-                    }}
-                  >
-                    Test
-                  </button>
+                  {overlay.status !== 'soon' && (
+                    <>
+                      <a href={overlay.path} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">
+                        Buka
+                      </a>
+                      {overlay.label === 'Alert Overlay' && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => {
+                            if (!user) return
+                            fetchWithAuth(`/user/${user.uuid}/test-alert`, { method: 'POST' })
+                              .then(() => alert('Test alert dikirim ke overlay!'))
+                              .catch(() => alert('Gagal mengirim test alert'))
+                          }}
+                        >
+                          Test
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </article>
 
-          {/* Recent Transactions */}
-        <article className="card card-wide" style={{ borderStyle: 'dashed', background: 'transparent', boxShadow: 'none' }}>
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted-foreground)' }}>
-            <p>Belum ada transaksi terbaru saat ini.</p>
+        {/* Queue Management Card */}
+        <article className="card card-wide">
+          <div className="card-header">
+            <h3>Antrian Donasi</h3>
+            <div className="form-actions">
+              <button className="btn btn-ghost btn-sm" onClick={() => handleBulkAction('reset')} disabled={loadingQueue} style={{ color: 'var(--accent)' }}>Reset</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => handleBulkAction('clear')} disabled={loadingQueue} style={{ color: '#dc2626' }}>Clear</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => user && fetchQueue(user.username)} disabled={loadingQueue}>Refresh</button>
+            </div>
+          </div>
+
+          <div className="stack-resp">
+            <div className="tab-group flex-1">
+              {(['all', 'queue', 'done'] as const).map(t => (
+                <button 
+                  key={t}
+                  className={`btn btn-sm ${filter === t ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setFilter(t)}
+                  style={{ flex: 1, padding: '6px' }}
+                >
+                  {t === 'all' ? 'Semua' : t === 'queue' ? 'Antrian' : 'Selesai'}
+                </button>
+              ))}
+            </div>
+            <input 
+              type="text"
+              placeholder="Cari donatur..."
+              className="input"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ flex: 1.5 }}
+            />
+          </div>
+
+          <div className="feed">
+            {filteredQueue.length === 0 ? (
+              <p className="muted text-center" style={{ padding: '40px' }}>
+                {loadingQueue ? 'Memuat...' : 'Tidak ada data'}
+              </p>
+            ) : (
+              filteredQueue.map((tx) => (
+                <div key={tx.uuid} className="feed-row">
+                  <div className="feed-user-info">
+                    <div className="feed-avatar" style={{ background: tx.is_queue ? 'var(--accent)' : '#e2e8f0' }}>
+                      {tx.sender[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div className="feed-text">
+                      <p className="feed-name">{tx.sender}</p>
+                      <p className="feed-note">{tx.note || 'Terima kasih atas dukungannya!'}</p>
+                    </div>
+                  </div>
+                  <div className="feed-meta">
+                    <p className="feed-amount">{formatCurrency(tx.base_amount)}</p>
+                    <button
+                      className={`btn btn-sm ${tx.is_queue ? 'btn-ghost' : 'btn-primary'}`}
+                      onClick={() => toggleQueue(tx)}
+                      style={{ padding: '4px 8px', height: '28px', marginTop: '4px' }}
+                    >
+                      {tx.is_queue ? '✕' : '↩'}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </article>
       </section>

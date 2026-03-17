@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
             Toast.makeText(
                 this,
-                "Cari 'Payment Listener' dan aktifkan",
+                "Cari 'Saweran Listener' dan aktifkan",
                 Toast.LENGTH_LONG
             ).show()
         } catch (e: Exception) {

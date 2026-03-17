@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { API_URL } from '../lib/api'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 function Donate() {
   const { username } = useParams()
@@ -9,6 +10,8 @@ function Donate() {
   const [form, setForm] = useState({ name: '', amount: '10000', note: '' })
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [agreed, setAgreed] = useState(false)
+
+  useDocumentTitle(user?.name ? `Dukung ${user.name}` : 'Kirim Dukungan')
 
   const quickAmounts = [10000, 25000, 50000, 100000, 250000, 500000, 1000000]
 
@@ -27,52 +30,52 @@ function Donate() {
     const val = e.target.value.replace(/\D/g, '')
     setForm({ ...form, amount: val })
   }
-async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault()
-  if (!agreed) {
-    alert('Harap setujui ketentuan transaksi.')
-    return
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!agreed) {
+      alert('Harap setujui ketentuan transaksi.')
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username,
+          sender: isAnonymous ? 'Seseorang' : form.name,
+          amount: parseInt(form.amount),
+          note: form.note,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Gagal membuat transaksi')
+
+      const data = await response.json()
+      navigate(`/payment/${data.uuid}`)
+    } catch (err) {
+      alert('Terjadi kesalahan, silakan coba lagi.')
+    }
   }
 
-  try {
-    const response = await fetch(`${API_URL}/transactions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: username,
-        sender: isAnonymous ? 'Someone' : form.name,
-        amount: parseInt(form.amount),
-        note: form.note,
-      }),
-    })
+  return (
+    <main className="page page-center overlay-page">
+      <section className="login-card" style={{ maxWidth: '540px' }}>
+        <div className="section-label">
+          <span className="pulse-dot" />
+          <span className="label-text">DUKUNGAN</span>
+        </div>
+        <h2>Dukung {user?.name || username}</h2>
+        <p className="lead">Pilih nominal dan tulis pesanmu.</p>
 
-    if (!response.ok) throw new Error('Gagal membuat transaksi')
-
-    const data = await response.json()
-    navigate(`/payment/${data.uuid}`)
-  } catch (err) {
-    alert('Terjadi kesalahan, silakan coba lagi.')
-  }
-}
-
-return (
-  <main className="page page-center overlay-page">
-    <section className="login-card" style={{ width: 'min(540px, 100%)' }}>
-      <div className="section-label">
-        <span className="pulse-dot" />
-        <span className="label-text">DUKUNGAN</span>
-      </div>
-      <h2>Dukung {user?.name || username}</h2>
-      <p className="lead">Pilih nominal dan tulis pesanmu.</p>
-
-      <form className="form" onSubmit={handleSubmit}>
-
+        <form className="form" onSubmit={handleSubmit}>
           <label>
             Nama Pengirim
             <input
               type="text"
               placeholder="Masukkan nama kamu"
-              value={isAnonymous ? 'Someone' : form.name}
+              value={isAnonymous ? 'Seseorang' : form.name}
               onChange={e => setForm({...form, name: e.target.value})}
               disabled={isAnonymous}
               required
@@ -84,7 +87,9 @@ return (
                 checked={isAnonymous}
                 onChange={e => setIsAnonymous(e.target.checked)}
               />
-              <label htmlFor="anon" style={{ display: 'inline', fontSize: '13px', cursor: 'pointer' }}>Kirim sebagai anonim</label>
+              <label htmlFor="anon" style={{ display: 'inline', fontSize: '13px', cursor: 'pointer', fontWeight: 400 }}>
+                Kirim sebagai anonim
+              </label>
             </div>
           </label>
 
@@ -100,13 +105,13 @@ return (
                 required
               />
             </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '8px' }}>
               {quickAmounts.map(amt => (
                 <button
                   key={amt}
                   type="button"
-                  className="btn btn-secondary"
-                  style={{ padding: '6px 10px', fontSize: '12px', borderRadius: '10px' }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ padding: '8px', borderRadius: '10px' }}
                   onClick={() => setForm({ ...form, amount: amt.toString() })}
                 >
                   {amt >= 1000000 ? `${amt/1000000}jt` : `${amt/1000}rb`}
@@ -121,9 +126,9 @@ return (
               placeholder="Tulis pesan penyemangat..."
               value={form.note}
               onChange={e => setForm({...form, note: e.target.value.slice(0, 250)})}
-              style={{ minHeight: '48px', height: '48px' }}
+              style={{ minHeight: '80px' }}
             />
-            <span style={{ fontSize: '11px', textAlign: 'right', color: 'var(--muted-foreground)' }}>
+            <span style={{ fontSize: '11px', textAlign: 'right', color: 'var(--muted-foreground)', fontWeight: 400 }}>
               {form.note.length}/250
             </span>
           </label>
@@ -134,24 +139,22 @@ return (
               id="terms"
               checked={agreed}
               onChange={e => setAgreed(e.target.checked)}
-              style={{ marginTop: '4px' }}
+              style={{ marginTop: '4px', width: 'auto' }}
               required
             />
-            <label htmlFor="terms" style={{ display: 'inline', fontSize: '12px', lineHeight: '1.4', cursor: 'pointer', color: 'var(--muted-foreground)' }}>
+            <label htmlFor="terms" style={{ display: 'inline', fontSize: '12px', lineHeight: '1.4', cursor: 'pointer', color: 'var(--muted-foreground)', fontWeight: 400 }}>
               Dengan ini saya menyatakan transaksi ini: murni dukungan saya untuk {user?.name || 'Kreator'}, tidak dapat dikembalikan, bukan untuk transaksi komersial, bukan untuk aktivitas ilegal apa pun.
             </label>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginTop: '8px' }}>
-            <button
-              className="btn btn-primary"
-              style={{ justifyContent: 'center', height: '52px', fontSize: '16px' }}
-              type="submit"
-              disabled={!agreed}
-            >
-              Lanjut Pembayaran
-            </button>
-          </div>
+          <button
+            className="btn btn-primary"
+            style={{ height: '52px', fontSize: '16px', marginTop: '8px' }}
+            type="submit"
+            disabled={!agreed}
+          >
+            Lanjut Pembayaran
+          </button>
         </form>
       </section>
     </main>

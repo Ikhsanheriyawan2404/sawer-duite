@@ -10,11 +10,12 @@ import (
 )
 
 type Config struct {
-	DBURL            string
-	JWTSecret         string
-	JWTRefreshSecret  string
-	AccessTokenTTL    time.Duration
-	RefreshTokenTTL   time.Duration
+	DBURL             string
+	JWTSecret          string
+	JWTRefreshSecret   string
+	AccessTokenTTL     time.Duration
+	RefreshTokenTTL    time.Duration
+	WebhookSecret      string
 
 	RedisURL          string
 	RateLimitRequests int
@@ -31,6 +32,7 @@ func GetConfig() Config {
 		JWTRefreshSecret:  getEnv("JWT_REFRESH_SECRET", "super-secret-refresh-key"),
 		AccessTokenTTL:    parseDuration(getEnv("ACCESS_TOKEN_TTL", "15m")),
 		RefreshTokenTTL:   parseDuration(getEnv("REFRESH_TOKEN_TTL", "168h")),
+		WebhookSecret:     getEnv("WEBHOOK_SECRET", "ongob-webhook-secret-123"),
 		RedisURL:          getEnv("REDIS_URL", "localhost:6379"),
 		RateLimitRequests: getIntEnv("RATE_LIMIT_REQUESTS", 10),
 		RateLimitDuration: parseDuration(getEnv("RATE_LIMIT_DURATION", "1m")),

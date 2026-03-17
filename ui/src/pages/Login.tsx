@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_URL, setTokens } from '../lib/api'
+import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 function Login() {
+  useDocumentTitle('Login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)

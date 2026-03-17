@@ -16,16 +16,20 @@ import (
 type TransactionHandler struct {
 	db                *gorm.DB
 	qrisService       *service.QRISService
+	authService       *service.AuthService
 	hub               *domain.Hub
 	defaultStaticQRIS string
+	webhookSecret     string
 }
 
-func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, hub *domain.Hub, cfg domain.Config) *TransactionHandler {
+func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authService *service.AuthService, hub *domain.Hub, cfg domain.Config) *TransactionHandler {
 	return &TransactionHandler{
 		db:                db,
 		qrisService:       qrisService,
+		authService:       authService,
 		hub:               hub,
 		defaultStaticQRIS: cfg.DefaultStaticQRIS,
+		webhookSecret:     cfg.WebhookSecret,
 	}
 }
 
@@ -62,6 +66,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		Note:        req.Note,
 		QRISPayload: qrisPayload,
 		Status:      "pending",
+		IsQueue:     true, // Default: masuk antrian
 		ExpiredAt:   time.Now().Add(3 * time.Minute),
 	}
 
@@ -75,6 +80,13 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 }
 
 func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.Request) {
+	// Verify Webhook Secret
+	secret := r.Header.Get("X-Webhook-Secret")
+	if secret == "" || secret != h.webhookSecret {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req struct {
 		Title   string `json:"title"`
 		Message string `json:"message"`
@@ -112,6 +124,7 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 		// 4. Broadcast to WebSocket
 		h.hub.Broadcast <- domain.AlertMessage{
 			UserUUID: tx.Target.UUID,
+			Type:     "alert",
 			Amount:   tx.BaseAmount, // Show base amount in alert
 			Sender:   tx.Sender,
 			Message:  tx.Note,
@@ -136,15 +149,33 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 
 func (h *TransactionHandler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	userUUID := chi.URLParam(r, "uuid")
+
+	// Validate user exists
+	var user domain.User
+	if err := h.db.Where("uuid = ?", userUUID).First(&user).Error; err != nil {
+		http.Error(w, "invalid channel", http.StatusNotFound)
+		return
+	}
+
+	// Proceed with WebSocket upgrade
 	domain.ServeWs(h.hub, w, r, userUUID)
 }
 
 func (h *TransactionHandler) TestAlert(w http.ResponseWriter, r *http.Request) {
 	userUUID := chi.URLParam(r, "uuid")
 
+	// Verify ownership - user can only test alert on their own UUID
+	userID := r.Context().Value("user_id").(uint)
+	var user domain.User
+	if err := h.db.Where("id = ? AND uuid = ?", userID, userUUID).First(&user).Error; err != nil {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
 	// Kirim pesan simulasi ke hub
 	h.hub.Broadcast <- domain.AlertMessage{
 		UserUUID: userUUID,
+		Type:     "alert",
 		Amount:   50000,
 		Sender:   "Tester Ganteng",
 		Message:  "Ini adalah pesan uji coba dari dashboard!",
@@ -219,4 +250,171 @@ func (h *TransactionHandler) GetUserStats(w http.ResponseWriter, r *http.Request
 		"recent":         recent,
 		"top_supporters": topSupporters,
 	})
+}
+
+// UpdateQueue updates the queue status of a transaction
+func (h *TransactionHandler) UpdateQueue(w http.ResponseWriter, r *http.Request) {
+	txUUID := chi.URLParam(r, "uuid")
+	userID := r.Context().Value("user_id").(uint)
+
+	var req domain.UpdateQueueRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	var tx domain.Transaction
+	if err := h.db.Preload("Target").Where("uuid = ?", txUUID).First(&tx).Error; err != nil {
+		http.Error(w, "transaction not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify ownership - user can only update their own transactions
+	if tx.Target.ID != userID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := h.db.Model(&tx).Update("is_queue", req.IsQueue).Error; err != nil {
+		http.Error(w, "failed to update queue status", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast refresh to WS
+	h.hub.Broadcast <- domain.AlertMessage{
+		UserUUID: tx.Target.UUID,
+		Type:     "refresh",
+	}
+
+	tx.IsQueue = req.IsQueue
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tx)
+}
+
+// AddToQueue adds a transaction to the queue
+func (h *TransactionHandler) AddToQueue(w http.ResponseWriter, r *http.Request) {
+	txUUID := chi.URLParam(r, "uuid")
+	userID := r.Context().Value("user_id").(uint)
+
+	var tx domain.Transaction
+	if err := h.db.Preload("Target").Where("uuid = ?", txUUID).First(&tx).Error; err != nil {
+		http.Error(w, "transaction not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify ownership
+	if tx.Target.ID != userID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := h.db.Model(&tx).Update("is_queue", true).Error; err != nil {
+		http.Error(w, "failed to add to queue", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast refresh to WS
+	h.hub.Broadcast <- domain.AlertMessage{
+		UserUUID: tx.Target.UUID,
+		Type:     "refresh",
+	}
+
+	tx.IsQueue = true
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tx)
+}
+
+// RemoveFromQueue removes a transaction from the queue
+func (h *TransactionHandler) RemoveFromQueue(w http.ResponseWriter, r *http.Request) {
+	txUUID := chi.URLParam(r, "uuid")
+	userID := r.Context().Value("user_id").(uint)
+
+	var tx domain.Transaction
+	if err := h.db.Preload("Target").Where("uuid = ?", txUUID).First(&tx).Error; err != nil {
+		http.Error(w, "transaction not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify ownership
+	if tx.Target.ID != userID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := h.db.Model(&tx).Update("is_queue", false).Error; err != nil {
+		http.Error(w, "failed to remove from queue", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast refresh to WS
+	h.hub.Broadcast <- domain.AlertMessage{
+		UserUUID: tx.Target.UUID,
+		Type:     "refresh",
+	}
+
+	tx.IsQueue = false
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tx)
+}
+
+// GetQueueList returns transactions list sorted by amount
+func (h *TransactionHandler) GetQueueList(w http.ResponseWriter, r *http.Request) {
+	username := chi.URLParam(r, "username")
+
+	var user domain.User
+	if err := h.db.Where("username = ?", username).First(&user).Error; err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	// Parse query parameters
+	status := r.URL.Query().Get("status")
+	isQueueStr := r.URL.Query().Get("is_queue")
+	sortBy := r.URL.Query().Get("sort_by")
+	order := r.URL.Query().Get("order")
+
+	// Defaults
+	if sortBy == "" {
+		sortBy = "base_amount"
+	}
+	if order == "" {
+		order = "desc"
+	}
+
+	// Build query
+	query := h.db.Model(&domain.Transaction{}).Where("target_id = ?", user.ID)
+
+	// Filter by status
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	// Filter by is_queue
+	if isQueueStr != "" {
+		isQueue := isQueueStr == "true"
+		query = query.Where("is_queue = ?", isQueue)
+	}
+
+	// Validate sort column
+	allowedSortBy := map[string]bool{"base_amount": true, "amount": true, "created_at": true}
+	if !allowedSortBy[sortBy] {
+		sortBy = "base_amount"
+	}
+
+	// Validate order
+	if order != "asc" && order != "desc" {
+		order = "desc"
+	}
+
+	// Apply sorting
+	query = query.Order(sortBy + " " + order)
+
+	var transactions []domain.Transaction
+	if err := query.Find(&transactions).Error; err != nil {
+		http.Error(w, "failed to fetch transactions", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(transactions)
 }

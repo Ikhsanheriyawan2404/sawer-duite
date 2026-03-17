@@ -38,13 +38,56 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, _ := h.authService.GenerateAccessToken(user.ID)
-	refreshToken, _ := h.authService.GenerateRefreshToken(user.ID)
+	accessToken, err := h.authService.GenerateAccessToken(user.ID)
+	if err != nil {
+		http.Error(w, "failed to generate access token", http.StatusInternalServerError)
+		return
+	}
+
+	refreshToken, err := h.authService.GenerateRefreshToken(user.ID)
+	if err != nil {
+		http.Error(w, "failed to generate refresh token", http.StatusInternalServerError)
+		return
+	}
 
 	response := domain.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		User:         user,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	var req domain.RefreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := h.authService.ValidateRefreshToken(req.RefreshToken)
+	if err != nil {
+		http.Error(w, "invalid refresh token", http.StatusUnauthorized)
+		return
+	}
+
+	newAccessToken, err := h.authService.GenerateAccessToken(userID)
+	if err != nil {
+		http.Error(w, "failed to generate access token", http.StatusInternalServerError)
+		return
+	}
+
+	newRefreshToken, err := h.authService.GenerateRefreshToken(userID)
+	if err != nil {
+		http.Error(w, "failed to generate refresh token", http.StatusInternalServerError)
+		return
+	}
+
+	response := domain.RefreshResponse{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -117,10 +160,38 @@ func (h *AuthHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 	// Only return public info
 	publicUser := struct {
 		ID       uint   `json:"id"`
+		UUID     string `json:"uuid"`
 		Username string `json:"username"`
 		Name     string `json:"name"`
 	}{
 		ID:       user.ID,
+		UUID:     user.UUID,
+		Username: user.Username,
+		Name:     user.Name,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(publicUser)
+}
+
+func (h *AuthHandler) GetUserByUUID(w http.ResponseWriter, r *http.Request) {
+	uuid := chi.URLParam(r, "uuid")
+
+	var user domain.User
+	if err := h.db.Where("uuid = ?", uuid).First(&user).Error; err != nil {
+		http.Error(w, "user not found", http.StatusNotFound)
+		return
+	}
+
+	// Only return public info
+	publicUser := struct {
+		ID       uint   `json:"id"`
+		UUID     string `json:"uuid"`
+		Username string `json:"username"`
+		Name     string `json:"name"`
+	}{
+		ID:       user.ID,
+		UUID:     user.UUID,
 		Username: user.Username,
 		Name:     user.Name,
 	}

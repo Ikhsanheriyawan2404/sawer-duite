@@ -55,3 +55,21 @@ func (s *AuthService) ValidateAccessToken(tokenString string) (uint, error) {
 	userID := uint(claims["user_id"].(float64))
 	return userID, nil
 }
+
+func (s *AuthService) ValidateRefreshToken(tokenString string) (uint, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.config.JWTRefreshSecret), nil
+	})
+
+	if err != nil || !token.Valid {
+		return 0, errors.New("invalid token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || claims["type"] != "refresh" {
+		return 0, errors.New("invalid claims")
+	}
+
+	userID := uint(claims["user_id"].(float64))
+	return userID, nil
+}

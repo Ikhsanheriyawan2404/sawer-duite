@@ -1,132 +1,158 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { WS_URL } from '../../lib/api'
+import { useDocumentTitle } from '../../lib/useDocumentTitle'
 import '../../App.css'
 
 function AlertOverlay() {
+  useDocumentTitle('Alert Overlay')
   const { uuid } = useParams()
   const [visible, setVisible] = useState(false)
-  const [data, setData] = useState({
-    amount: 0,
-    sender: '',
-    message: ''
-  })
+  const [currentAlert, setCurrentAlert] = useState<any>(null)
   
-  const idVoiceRef = useRef<SpeechSynthesisVoice | null>(null)
+  const queueRef = useRef<any[]>([])
+  const isProcessingRef = useRef(false)
+  const soundFxRef = useRef<HTMLAudioElement | null>(null)
+  const socketRef = useRef<WebSocket | null>(null)
+  const audioUnlockedRef = useRef(false)
 
-  const loadVoice = useCallback(() => {
-    const voices = window.speechSynthesis.getVoices()
-    const idVoice = voices.find(v => v.lang === 'id-ID' || v.lang === 'id_ID')
-    if (idVoice) idVoiceRef.current = idVoice
+  const warmUp = useCallback(() => {
+    if (audioUnlockedRef.current) return
+    if (soundFxRef.current) {
+      soundFxRef.current.volume = 0.001
+      soundFxRef.current.play().then(() => {
+        soundFxRef.current?.pause()
+        soundFxRef.current!.volume = 1.0
+        audioUnlockedRef.current = true
+      }).catch(() => {})
+    }
+    const dummy = new SpeechSynthesisUtterance('')
+    dummy.volume = 0
+    window.speechSynthesis.speak(dummy)
   }, [])
 
   useEffect(() => {
-    loadVoice()
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoice
-    }
-  }, [loadVoice])
+    const audio = new Audio('/money-soundfx.mp3')
+    audio.load()
+    soundFxRef.current = audio
+    window.addEventListener('mousedown', warmUp, { once: true })
+    return () => window.removeEventListener('mousedown', warmUp)
+  }, [warmUp])
 
-  const speakMessage = (amount: number, sender: string, message: string) => {
-    if (!('speechSynthesis' in window)) return
+  const speak = (text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      if (!window.speechSynthesis) return resolve()
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(text.replace(/rp\.?\s?/gi, ' rupiah '))
+      utterance.lang = 'id-ID'
+      utterance.rate = 1.0
+      const voices = window.speechSynthesis.getVoices()
+      const bestVoice = voices.find(v => v.lang.includes('id') && (v.name.includes('Google') || v.name.includes('Natural'))) || voices.find(v => v.lang.includes('id'))
+      if (bestVoice) utterance.voice = bestVoice
+      utterance.onend = () => resolve()
+      utterance.onerror = () => resolve()
+      window.speechSynthesis.speak(utterance)
+    })
+  }
 
-    window.speechSynthesis.cancel()
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-    const formattedAmount = new Intl.NumberFormat('id-ID').format(amount)
-    const textToSpeak = `${formattedAmount} rupiah dari ${sender || 'Anonim'}. ${message || ''}`
-    
-    const utterance = new SpeechSynthesisUtterance(textToSpeak)
-    if (idVoiceRef.current) {
-      utterance.voice = idVoiceRef.current
-    }
-    
-    utterance.lang = 'id-ID'
-    utterance.rate = 1.0
-    utterance.pitch = 1.0
+  const processQueue = async () => {
+    if (isProcessingRef.current || queueRef.current.length === 0) return
+    isProcessingRef.current = true
+    const data = queueRef.current.shift()
+    setCurrentAlert(data)
+    setVisible(true)
 
-    window.speechSynthesis.speak(utterance)
+    try {
+      if (soundFxRef.current) {
+        soundFxRef.current.currentTime = 0
+        await soundFxRef.current.play().catch(() => {})
+      }
+      await delay(1200)
+      const formatted = new Intl.NumberFormat('id-ID').format(data.amount)
+      await speak(`${formatted} rupiah dari ${data.sender || 'Seseorang'}`)
+      if (data.message) {
+        await delay(400)
+        await speak(data.message)
+      }
+    } catch (err) {}
+
+    await delay(3500)
+    setVisible(false)
+    await delay(500)
+    isProcessingRef.current = false
+    processQueue()
   }
 
   const connectWS = useCallback(() => {
     if (!uuid) return
-
+    // PUBLIC ACCESS: No token required for overlay handshake
     const wsUrl = `${WS_URL}/ws/${uuid}`
     const socket = new WebSocket(wsUrl)
+    socketRef.current = socket
 
-    socket.onopen = () => console.log('✅ Connected')
-    socket.onmessage = (event) => {
+    socket.onmessage = (e) => {
       try {
-        const payload = JSON.parse(event.data)
-        setData({
-          amount: payload.amount,
-          sender: payload.sender,
-          message: payload.message
-        })
-        
-        setVisible(true)
-        speakMessage(payload.amount, payload.sender, payload.message)
-        setTimeout(() => setVisible(false), 12000)
-      } catch (err) {
-        console.error('❌ WS Error', err)
-      }
+        const payload = JSON.parse(e.data)
+        if (payload.type === 'alert') {
+          queueRef.current.push(payload)
+          processQueue()
+        }
+      } catch (err) {}
     }
-
     socket.onclose = () => setTimeout(() => connectWS(), 5000)
-    return socket
   }, [uuid])
 
   useEffect(() => {
-    const socket = connectWS()
-    return () => {
-      if (socket) socket.close()
-      window.speechSynthesis.cancel()
-    }
+    connectWS()
+    return () => socketRef.current?.close()
   }, [connectWS])
 
-  if (!visible) return null
-
-  const formattedAmount = new Intl.NumberFormat('id-ID', { 
-    style: 'currency', currency: 'IDR', minimumFractionDigits: 0 
-  }).format(data.amount)
+  if (!visible || !currentAlert) return <main className="overlay-container" onClick={warmUp} />
 
   return (
-    <main className="overlay-container">
-      <div className="alert-wrapper animate-subtle-pop">
+    <main className="overlay-container" onClick={warmUp}>
+      <div className="alert-card animate-alert">
+        <div className="alert-accent"></div>
         <img src="/thanks.gif" alt="thanks" className="alert-gif" />
-        <div className="alert-content-simple">
-          <div className="alert-line-1">
-            <span className="highlight-text">{formattedAmount}</span>
-            <span className="normal-text"> dari </span>
-            <span className="highlight-text">{data.sender || 'Anonim'}</span>
+        <div className="alert-content">
+          <div className="alert-user">{currentAlert.sender || 'Someone'}</div>
+          <div className="alert-amount">
+            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(currentAlert.amount)}
           </div>
-          <div className="alert-line-2">{data.message}</div>
+          {currentAlert.message && <div className="alert-msg">"{currentAlert.message}"</div>}
         </div>
       </div>
 
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
         .overlay-container {
           width: 100vw; height: 100vh; background: transparent;
-          display: flex; align-items: center; justify-content: center; overflow: hidden;
+          display: flex; align-items: flex-start; justify-content: center;
+          padding-top: 80px; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        .alert-wrapper { display: flex; flex-direction: column; align-items: center; text-align: center; }
-        .alert-gif { width: 180px; height: auto; margin-bottom: 8px; }
-        .alert-content-simple { padding: 10px; }
-        .alert-line-1 {
-          font-family: var(--display); font-size: 2.5rem; color: #ffffff;
-          margin-bottom: 2px; letter-spacing: -0.01em; -webkit-text-stroke: 1.5px #000000;
+        .alert-card {
+          background: rgba(15, 15, 15, 0.9); backdrop-filter: blur(20px);
+          border-radius: 24px; padding: 20px 40px; min-width: 350px;
+          display: flex; flex-direction: column; align-items: center;
+          border: 1px solid rgba(255,255,255,0.1); position: relative;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
-        .highlight-text { color: #863bff; font-weight: 700; }
-        .normal-text { font-weight: 400; color: #ffffff; }
-        .alert-line-2 {
-          font-family: var(--sans); font-size: 1.4rem; font-weight: 700; color: #ffffff;
-          letter-spacing: 0.02em; text-transform: none; -webkit-text-stroke: 1px #000000;
+        .alert-accent {
+          position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+          width: 100px; height: 4px; background: #863bff; border-radius: 0 0 10px 10px;
+          box-shadow: 0 0 20px #863bff;
         }
-        .animate-subtle-pop {
-          animation: subtlePop 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67) both,
-                     subtleShake 4s ease-in-out 0.6s infinite;
+        .alert-gif { width: 100px; height: auto; margin-bottom: 12px; }
+        .alert-user { font-size: 1rem; color: rgba(255,255,255,0.6); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .alert-amount { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 4px 0; }
+        .alert-msg { font-size: 1.1rem; color: #863bff; font-weight: 500; font-style: italic; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; }
+        .animate-alert { animation: alertSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        @keyframes alertSlideIn {
+          0% { transform: translateY(-50px); opacity: 0; filter: blur(10px); }
+          100% { transform: translateY(0); opacity: 1; filter: blur(0); }
         }
-        @keyframes subtlePop { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes subtleShake { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
       `}</style>
     </main>
   )
