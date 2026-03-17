@@ -6,14 +6,12 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 function MediaOverlay() {
   useDocumentTitle('Media Overlay')
   const { uuid } = useParams()
-  const [loading, setLoading] = useState(true)
   const [username, setUsername] = useState<string | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
 
   const fetchMediaStatus = useCallback(async () => {
     // For now, this is a placeholder for future media queue logic
     console.log('🔄 Syncing media status...')
-    setLoading(false)
   }, [])
 
   const connectWS = useCallback(() => {
