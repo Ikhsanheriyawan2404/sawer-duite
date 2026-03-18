@@ -28,9 +28,12 @@ type User struct {
 	TargetDescription string            `json:"target_description"`
 	QuickAmounts      []int64           `gorm:"type:jsonb;serializer:json" json:"quick_amounts"`
 	DonationPackages  []DonationPackage `gorm:"type:jsonb;serializer:json" json:"donation_packages"`
-	CreatedAt         time.Time         `json:"created_at"`
-	UpdatedAt         time.Time         `json:"updated_at"`
-	DeletedAt         gorm.DeletedAt    `gorm:"index" json:"-"`
+	// Custom input field untuk donasi (misal: username roblox, ID game, dll)
+	CustomInputLabel    string `json:"custom_input_label"`    // Label field (contoh: "Username Roblox")
+	CustomInputRequired bool   `json:"custom_input_required"` // Apakah wajib diisi
+	CreatedAt           time.Time      `json:"created_at"`
+	UpdatedAt           time.Time      `json:"updated_at"`
+	DeletedAt           gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
@@ -46,17 +49,19 @@ type LoginRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	Name              string            `json:"name"`
-	Username          string            `json:"username"`
-	Bio               string            `json:"bio"`
-	TikTok            string            `json:"tiktok"`
-	Instagram         string            `json:"instagram"`
-	YouTube           string            `json:"youtube"`
-	MinDonation       int64             `json:"min_donation"`
-	TargetAmount      int64             `json:"target_amount"`
-	TargetDescription string            `json:"target_description"`
-	QuickAmounts      []int64           `json:"quick_amounts"`
-	DonationPackages  []DonationPackage `json:"donation_packages"`
+	Name                string            `json:"name"`
+	Username            string            `json:"username"`
+	Bio                 string            `json:"bio"`
+	TikTok              string            `json:"tiktok"`
+	Instagram           string            `json:"instagram"`
+	YouTube             string            `json:"youtube"`
+	MinDonation         int64             `json:"min_donation"`
+	TargetAmount        int64             `json:"target_amount"`
+	TargetDescription   string            `json:"target_description"`
+	QuickAmounts        []int64           `json:"quick_amounts"`
+	DonationPackages    []DonationPackage `json:"donation_packages"`
+	CustomInputLabel    string            `json:"custom_input_label"`
+	CustomInputRequired bool              `json:"custom_input_required"`
 }
 
 type LoginResponse struct {

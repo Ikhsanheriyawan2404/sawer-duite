@@ -44,7 +44,7 @@ func SeedUser(db *gorm.DB) {
 		Username:          "ongob",
 		Password:          string(hashedPassword),
 		Name:              "Aikyy",
-		Bio:               "Terimakasih! Janganlupa tulis username kalian yaa! Supaya diupdate di Leaderboard",
+		Bio:               "Terimakasih! Jangan lupa tulis username kalian yaa! Supaya diupdate di Leaderboard",
 		TikTok:            "https://tiktok.com/@ongobkun",
 		Instagram:         "https://instagram.com/kychan.real",
 		YouTube:           "https://youtube.com/@aikyyfishit",

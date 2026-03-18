@@ -52,6 +52,12 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Custom input validation - jika user mewajibkan custom input, harus diisi
+	if target.CustomInputRequired && target.CustomInputLabel != "" && req.CustomInput == "" {
+		http.Error(w, target.CustomInputLabel+" wajib diisi", http.StatusBadRequest)
+		return
+	}
+
 	// Unique ID mechanism (10-99)
 	uniqueCode := rand.Intn(90) + 10
 	totalAmount := req.Amount + uniqueCode
@@ -70,6 +76,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		Amount:      totalAmount,
 		BaseAmount:  req.Amount,
 		Note:        req.Note,
+		CustomInput: req.CustomInput,
 		QRISPayload: qrisPayload,
 		Status:      "pending",
 		IsQueue:     true, // Default: masuk antrian

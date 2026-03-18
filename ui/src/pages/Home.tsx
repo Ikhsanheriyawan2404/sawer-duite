@@ -22,6 +22,8 @@ interface User {
   target_description: string
   quick_amounts: number[]
   donation_packages: DonationPackage[]
+  custom_input_label: string
+  custom_input_required: boolean
   created_at: string
   updated_at: string
 }
@@ -53,7 +55,9 @@ function Home() {
     target_amount: 0,
     target_description: '',
     quick_amounts: [] as number[],
-    donation_packages: [] as DonationPackage[]
+    donation_packages: [] as DonationPackage[],
+    custom_input_label: '',
+    custom_input_required: false
   })
   const [newQuickAmount, setNewQuickAmount] = useState('')
   const [newPackage, setNewPackage] = useState({ label: '', amount: '' })
@@ -81,7 +85,9 @@ function Home() {
         target_amount: parsed.target_amount || 0,
         target_description: parsed.target_description || '',
         quick_amounts: parsed.quick_amounts || [],
-        donation_packages: parsed.donation_packages || []
+        donation_packages: parsed.donation_packages || [],
+        custom_input_label: parsed.custom_input_label || '',
+        custom_input_required: parsed.custom_input_required || false
       })
     }
 
@@ -205,7 +211,9 @@ function Home() {
         target_amount: user.target_amount || 0,
         target_description: user.target_description || '',
         quick_amounts: user.quick_amounts || [],
-        donation_packages: user.donation_packages || []
+        donation_packages: user.donation_packages || [],
+        custom_input_label: user.custom_input_label || '',
+        custom_input_required: user.custom_input_required || false
       })
     }
   }
@@ -518,6 +526,30 @@ function Home() {
                   </div>
                 </div>
 
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Kolom Input Tambahan (Wajib)</h4>
+                  <div className="form-group">
+                    <label>Label Kolom (Kosongkan jika tidak perlu)</label>
+                    <input
+                      type="text"
+                      value={formData.custom_input_label}
+                      onChange={e => setFormData({ ...formData, custom_input_label: e.target.value })}
+                      placeholder="Contoh: Username Roblox"
+                      className="input"
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      id="custom_required"
+                      checked={formData.custom_input_required}
+                      onChange={e => setFormData({ ...formData, custom_input_required: e.target.checked })}
+                      style={{ width: 'auto' }}
+                    />
+                    <label htmlFor="custom_required" style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Aktifkan & Wajib diisi</label>
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>
                   <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
                     Batal
@@ -553,6 +585,15 @@ function Home() {
                   <div className="profile-field">
                     <p className="profile-label">Paket Dukungan</p>
                     <p className="profile-value" style={{ fontSize: '14px' }}>{user?.donation_packages?.length || 0} Paket Terdaftar</p>
+                  </div>
+                </div>
+
+                <div className="profile-display">
+                  <div className="profile-field">
+                    <p className="profile-label">Kolom Input Tambahan</p>
+                    <p className="profile-value" style={{ fontSize: '14px' }}>
+                      {user?.custom_input_label ? `${user.custom_input_label} (${user.custom_input_required ? 'Wajib' : 'Opsional'})` : 'Tidak Aktif'}
+                    </p>
                   </div>
                 </div>
               </div>

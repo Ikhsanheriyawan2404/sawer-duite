@@ -1,14 +1,26 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { API_URL } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 function Donate() {
   const { username } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ name: '', amount: '10000', note: '' })
+  
+  // Ambil data dari URL jika ada
+  const initialAmount = searchParams.get('amount') || '10000'
+  const initialNote = searchParams.get('note') || ''
+  const isFixed = searchParams.get('fixed') === 'true'
+
+  const [form, setForm] = useState({ 
+    name: '', 
+    amount: initialAmount, 
+    note: initialNote,
+    customInput: '' 
+  })
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [agreed, setAgreed] = useState(false)
 
@@ -40,15 +52,17 @@ function Donate() {
   }
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isFixed) return 
     const val = e.target.value.replace(/\D/g, '')
     setForm({ ...form, amount: val })
   }
 
   const isMinDonationMet = !user?.min_donation || parseInt(form.amount) >= user.min_donation
+  const isCustomInputMet = !user?.custom_input_required || !user?.custom_input_label || form.customInput.trim() !== ''
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!agreed || !isMinDonationMet) return
+    if (!agreed || !isMinDonationMet || !isCustomInputMet) return
 
     try {
       const response = await fetch(`${API_URL}/transactions`, {
@@ -59,6 +73,7 @@ function Donate() {
           sender: isAnonymous ? 'Seseorang' : form.name,
           amount: parseInt(form.amount),
           note: form.note,
+          custom_input: form.customInput,
         }),
       })
 
@@ -82,7 +97,26 @@ function Donate() {
           <span className="label-text">DUKUNGAN</span>
         </div>
         <h2>Dukung {user?.name || username}</h2>
-        <p className="lead">Pilih nominal dan tulis pesanmu.</p>
+        
+        {isFixed ? (
+          <div style={{ 
+            background: 'var(--accent)', 
+            color: '#fff', 
+            padding: '12px 20px', 
+            borderRadius: '12px', 
+            marginBottom: '20px',
+            fontSize: '14px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span>✨ Memilih Paket:</span>
+            <span style={{ opacity: 0.9 }}>{initialNote}</span>
+          </div>
+        ) : (
+          <p className="lead">Pilih nominal dan tulis pesanmu.</p>
+        )}
 
         <form className="form" onSubmit={handleSubmit}>
           <label>
@@ -95,7 +129,6 @@ function Donate() {
               disabled={isAnonymous}
               required
             />
-            {/* Checkbox Anonim - Disebelah kiri */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
               <input
                 type="checkbox"
@@ -110,6 +143,30 @@ function Donate() {
             </div>
           </label>
 
+          {/* Custom Input Field (e.g. Roblox Username) */}
+          {user?.custom_input_label && (
+            <div className="form-group">
+              <div style={{ fontSize: '14px', fontWeight: 600 }}>
+                {user.custom_input_label} {user.custom_input_required && <span style={{ color: '#dc2626' }}>*</span>}
+              </div>
+              <input
+                type="text"
+                placeholder={`Masukkan ${user.custom_input_label}`}
+                value={form.customInput}
+                onChange={e => setForm({...form, customInput: e.target.value})}
+                required={user.custom_input_required}
+                style={{
+                  borderColor: (user.custom_input_required && !form.customInput.trim()) ? '#dc2626' : undefined
+                }}
+              />
+              {user.custom_input_required && !form.customInput.trim() && (
+                <p style={{ color: '#dc2626', fontSize: '11px', fontWeight: 600, margin: 0 }}>
+                  Wajib diisi
+                </p>
+              )}
+            </div>
+          )}
+
           <label>
             Nominal Dukungan (IDR)
             <div style={{ position: 'relative' }}>
@@ -118,7 +175,13 @@ function Donate() {
                 type="text"
                 value={formatIDR(form.amount)}
                 onChange={handleAmountChange}
-                style={{ paddingLeft: '45px', borderColor: !isMinDonationMet ? '#dc2626' : undefined }}
+                disabled={isFixed}
+                style={{ 
+                  paddingLeft: '45px', 
+                  borderColor: !isMinDonationMet ? '#dc2626' : undefined,
+                  background: isFixed ? 'var(--muted)' : undefined,
+                  cursor: isFixed ? 'not-allowed' : undefined
+                }}
                 required
               />
             </div>
@@ -127,29 +190,31 @@ function Donate() {
                 Minimal dukungan adalah Rp{formatIDR(user.min_donation.toString())}
               </p>
             )}
-            {/* Grid 5 Nominal Saja */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginTop: '12px' }}>
-              {quickAmounts.map(amt => {
-                let label = ''
-                if (amt >= 1000000) {
-                  const juta = amt / 1000000
-                  label = Number.isInteger(juta) ? `${juta}jt` : `${juta.toFixed(1).replace('.', ',')}jt`
-                } else {
-                  label = `${amt / 1000}rb`
-                }
-                return (
-                  <button
-                    key={amt}
-                    type="button"
-                    className={`btn ${parseInt(form.amount) === amt ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                    style={{ padding: '8px 0', borderRadius: '12px', fontSize: '13px' }}
-                    onClick={() => setForm({ ...form, amount: amt.toString() })}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
+            
+            {!isFixed && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginTop: '12px' }}>
+                {quickAmounts.map(amt => {
+                  let label = ''
+                  if (amt >= 1000000) {
+                    const juta = amt / 1000000
+                    label = Number.isInteger(juta) ? `${juta}jt` : `${juta.toFixed(1).replace('.', ',')}jt`
+                  } else {
+                    label = `${amt / 1000}rb`
+                  }
+                  return (
+                    <button
+                      key={amt}
+                      type="button"
+                      className={`btn ${parseInt(form.amount) === amt ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                      style={{ padding: '8px 0', borderRadius: '12px', fontSize: '13px' }}
+                      onClick={() => setForm({ ...form, amount: amt.toString() })}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </label>
 
           <label>
@@ -166,7 +231,6 @@ function Donate() {
             </span>
           </label>
 
-          {/* Checkbox Ketentuan - Disebelah kiri */}
           <div style={{
             display: 'flex',
             alignItems: 'flex-start',
@@ -196,13 +260,13 @@ function Donate() {
               fontSize: '16px',
               fontWeight: '700',
               marginTop: '12px',
-              opacity: (agreed && isMinDonationMet) ? 1 : 0.5,
-              cursor: (agreed && isMinDonationMet) ? 'pointer' : 'not-allowed',
-              filter: (agreed && isMinDonationMet) ? 'none' : 'grayscale(0.5)',
+              opacity: (agreed && isMinDonationMet && isCustomInputMet) ? 1 : 0.5,
+              cursor: (agreed && isMinDonationMet && isCustomInputMet) ? 'pointer' : 'not-allowed',
+              filter: (agreed && isMinDonationMet && isCustomInputMet) ? 'none' : 'grayscale(0.5)',
               transition: 'all 0.2s ease'
             }}
             type="submit"
-            disabled={!agreed || !isMinDonationMet}
+            disabled={!agreed || !isMinDonationMet || !isCustomInputMet}
           >
             Lanjut Pembayaran
           </button>

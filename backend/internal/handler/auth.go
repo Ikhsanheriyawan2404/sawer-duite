@@ -147,6 +147,8 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	user.TargetDescription = req.TargetDescription
 	user.QuickAmounts = req.QuickAmounts
 	user.DonationPackages = req.DonationPackages
+	user.CustomInputLabel = req.CustomInputLabel
+	user.CustomInputRequired = req.CustomInputRequired
 
 	if err := h.db.Save(&user).Error; err != nil {
 		http.Error(w, "failed to update profile", http.StatusInternalServerError)
@@ -168,33 +170,37 @@ func (h *AuthHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 
 	// Only return public info
 	publicUser := struct {
-		ID                uint                     `json:"id"`
-		UUID              string                   `json:"uuid"`
-		Username          string                   `json:"username"`
-		Name              string                   `json:"name"`
-		Bio               string                   `json:"bio"`
-		TikTok            string                   `json:"tiktok"`
-		Instagram         string                   `json:"instagram"`
-		YouTube           string                   `json:"youtube"`
-		MinDonation       int64                    `json:"min_donation"`
-		TargetAmount      int64                    `json:"target_amount"`
-		TargetDescription string                   `json:"target_description"`
-		QuickAmounts      []int64                  `json:"quick_amounts"`
-		DonationPackages  []domain.DonationPackage `json:"donation_packages"`
+		ID                  uint                     `json:"id"`
+		UUID                string                   `json:"uuid"`
+		Username            string                   `json:"username"`
+		Name                string                   `json:"name"`
+		Bio                 string                   `json:"bio"`
+		TikTok              string                   `json:"tiktok"`
+		Instagram           string                   `json:"instagram"`
+		YouTube             string                   `json:"youtube"`
+		MinDonation         int64                    `json:"min_donation"`
+		TargetAmount        int64                    `json:"target_amount"`
+		TargetDescription   string                   `json:"target_description"`
+		QuickAmounts        []int64                  `json:"quick_amounts"`
+		DonationPackages    []domain.DonationPackage `json:"donation_packages"`
+		CustomInputLabel    string                   `json:"custom_input_label"`
+		CustomInputRequired bool                     `json:"custom_input_required"`
 	}{
-		ID:                user.ID,
-		UUID:              user.UUID,
-		Username:          user.Username,
-		Name:              user.Name,
-		Bio:               user.Bio,
-		TikTok:            user.TikTok,
-		Instagram:         user.Instagram,
-		YouTube:           user.YouTube,
-		MinDonation:       user.MinDonation,
-		TargetAmount:      user.TargetAmount,
-		TargetDescription: user.TargetDescription,
-		QuickAmounts:      user.QuickAmounts,
-		DonationPackages:  user.DonationPackages,
+		ID:                  user.ID,
+		UUID:                user.UUID,
+		Username:            user.Username,
+		Name:                user.Name,
+		Bio:                 user.Bio,
+		TikTok:              user.TikTok,
+		Instagram:           user.Instagram,
+		YouTube:             user.YouTube,
+		MinDonation:         user.MinDonation,
+		TargetAmount:        user.TargetAmount,
+		TargetDescription:   user.TargetDescription,
+		QuickAmounts:        user.QuickAmounts,
+		DonationPackages:    user.DonationPackages,
+		CustomInputLabel:    user.CustomInputLabel,
+		CustomInputRequired: user.CustomInputRequired,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -212,33 +218,37 @@ func (h *AuthHandler) GetUserByUUID(w http.ResponseWriter, r *http.Request) {
 
 	// Only return public info
 	publicUser := struct {
-		ID                uint                     `json:"id"`
-		UUID              string                   `json:"uuid"`
-		Username          string                   `json:"username"`
-		Name              string                   `json:"name"`
-		Bio               string                   `json:"bio"`
-		TikTok            string                   `json:"tiktok"`
-		Instagram         string                   `json:"instagram"`
-		YouTube           string                   `json:"youtube"`
-		MinDonation       int64                    `json:"min_donation"`
-		TargetAmount      int64                    `json:"target_amount"`
-		TargetDescription string                   `json:"target_description"`
-		QuickAmounts      []int64                  `json:"quick_amounts"`
-		DonationPackages  []domain.DonationPackage `json:"donation_packages"`
+		ID                  uint                     `json:"id"`
+		UUID                string                   `json:"uuid"`
+		Username            string                   `json:"username"`
+		Name                string                   `json:"name"`
+		Bio                 string                   `json:"bio"`
+		TikTok              string                   `json:"tiktok"`
+		Instagram           string                   `json:"instagram"`
+		YouTube             string                   `json:"youtube"`
+		MinDonation         int64                    `json:"min_donation"`
+		TargetAmount        int64                    `json:"target_amount"`
+		TargetDescription   string                   `json:"target_description"`
+		QuickAmounts        []int64                  `json:"quick_amounts"`
+		DonationPackages    []domain.DonationPackage `json:"donation_packages"`
+		CustomInputLabel    string                   `json:"custom_input_label"`
+		CustomInputRequired bool                     `json:"custom_input_required"`
 	}{
-		ID:                user.ID,
-		UUID:              user.UUID,
-		Username:          user.Username,
-		Name:              user.Name,
-		Bio:               user.Bio,
-		TikTok:            user.TikTok,
-		Instagram:         user.Instagram,
-		YouTube:           user.YouTube,
-		MinDonation:       user.MinDonation,
-		TargetAmount:      user.TargetAmount,
-		TargetDescription: user.TargetDescription,
-		QuickAmounts:      user.QuickAmounts,
-		DonationPackages:  user.DonationPackages,
+		ID:                  user.ID,
+		UUID:                user.UUID,
+		Username:            user.Username,
+		Name:                user.Name,
+		Bio:                 user.Bio,
+		TikTok:              user.TikTok,
+		Instagram:           user.Instagram,
+		YouTube:             user.YouTube,
+		MinDonation:         user.MinDonation,
+		TargetAmount:        user.TargetAmount,
+		TargetDescription:   user.TargetDescription,
+		QuickAmounts:        user.QuickAmounts,
+		DonationPackages:    user.DonationPackages,
+		CustomInputLabel:    user.CustomInputLabel,
+		CustomInputRequired: user.CustomInputRequired,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

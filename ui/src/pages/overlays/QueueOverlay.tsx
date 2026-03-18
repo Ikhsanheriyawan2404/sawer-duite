@@ -8,6 +8,7 @@ interface Transaction {
   sender: string
   base_amount: number
   note: string
+  custom_input: string
 }
 
 function QueueOverlay() {
@@ -82,7 +83,12 @@ function QueueOverlay() {
             donors.slice(0, 10).map((donor, index) => (
               <div key={donor.uuid} className="queue-item">
                 <span className="queue-rank">{index + 1}</span>
-                <span className="queue-name">{donor.sender}</span>
+                <div className="queue-info">
+                  <span className="queue-name">{donor.sender}</span>
+                  {donor.custom_input && (
+                    <span className="queue-custom">{donor.custom_input}</span>
+                  )}
+                </div>
                 <span className="queue-amount">{formatAmount(donor.base_amount)}</span>
               </div>
             ))
@@ -161,10 +167,22 @@ function QueueOverlay() {
         }
 
         .queue-name {
-          flex: 1;
           font-size: 16px;
           font-weight: 600;
           color: #0052ff;
+        }
+
+        .queue-info {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .queue-custom {
+          font-size: 13px;
+          color: #64748b;
+          font-weight: 500;
         }
 
         .queue-amount {
