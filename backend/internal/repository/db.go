@@ -39,11 +39,18 @@ func SeedUser(db *gorm.DB) {
 
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("asintel"), bcrypt.DefaultCost)
 	user := domain.User{
-		UUID:     uuid.New().String(),
-		Email:    "admin@gmail.com",
-		Username: "ongob",
-		Password: string(hashedPassword),
-		Name:     "Ongob Kun",
+		UUID:              uuid.New().String(),
+		Email:             "admin@gmail.com",
+		Username:          "ongob",
+		Password:          string(hashedPassword),
+		Name:              "Aikyy",
+		Bio:               "Terimakasih! Janganlupa tulis username kalian yaa! Supaya diupdate di Leaderboard",
+		TikTok:            "https://tiktok.com/@ongobkun",
+		Instagram:         "https://instagram.com/kychan.real",
+		YouTube:           "https://youtube.com/@aikyyfishit",
+		MinDonation:       10_000,
+		TargetAmount:      40_000_000,
+		TargetDescription: "Support untuk perkembangan Indo Outfit Loader",
 	}
 
 

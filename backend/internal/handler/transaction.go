@@ -46,6 +46,12 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Minimal donation validation
+	if target.MinDonation > 0 && int64(req.Amount) < target.MinDonation {
+		http.Error(w, "nominal donasi di bawah batas minimal", http.StatusBadRequest)
+		return
+	}
+
 	// Unique ID mechanism (10-99)
 	uniqueCode := rand.Intn(90) + 10
 	totalAmount := req.Amount + uniqueCode

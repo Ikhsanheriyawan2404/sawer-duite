@@ -2,12 +2,26 @@ import { useEffect, useState } from 'react'
 import { fetchWithAuth } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
+interface DonationPackage {
+  label: string
+  amount: number
+}
+
 interface User {
   id: number
   uuid: string
   email: string
   username: string
   name: string
+  bio: string
+  tiktok: string
+  instagram: string
+  youtube: string
+  min_donation: number
+  target_amount: number
+  target_description: string
+  quick_amounts: number[]
+  donation_packages: DonationPackage[]
   created_at: string
   updated_at: string
 }
@@ -28,7 +42,21 @@ function Home() {
   useDocumentTitle('Dashboard')
   const [user, setUser] = useState<User | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState({ name: '', username: '' })
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    username: '',
+    bio: '',
+    tiktok: '',
+    instagram: '',
+    youtube: '',
+    min_donation: 0,
+    target_amount: 0,
+    target_description: '',
+    quick_amounts: [] as number[],
+    donation_packages: [] as DonationPackage[]
+  })
+  const [newQuickAmount, setNewQuickAmount] = useState('')
+  const [newPackage, setNewPackage] = useState({ label: '', amount: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [queue, setQueue] = useState<Transaction[]>([])
@@ -42,14 +70,38 @@ function Home() {
     if (savedUser) {
       const parsed = JSON.parse(savedUser)
       setUser(parsed)
-      setFormData({ name: parsed.name, username: parsed.username })
+      setFormData({ 
+        name: parsed.name || '', 
+        username: parsed.username || '',
+        bio: parsed.bio || '',
+        tiktok: parsed.tiktok || '',
+        instagram: parsed.instagram || '',
+        youtube: parsed.youtube || '',
+        min_donation: parsed.min_donation || 0,
+        target_amount: parsed.target_amount || 0,
+        target_description: parsed.target_description || '',
+        quick_amounts: parsed.quick_amounts || [],
+        donation_packages: parsed.donation_packages || []
+      })
     }
 
     fetchWithAuth('/me')
       .then(res => res.json())
       .then(data => {
         setUser(data)
-        setFormData({ name: data.name, username: data.username })
+        setFormData({ 
+          name: data.name || '', 
+          username: data.username || '',
+          bio: data.bio || '',
+          tiktok: data.tiktok || '',
+          instagram: data.instagram || '',
+          youtube: data.youtube || '',
+          min_donation: data.min_donation || 0,
+          target_amount: data.target_amount || 0,
+          target_description: data.target_description || '',
+          quick_amounts: data.quick_amounts || [],
+          donation_packages: data.donation_packages || []
+        })
         localStorage.setItem('user', JSON.stringify(data))
         fetchQueue(data.username)
       })
@@ -142,7 +194,19 @@ function Home() {
     setIsEditing(false)
     setError('')
     if (user) {
-      setFormData({ name: user.name, username: user.username })
+      setFormData({ 
+        name: user.name || '', 
+        username: user.username || '',
+        bio: user.bio || '',
+        tiktok: user.tiktok || '',
+        instagram: user.instagram || '',
+        youtube: user.youtube || '',
+        min_donation: user.min_donation || 0,
+        target_amount: user.target_amount || 0,
+        target_description: user.target_description || '',
+        quick_amounts: user.quick_amounts || [],
+        donation_packages: user.donation_packages || []
+      })
     }
   }
 
@@ -158,7 +222,13 @@ function Home() {
     try {
       const res = await fetchWithAuth('/me', {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          min_donation: Number(formData.min_donation),
+          target_amount: Number(formData.target_amount),
+          quick_amounts: formData.quick_amounts.map(Number),
+          donation_packages: formData.donation_packages.map(p => ({ ...p, amount: Number(p.amount) }))
+        }),
       })
 
       if (!res.ok) {
@@ -180,6 +250,36 @@ function Home() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const addQuickAmount = () => {
+    const amt = parseInt(newQuickAmount)
+    if (amt > 0 && !formData.quick_amounts.includes(amt)) {
+      setFormData({ ...formData, quick_amounts: [...formData.quick_amounts, amt].sort((a,b) => a-b) })
+      setNewQuickAmount('')
+    }
+  }
+
+  const removeQuickAmount = (amt: number) => {
+    setFormData({ ...formData, quick_amounts: formData.quick_amounts.filter(a => a !== amt) })
+  }
+
+  const addPackage = () => {
+    const amt = parseInt(newPackage.amount)
+    if (newPackage.label && amt > 0) {
+      setFormData({ 
+        ...formData, 
+        donation_packages: [...formData.donation_packages, { label: newPackage.label, amount: amt }]
+      })
+      setNewPackage({ label: '', amount: '' })
+    }
+  }
+
+  const removePackage = (index: number) => {
+    setFormData({ 
+      ...formData, 
+      donation_packages: formData.donation_packages.filter((_, i) => i !== index) 
+    })
   }
 
   function formatDate(dateString: string) {
@@ -205,10 +305,10 @@ function Home() {
       </section>
 
       <section className="dashboard-grid">
-        {/* Profile Card */}
+        {/* Profile & Account Card */}
         <article className="card">
           <div className="card-header">
-            <h3>Profil</h3>
+            <h3>Profil & Akun</h3>
             {!isEditing && (
               <button className="btn btn-secondary btn-sm" onClick={handleEdit}>
                 Edit
@@ -220,54 +320,239 @@ function Home() {
 
           <div className="profile-form">
             {isEditing ? (
-              <>
-                <div className="form-group">
-                  <label>Nama</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    className="input"
-                    placeholder="Masukkan nama lengkap"
-                  />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Informasi Dasar</h4>
+                  <div className="form-group">
+                    <label>Nama Lengkap</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Username</label>
+                    <input
+                      type="text"
+                      value={formData.username}
+                      onChange={e => setFormData({ ...formData, username: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Bio (Deskripsi Profile)</label>
+                    <textarea
+                      value={formData.bio}
+                      onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                      className="input"
+                      style={{ minHeight: '80px', resize: 'none' }}
+                    />
+                  </div>
                 </div>
-                <div className="form-group">
-                  <label>Username</label>
-                  <input
-                    type="text"
-                    value={formData.username}
-                    onChange={e => setFormData({ ...formData, username: e.target.value })}
-                    className="input"
-                    placeholder="Masukkan username"
-                  />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Media Sosial</h4>
+                  <div className="form-group">
+                    <label>URL TikTok</label>
+                    <input
+                      type="text"
+                      value={formData.tiktok}
+                      onChange={e => setFormData({ ...formData, tiktok: e.target.value })}
+                      className="input"
+                      placeholder="https://tiktok.com/@username"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>URL Instagram</label>
+                    <input
+                      type="text"
+                      value={formData.instagram}
+                      onChange={e => setFormData({ ...formData, instagram: e.target.value })}
+                      className="input"
+                      placeholder="https://instagram.com/username"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>URL YouTube</label>
+                    <input
+                      type="text"
+                      value={formData.youtube}
+                      onChange={e => setFormData({ ...formData, youtube: e.target.value })}
+                      className="input"
+                      placeholder="https://youtube.com/@channel"
+                    />
+                  </div>
                 </div>
-                <div className="form-actions">
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="profile-display">
+                  <div className="profile-field">
+                    <p className="profile-label">Nama Lengkap</p>
+                    <p className="profile-value profile-value--accent">{user?.name || '-'}</p>
+                  </div>
+                  <div className="profile-field">
+                    <p className="profile-label">Bio</p>
+                    <p className="profile-value" style={{ fontSize: '14px', fontWeight: 500 }}>{user?.bio || 'Belum ada bio'}</p>
+                  </div>
+                </div>
+
+                <div className="profile-meta">
+                  <div className="profile-meta-item">
+                    <p className="profile-meta-label">TikTok</p>
+                    <p className="profile-meta-value">{user?.tiktok ? 'Tersambung' : '-'}</p>
+                  </div>
+                  <div className="profile-meta-item">
+                    <p className="profile-meta-label">Instagram</p>
+                    <p className="profile-meta-value">{user?.instagram ? 'Tersambung' : '-'}</p>
+                  </div>
+                  <div className="profile-meta-item">
+                    <p className="profile-meta-label">YouTube</p>
+                    <p className="profile-meta-value">{user?.youtube ? 'Tersambung' : '-'}</p>
+                  </div>
+                  <div className="profile-meta-item">
+                    <p className="profile-meta-label">Username</p>
+                    <p className="profile-meta-value">@{user?.username || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+
+        {/* Donation Preferences Card */}
+        <article className="card">
+          <div className="card-header">
+            <h3>Preferensi Dukungan</h3>
+            {isEditing && (
+              <span className="badge badge-active">Sedang Diedit</span>
+            )}
+          </div>
+
+          <div className="profile-form">
+            {isEditing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Target & Batasan</h4>
+                  <div className="form-group">
+                    <label>Minimal Donasi (IDR)</label>
+                    <input
+                      type="number"
+                      value={formData.min_donation}
+                      onChange={e => setFormData({ ...formData, min_donation: Number(e.target.value) })}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Target Dana (IDR)</label>
+                    <input
+                      type="number"
+                      value={formData.target_amount}
+                      onChange={e => setFormData({ ...formData, target_amount: Number(e.target.value) })}
+                      className="input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Keterangan Target</label>
+                    <input
+                      type="text"
+                      value={formData.target_description}
+                      onChange={e => setFormData({ ...formData, target_description: e.target.value })}
+                      className="input"
+                      placeholder="Contoh: Untuk beli laptop baru"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>List Harga Cepat</h4>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="number"
+                      value={newQuickAmount}
+                      onChange={e => setNewQuickAmount(e.target.value)}
+                      placeholder="15000"
+                      className="input"
+                    />
+                    <button type="button" className="btn btn-secondary" onClick={addQuickAmount}>+</button>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {formData.quick_amounts.map(amt => (
+                      <span key={amt} className="badge badge-active" style={{ cursor: 'pointer' }} onClick={() => removeQuickAmount(amt)}>
+                        {amt/1000}rb ✕
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Paket Dukungan</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <input
+                      type="text"
+                      value={newPackage.label}
+                      onChange={e => setNewPackage({ ...newPackage, label: e.target.value })}
+                      placeholder="Label: REVIEW AKUN"
+                      className="input"
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="number"
+                        value={newPackage.amount}
+                        onChange={e => setNewPackage({ ...newPackage, amount: e.target.value })}
+                        placeholder="Harga: 50000"
+                        className="input"
+                      />
+                      <button type="button" className="btn btn-secondary" onClick={addPackage}>Tambah</button>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {formData.donation_packages.map((p, i) => (
+                      <div key={i} className="widget-row" style={{ padding: '8px 12px', background: 'var(--muted)', borderRadius: '10px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600 }}>{p.label} - {formatCurrency(p.amount)}</span>
+                        <button type="button" className="btn btn-ghost btn-sm" style={{ color: '#dc2626' }} onClick={() => removePackage(i)}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>
                   <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
                     Batal
                   </button>
                   <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Menyimpan...' : 'Simpan'}
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                   </button>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className="profile-display">
-                <div className="profile-field">
-                  <p className="profile-label">Nama Lengkap</p>
-                  <p className="profile-value profile-value--accent">{user?.name || '-'}</p>
-                </div>
-                <div className="profile-field">
-                  <p className="profile-label">Username</p>
-                  <p className="profile-value">@{user?.username || '-'}</p>
-                </div>
-                <div className="profile-meta">
-                  <div className="profile-meta-item">
-                    <p className="profile-meta-label">Email</p>
-                    <p className="profile-meta-value">{user?.email || '-'}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="profile-display">
+                  <div className="profile-field">
+                    <p className="profile-label">Minimal Donasi</p>
+                    <p className="profile-value" style={{ color: 'var(--accent)' }}>{formatCurrency(user?.min_donation || 0)}</p>
                   </div>
-                  <div className="profile-meta-item">
-                    <p className="profile-meta-label">Sejak</p>
-                    <p className="profile-meta-value">{user?.created_at ? formatDate(user.created_at) : '-'}</p>
+                  <div className="profile-field">
+                    <p className="profile-label">Target Dana</p>
+                    <p className="profile-value">{formatCurrency(user?.target_amount || 0)}</p>
+                    {user?.target_description && <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{user.target_description}</p>}
+                  </div>
+                </div>
+
+                <div className="profile-display">
+                  <div className="profile-field">
+                    <p className="profile-label">List Harga Cepat</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                      {user?.quick_amounts?.map(amt => (
+                        <span key={amt} className="badge" style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: '10px' }}>{amt/1000}rb</span>
+                      )) || '-'}
+                    </div>
+                  </div>
+                  <div className="profile-field">
+                    <p className="profile-label">Paket Dukungan</p>
+                    <p className="profile-value" style={{ fontSize: '14px' }}>{user?.donation_packages?.length || 0} Paket Terdaftar</p>
                   </div>
                 </div>
               </div>

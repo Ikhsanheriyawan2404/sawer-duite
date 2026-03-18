@@ -14,8 +14,8 @@ function Donate() {
 
   useDocumentTitle(user?.name ? `Dukung ${user.name}` : 'Kirim Dukungan')
 
-  // List harga diperkecil jadi 5 data
-  const quickAmounts = [10000, 25000, 50000, 100000, 250000]
+  const defaultQuickAmounts = [10_000, 20_000, 50_000, 100_000, 500_000]
+  const quickAmounts = user?.quick_amounts?.length > 0 ? user.quick_amounts : defaultQuickAmounts
 
   useEffect(() => {
     setLoading(true)
@@ -44,9 +44,11 @@ function Donate() {
     setForm({ ...form, amount: val })
   }
 
+  const isMinDonationMet = !user?.min_donation || parseInt(form.amount) >= user.min_donation
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!agreed) return
+    if (!agreed || !isMinDonationMet) return
 
     try {
       const response = await fetch(`${API_URL}/transactions`, {
@@ -116,23 +118,37 @@ function Donate() {
                 type="text"
                 value={formatIDR(form.amount)}
                 onChange={handleAmountChange}
-                style={{ paddingLeft: '45px' }}
+                style={{ paddingLeft: '45px', borderColor: !isMinDonationMet ? '#dc2626' : undefined }}
                 required
               />
             </div>
+            {!isMinDonationMet && (
+              <p style={{ color: '#dc2626', fontSize: '11px', marginTop: '4px', fontWeight: 600 }}>
+                Minimal dukungan adalah Rp{formatIDR(user.min_donation.toString())}
+              </p>
+            )}
             {/* Grid 5 Nominal Saja */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginTop: '12px' }}>
-              {quickAmounts.map(amt => (
-                <button
-                  key={amt}
-                  type="button"
-                  className={`btn ${parseInt(form.amount) === amt ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                  style={{ padding: '8px 0', borderRadius: '12px', fontSize: '13px' }}
-                  onClick={() => setForm({ ...form, amount: amt.toString() })}
-                >
-                  {amt >= 1000000 ? `${amt/1000000}jt` : `${amt/1000}rb`}
-                </button>
-              ))}
+              {quickAmounts.map(amt => {
+                let label = ''
+                if (amt >= 1000000) {
+                  const juta = amt / 1000000
+                  label = Number.isInteger(juta) ? `${juta}jt` : `${juta.toFixed(1).replace('.', ',')}jt`
+                } else {
+                  label = `${amt / 1000}rb`
+                }
+                return (
+                  <button
+                    key={amt}
+                    type="button"
+                    className={`btn ${parseInt(form.amount) === amt ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                    style={{ padding: '8px 0', borderRadius: '12px', fontSize: '13px' }}
+                    onClick={() => setForm({ ...form, amount: amt.toString() })}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
             </div>
           </label>
 
@@ -151,12 +167,12 @@ function Donate() {
           </label>
 
           {/* Checkbox Ketentuan - Disebelah kiri */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'flex-start', 
-            gap: '12px', 
-            background: 'var(--muted)', 
-            padding: '16px', 
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            background: 'var(--muted)',
+            padding: '16px',
             borderRadius: '16px',
             border: '1px solid var(--border)'
           }}>
@@ -175,18 +191,18 @@ function Donate() {
 
           <button
             className="btn btn-primary"
-            style={{ 
-              height: '56px', 
-              fontSize: '16px', 
+            style={{
+              height: '56px',
+              fontSize: '16px',
               fontWeight: '700',
               marginTop: '12px',
-              opacity: agreed ? 1 : 0.5,
-              cursor: agreed ? 'pointer' : 'not-allowed',
-              filter: agreed ? 'none' : 'grayscale(0.5)',
+              opacity: (agreed && isMinDonationMet) ? 1 : 0.5,
+              cursor: (agreed && isMinDonationMet) ? 'pointer' : 'not-allowed',
+              filter: (agreed && isMinDonationMet) ? 'none' : 'grayscale(0.5)',
               transition: 'all 0.2s ease'
             }}
             type="submit"
-            disabled={!agreed}
+            disabled={!agreed || !isMinDonationMet}
           >
             Lanjut Pembayaran
           </button>

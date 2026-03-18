@@ -90,8 +90,15 @@ function Profile() {
     },
   ]
 
+  // Hitung Progress Target
+  const totalAmount = stats?.total_amount || 0
+  const targetAmount = user?.target_amount || 0
+  const progressPercent = targetAmount > 0 ? Math.min(Math.round((totalAmount / targetAmount) * 100), 100) : 0
+  const realPercent = targetAmount > 0 ? Math.round((totalAmount / targetAmount) * 100) : 0
+
   return (
     <main className="page page-center">
+      {/* CARD PROFILE */}
       <div className="login-card" style={{ textAlign: 'center', alignItems: 'center' }}>
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <img
@@ -106,7 +113,6 @@ function Profile() {
               boxShadow: '0 4px 14px rgba(0, 82, 255, 0.25)'
             }}
           />
-          {/* Verified Badge */}
           <div style={{
             position: 'absolute',
             bottom: '-10px',
@@ -124,39 +130,37 @@ function Profile() {
             zIndex: 10
           }}>
             <img src="/verified.png" alt="verified" style={{ width: '16px', height: '16px' }} />
-            <span style={{ 
-              fontSize: '10px', 
-              fontWeight: 800, 
-              color: 'var(--accent)', 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.05em' 
-            }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Verified Account
             </span>
           </div>
         </div>
-        
+
         <div style={{ marginTop: '8px' }}>
           <h2 style={{ marginBottom: '4px' }}>{user.name}</h2>
-          <p className="muted" style={{ fontWeight: 600 }}>@{user.username}</p>
+          <p className="muted" style={{ fontWeight: 600, marginBottom: '12px' }}>@{user.username}</p>
+          {user.bio && (
+            <p style={{
+              fontSize: '15px',
+              lineHeight: '1.6',
+              color: 'var(--foreground)',
+              maxWidth: '420px',
+              margin: '0 auto 16px',
+              padding: '16px 20px',
+              background: 'var(--muted)',
+              borderRadius: '16px',
+              border: '1px solid var(--border)',
+              fontWeight: 500
+            }}>
+              {user.bio}
+            </p>
+          )}
         </div>
-        <p className="lead text-center" style={{ opacity: 0.8 }}>
-          Terimakasih! Jangan lupa tulis username kalian yaa! Supaya diupdate di Leaderboard
-          {/* Dukung saya agar bisa terus berkarya dan memberikan konten terbaik! */}
-        </p>
 
         <div className="w-full">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginBottom: '24px' }}>
             {socials.map((s) => (
-              <a
-                key={s.label}
-                href={s.url}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-secondary"
-                title={s.label}
-                style={{ padding: '0', width: '44px', height: '44px', borderRadius: '12px' }}
-              >
+              <a key={s.label} href={s.url} target="_blank" rel="noreferrer" className="btn btn-secondary" title={s.label} style={{ padding: '0', width: '44px', height: '44px', borderRadius: '12px' }}>
                 {s.icon}
               </a>
             ))}
@@ -167,78 +171,111 @@ function Profile() {
         </div>
       </div>
 
-      <div className="dashboard-grid w-full" style={{ maxWidth: '1000px' }}>
-        <div className="page" style={{ gap: '20px' }}>
-          <div className="stats">
-            <div className="stat">
-              <p className="stat-label">Total Dukungan</p>
-              <p className="stat-value" style={{ color: 'var(--accent)' }}>{formatCurrency(stats?.total_amount || 0)}</p>
+      {/* SECTION BAWAH (SINGLE COLUMN) */}
+      <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+        
+        {/* BARIS 1: TOTAL DUKUNGAN & TARGET */}
+        <article className="card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Dukungan</p>
+              <h3 style={{ fontSize: '32px', color: 'var(--accent)' }}>{formatCurrency(totalAmount)}</h3>
             </div>
-            <div className="stat">
-              <p className="stat-label">Supporters</p>
-              <p className="stat-value">{stats?.total_donors || 0}</p>
-            </div>
-          </div>
 
-          <article className="card">
-            <div className="card-header">
-              <h3>Top Supporters</h3>
-              <select
-                value={topFilter}
-                onChange={(e) => setTopFilter(e.target.value as any)}
-                className="input"
-                style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
-              >
-                <option value="all">Semua</option>
-                <option value="day">Hari ini</option>
-                <option value="week">Minggu ini</option>
-                <option value="month">Bulan ini</option>
-              </select>
-            </div>
-            <div className="feed">
-              {stats?.top_supporters[topFilter]?.length ? (
-                stats.top_supporters[topFilter].map((s, i) => (
-                  <div key={i} className="feed-row">
-                    <div className="feed-user-info">
-                      <div className="feed-avatar">{s.sender[0]}</div>
-                      <p className="feed-name">{s.sender}</p>
-                    </div>
-                    <span className="feed-amount" style={{ color: 'var(--accent)' }}>{formatCurrency(s.amount)}</span>
+            {targetAmount > 0 && (
+              <div style={{ marginTop: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 700, marginBottom: '2px' }}>Target: {user.target_description || 'Dukungan Kreator'}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>Terkumpul {progressPercent}% dari {formatCurrency(targetAmount)}</p>
                   </div>
-                ))
-              ) : (
-                <p className="muted text-center" style={{ padding: '20px' }}>Belum ada data</p>
-              )}
-            </div>
-          </article>
-        </div>
+                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent)' }}>{realPercent}%</span>
+                </div>
+                <div style={{ height: '12px', background: 'var(--muted)', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <div 
+                    style={{ 
+                      height: '100%', 
+                      background: 'var(--gradient)', 
+                      width: `${progressPercent}%`,
+                      transition: 'width 1s ease-in-out',
+                      boxShadow: '0 0 10px rgba(0, 82, 255, 0.3)'
+                    }} 
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
 
+        {/* BARIS 2: TOTAL SUPPORTER */}
+        <article className="card" style={{ padding: '24px' }}>
+          <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', marginBottom: '4px' }}>Supporters</p>
+          <h3 style={{ fontSize: '32px' }}>{stats?.total_donors || 0} <span style={{ fontSize: '16px', color: 'var(--muted-foreground)', fontWeight: 500 }}>Orang</span></h3>
+        </article>
+
+        {/* BARIS 3: TOP SUPPORTERS */}
         <article className="card">
-          <div className="card-header">
+          <div className="card-header" style={{ marginBottom: '16px' }}>
+            <h3>Top Supporters</h3>
+            <select
+              value={topFilter}
+              onChange={(e) => setTopFilter(e.target.value as any)}
+              className="input"
+              style={{ width: 'auto', padding: '6px 12px', fontSize: '13px', borderRadius: '10px' }}
+            >
+              <option value="all">Semua Waktu</option>
+              <option value="day">Hari Ini</option>
+              <option value="week">Minggu Ini</option>
+              <option value="month">Bulan Ini</option>
+            </select>
+          </div>
+          <div className="feed">
+            {stats?.top_supporters[topFilter]?.length ? (
+              stats.top_supporters[topFilter].slice(0, 10).map((s, i) => (
+                <div key={i} className="feed-row" style={{ padding: '12px 0' }}>
+                  <div className="feed-user-info">
+                    <div className="feed-avatar" style={{ background: i < 3 ? 'var(--accent)' : '#e2e8f0', color: i < 3 ? '#fff' : 'inherit' }}>
+                      {i + 1}
+                    </div>
+                    <p className="feed-name" style={{ fontWeight: 700 }}>{s.sender}</p>
+                  </div>
+                  <span className="feed-amount" style={{ color: 'var(--accent)', fontWeight: 800 }}>{formatCurrency(s.amount)}</span>
+                </div>
+              ))
+            ) : (
+              <p className="muted text-center" style={{ padding: '40px' }}>Belum ada data untuk periode ini</p>
+            )}
+          </div>
+        </article>
+
+        {/* BARIS 4: RECENT DONATIONS */}
+        <article className="card">
+          <div className="card-header" style={{ marginBottom: '16px' }}>
             <h3>Recent Donations</h3>
           </div>
           <div className="feed">
             {stats?.recent?.length ? (
-              stats.recent.map((tx) => (
-                <div key={tx.uuid} className="feed-row" style={{ alignItems: 'flex-start' }}>
+              stats.recent.slice(0, 10).map((tx) => (
+                <div key={tx.uuid} className="feed-row" style={{ alignItems: 'flex-start', padding: '16px 0' }}>
                   <div className="feed-user-info">
-                    <div className="feed-avatar">{tx.sender[0]}</div>
+                    <div className="feed-avatar">{tx.sender[0]?.toUpperCase()}</div>
                     <div className="feed-text">
-                      <p className="feed-name">{tx.sender}</p>
-                      <p className="feed-note" style={{ whiteSpace: 'normal' }}>{tx.note || 'Terima kasih!'}</p>
+                      <p className="feed-name" style={{ fontWeight: 700 }}>{tx.sender}</p>
+                      <p className="feed-note" style={{ whiteSpace: 'normal', fontSize: '14px', marginTop: '4px' }}>{tx.note || 'Terima kasih!'}</p>
                     </div>
                   </div>
-                  <div className="feed-meta">
-                    <p className="feed-amount">{formatCurrency(tx.base_amount)}</p>
-                    <p style={{ fontSize: '10px', opacity: 0.5 }}>{new Date(tx.created_at).toLocaleDateString()}</p>
+                  <div className="feed-meta" style={{ textAlign: 'right' }}>
+                    <p className="feed-amount" style={{ fontWeight: 700 }}>{formatCurrency(tx.base_amount)}</p>
+                    <p style={{ fontSize: '11px', opacity: 0.6, marginTop: '4px' }}>{new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="muted text-center" style={{ padding: '20px' }}>Belum ada donasi</p>
+              <p className="muted text-center" style={{ padding: '40px' }}>Belum ada donasi baru</p>
             )}
           </div>
         </article>
+
       </div>
     </main>
   )
