@@ -48,7 +48,7 @@ class KeepAliveService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Saweran Listener Service",
+                "Sawer Om Listener Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Mendengarkan notifikasi pembayaran DANA"
@@ -69,7 +69,7 @@ class KeepAliveService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Saweran Listener Aktif")
+            .setContentTitle("Sawer Om Listener Aktif")
             .setContentText("Mendengarkan notifikasi pembayaran DANA")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)

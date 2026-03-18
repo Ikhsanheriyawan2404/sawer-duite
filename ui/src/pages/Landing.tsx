@@ -6,7 +6,7 @@ function Landing() {
   return (
     <main className="page page-center overlay-page">
       <div className="hero-copy text-center" style={{ alignItems: 'center', maxWidth: '600px' }}>
-        <h1 style={{ fontSize: 'clamp(3rem, 10vw, 5rem)', marginBottom: '16px' }}>Saweran.</h1>
+        <h1 style={{ fontSize: 'clamp(3rem, 10vw, 5rem)', marginBottom: '16px' }}>Sawer Om.</h1>
         <p className="lead" style={{ marginBottom: '32px' }}>
           Terima dukungan dari penggemarmu dengan mudah, cepat, dan transparan dalam satu tempat.
         </p>

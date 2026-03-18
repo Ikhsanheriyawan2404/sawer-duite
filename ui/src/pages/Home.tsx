@@ -228,6 +228,7 @@ function Home() {
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                     className="input"
+                    placeholder="Masukkan nama lengkap"
                   />
                 </div>
                 <div className="form-group">
@@ -237,40 +238,38 @@ function Home() {
                     value={formData.username}
                     onChange={e => setFormData({ ...formData, username: e.target.value })}
                     className="input"
+                    placeholder="Masukkan username"
                   />
+                </div>
+                <div className="form-actions">
+                  <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
+                    Batal
+                  </button>
+                  <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Menyimpan...' : 'Simpan'}
+                  </button>
                 </div>
               </>
             ) : (
-              <div style={{ display: 'grid', gap: '16px' }}>
-                <div style={{ padding: '16px', background: 'var(--muted)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                  <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Nama Lengkap</p>
-                  <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent)' }}>{user?.name || '-'}</p>
+              <div className="profile-display">
+                <div className="profile-field">
+                  <p className="profile-label">Nama Lengkap</p>
+                  <p className="profile-value profile-value--accent">{user?.name || '-'}</p>
                 </div>
-                <div style={{ padding: '16px', background: 'var(--muted)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                  <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px' }}>Username</p>
-                  <p style={{ fontSize: '18px', fontWeight: '800', color: 'var(--foreground)' }}>@{user?.username || '-'}</p>
+                <div className="profile-field">
+                  <p className="profile-label">Username</p>
+                  <p className="profile-value">@{user?.username || '-'}</p>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div style={{ padding: '12px', background: 'rgba(0,0,0,0.02)', borderRadius: '14px' }}>
-                    <p style={{ fontSize: '10px', color: 'var(--muted-foreground)', fontWeight: '600', marginBottom: '2px' }}>Email</p>
-                    <p style={{ fontSize: '13px', fontWeight: '600' }}>{user?.email || '-'}</p>
+                <div className="profile-meta">
+                  <div className="profile-meta-item">
+                    <p className="profile-meta-label">Email</p>
+                    <p className="profile-meta-value">{user?.email || '-'}</p>
                   </div>
-                  <div style={{ padding: '12px', background: 'rgba(0,0,0,0.02)', borderRadius: '14px' }}>
-                    <p style={{ fontSize: '10px', color: 'var(--muted-foreground)', fontWeight: '600', marginBottom: '2px' }}>Sejak</p>
-                    <p style={{ fontSize: '13px', fontWeight: '600' }}>{user?.created_at ? formatDate(user.created_at) : '-'}</p>
+                  <div className="profile-meta-item">
+                    <p className="profile-meta-label">Sejak</p>
+                    <p className="profile-meta-value">{user?.created_at ? formatDate(user.created_at) : '-'}</p>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {isEditing && (
-              <div className="form-actions">
-                <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
-                  Batal
-                </button>
-                <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
               </div>
             )}
           </div>

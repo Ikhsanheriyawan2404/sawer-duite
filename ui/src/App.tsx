@@ -29,8 +29,8 @@ function Header() {
   return (
     <header className="topbar">
       <Link to="/" className="brand">
-        <span className="brand-mark" />
-        <span className="brand-name">Saweran</span>
+        <div className="brand-mark"></div>
+        <span className="brand-name">Sawer Om</span>
       </Link>
       <button onClick={handleAuthAction} className="btn btn-secondary">
         {isHome ? 'Keluar' : 'Masuk'}

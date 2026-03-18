@@ -13,7 +13,7 @@ object NetworkClient {
     private const val TAG = "NetworkClient"
 
     // Backend URL - ganti dengan URL production
-    private const val BACKEND_URL = "https://saweran.duitebot.com/notifications"
+    private const val BACKEND_URL = "https://sawerom-api.duitebot.com/notifications"
     // Untuk emulator Android gunakan: "http://10.0.2.2:3000/notifications"
 
     private const val WEBHOOK_SECRET = "ongob-webhook-secret-123"

@@ -31,7 +31,6 @@ function QueueOverlay() {
 
   const connectWS = useCallback(() => {
     if (!uuid || !username) return
-    // PUBLIC ACCESS: No token required
     const wsUrl = `${WS_URL}/ws/${uuid}`
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
@@ -39,7 +38,6 @@ function QueueOverlay() {
     socket.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data)
-        // Refresh on ANY relevant change (new donation or manual dashboard update)
         if (payload.type === 'alert' || payload.type === 'refresh') {
           fetchQueue(username)
         }
@@ -65,53 +63,125 @@ function QueueOverlay() {
     }
   }, [username, connectWS])
 
-  if (donors.length === 0) return <main className="queue-overlay" />
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount)
+  }
 
   return (
     <main className="queue-overlay">
-      <div className="queue-pill animate-pill">
-        <div className="queue-label">TOP DONORS</div>
+      <div className="queue-dialog">
+        <h2 className="queue-title">Antrian Donasi</h2>
         <div className="queue-list">
-          {donors.slice(0, 4).map((donor, index) => (
-            <div key={donor.uuid} className="donor-item">
-              <span className="name">{donor.sender}</span>
-              <span className="amount">
-                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(donor.base_amount)}
-              </span>
-              {index < donors.slice(0, 4).length - 1 && <span className="sep">•</span>}
-            </div>
-          ))}
+          {donors.length === 0 ? (
+            <div className="queue-empty">Belum ada antrian</div>
+          ) : (
+            donors.slice(0, 10).map((donor, index) => (
+              <div key={donor.uuid} className="queue-item">
+                <span className="queue-rank">{index + 1}</span>
+                <span className="queue-name">{donor.sender}</span>
+                <span className="queue-amount">{formatAmount(donor.base_amount)}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Calistoga&family=Inter:wght@400;500;600;700&display=swap');
+
         .queue-overlay {
-          width: 100vw; height: 100vh; background: transparent;
-          display: flex; align-items: flex-start; justify-content: center;
-          padding-top: 20px; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif;
+          width: 100vw;
+          height: 100vh;
+          background: transparent;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Inter', system-ui, sans-serif;
         }
-        .queue-pill {
-          background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(15px);
-          padding: 8px 24px; border-radius: 100px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          display: flex; align-items: center; gap: 16px;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+
+        .queue-dialog {
+          background: #ffffff;
+          border-radius: 24px;
+          padding: 32px;
+          min-width: 480px;
+          max-width: 600px;
+          box-shadow: 0 10px 40px rgba(0, 82, 255, 0.15);
+          animation: dialogFadeIn 0.5s ease-out both;
         }
-        .queue-label {
-          font-size: 0.6rem; font-weight: 900; color: #863bff;
-          letter-spacing: 0.2em; border-right: 1px solid rgba(255,255,255,0.1);
-          padding-right: 16px;
+
+        .queue-title {
+          font-family: 'Calistoga', Georgia, serif;
+          font-size: 28px;
+          font-weight: 400;
+          color: #0052ff;
+          text-align: center;
+          margin: 0 0 24px 0;
+          letter-spacing: -0.02em;
         }
-        .queue-list { display: flex; align-items: center; gap: 12px; }
-        .donor-item { display: flex; align-items: center; gap: 8px; }
-        .name { font-size: 0.85rem; color: rgba(255,255,255,0.6); font-weight: 600; }
-        .amount { font-size: 0.85rem; color: #fff; font-weight: 800; }
-        .sep { color: rgba(255,255,255,0.1); font-weight: 400; margin-left: 4px; }
-        .animate-pill { animation: pillSlideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
-        @keyframes pillSlideDown {
-          from { transform: translateY(-40px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+
+        .queue-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .queue-empty {
+          text-align: center;
+          color: #0052ff;
+          font-size: 16px;
+          padding: 40px 0;
+          opacity: 0.6;
+        }
+
+        .queue-item {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 16px 20px;
+          background: #f1f5f9;
+          border-radius: 16px;
+        }
+
+        .queue-rank {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #0052ff;
+          color: #ffffff;
+          border-radius: 50%;
+          font-weight: 700;
+          font-size: 14px;
+          flex-shrink: 0;
+        }
+
+        .queue-name {
+          flex: 1;
+          font-size: 16px;
+          font-weight: 600;
+          color: #0052ff;
+        }
+
+        .queue-amount {
+          font-size: 16px;
+          font-weight: 700;
+          color: #0052ff;
+        }
+
+        @keyframes dialogFadeIn {
+          from {
+            transform: scale(0.95);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
         }
       `}</style>
     </main>

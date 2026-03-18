@@ -12,7 +12,7 @@
         android:id="@+id/titleTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Saweran Listener"
+        android:text="Sawer Om Listener"
         android:textSize="28sp"
         android:textStyle="bold"
         android:textColor="@android:color/black"

@@ -9,7 +9,7 @@ function AlertOverlay() {
   const { uuid } = useParams()
   const [visible, setVisible] = useState(false)
   const [currentAlert, setCurrentAlert] = useState<any>(null)
-  
+
   const queueRef = useRef<any[]>([])
   const isProcessingRef = useRef(false)
   const soundFxRef = useRef<HTMLAudioElement | null>(null)
@@ -87,7 +87,6 @@ function AlertOverlay() {
 
   const connectWS = useCallback(() => {
     if (!uuid) return
-    // PUBLIC ACCESS: No token required for overlay handshake
     const wsUrl = `${WS_URL}/ws/${uuid}`
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
@@ -111,51 +110,105 @@ function AlertOverlay() {
 
   if (!visible || !currentAlert) return <main className="overlay-container" onClick={warmUp} />
 
+  const formattedAmount = new Intl.NumberFormat('id-ID', { 
+    style: 'currency', 
+    currency: 'IDR', 
+    minimumFractionDigits: 0 
+  }).format(currentAlert.amount).replace(/\s/g, '')
+
   return (
     <main className="overlay-container" onClick={warmUp}>
-      <div className="alert-card animate-alert">
-        <div className="alert-accent"></div>
-        <img src="/thanks.gif" alt="thanks" className="alert-gif" />
-        <div className="alert-content">
-          <div className="alert-user">{currentAlert.sender || 'Someone'}</div>
-          <div className="alert-amount">
-            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(currentAlert.amount)}
-          </div>
-          {currentAlert.message && <div className="alert-msg">"{currentAlert.message}"</div>}
+      <div className="alert-wrapper animate-alert">
+        <img src="/alert.gif" alt="thanks" className="alert-gif" />
+        
+        <div className="alert-line-primary">
+          <span className="amount-highlight">{formattedAmount}</span>
+          <span className="text-base"> dari </span>
+          <span className="sender-name">{currentAlert.sender || 'Seseorang'}</span>
         </div>
+
+        {currentAlert.message && (
+          <div className="alert-line-secondary">
+            {currentAlert.message}
+          </div>
+        )}
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Calistoga&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+        
         .overlay-container {
           width: 100vw; height: 100vh; background: transparent;
-          display: flex; align-items: flex-start; justify-content: center;
-          padding-top: 80px; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif;
+          display: flex; align-items: center; justify-content: center;
+          overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif;
         }
-        .alert-card {
-          background: rgba(15, 15, 15, 0.9); backdrop-filter: blur(20px);
-          border-radius: 24px; padding: 20px 40px; min-width: 350px;
+
+        .alert-wrapper {
           display: flex; flex-direction: column; align-items: center;
-          border: 1px solid rgba(255,255,255,0.1); position: relative;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+          text-align: center; width: 100%; max-width: 900px;
         }
-        .alert-accent {
-          position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-          width: 100px; height: 4px; background: #863bff; border-radius: 0 0 10px 10px;
-          box-shadow: 0 0 20px #863bff;
+
+        .alert-gif { 
+          width: 220px; height: auto; margin-bottom: 24px;
         }
-        .alert-gif { width: 100px; height: auto; margin-bottom: 12px; }
-        .alert-user { font-size: 1rem; color: rgba(255,255,255,0.6); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        .alert-amount { font-size: 2.2rem; font-weight: 800; color: #fff; margin: 4px 0; }
-        .alert-msg { font-size: 1.1rem; color: #863bff; font-weight: 500; font-style: italic; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; }
-        .animate-alert { animation: alertSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
-        @keyframes alertSlideIn {
-          0% { transform: translateY(-50px); opacity: 0; filter: blur(10px); }
-          100% { transform: translateY(0); opacity: 1; filter: blur(0); }
+
+        .alert-line-primary {
+          font-size: 3.5rem; font-weight: 800; line-height: 1.1; color: #ffffff;
+          letter-spacing: -0.02em;
+          /* Strong clean outline for readability */
+          text-shadow: 
+            2px 2px 0 #000,
+            -2px -2px 0 #000,  
+             2px -2px 0 #000,
+            -2px  2px 0 #000,
+             0px  2px 0 #000,
+             0px -2px 0 #000,
+             2px  0px 0 #000,
+            -2px  0px 0 #000;
+        }
+
+        .amount-highlight {
+          color: #0052ff; /* Theme Accent Blue */
+          font-family: 'Calistoga', serif;
+        }
+
+        .sender-name {
+          color: #ffffff;
+        }
+
+        .text-base {
+          font-weight: 600; color: #ffffff; font-size: 2rem;
+        }
+
+        .alert-line-secondary {
+          font-size: 2.2rem; color: #ffffff; font-weight: 700;
+          margin-top: 12px; max-width: 800px; word-wrap: break-word;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          /* Strong clean outline */
+          text-shadow: 
+            1.5px 1.5px 0 #000,
+            -1.5px -1.5px 0 #000,  
+             1.5px -1.5px 0 #000,
+            -1.5px  1.5px 0 #000,
+             0px  1.5px 0 #000,
+             0px -1.5px 0 #000,
+             1.5px  0px 0 #000,
+            -1.5px  0px 0 #000;
+        }
+
+        /* Clean animations */
+        .animate-alert { 
+          animation: alertEnter 0.6s cubic-bezier(0.23, 1, 0.32, 1) both; 
+        }
+
+        @keyframes alertEnter {
+          0% { transform: scale(0.9) translateY(30px); opacity: 0; }
+          100% { transform: scale(1) translateY(0); opacity: 1; }
         }
       `}</style>
     </main>
   )
+
 }
 
 export default AlertOverlay

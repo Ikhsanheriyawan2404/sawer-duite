@@ -7,18 +7,31 @@ function Donate() {
   const { username } = useParams()
   const navigate = useNavigate()
   const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ name: '', amount: '10000', note: '' })
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [agreed, setAgreed] = useState(false)
 
   useDocumentTitle(user?.name ? `Dukung ${user.name}` : 'Kirim Dukungan')
 
-  const quickAmounts = [10000, 25000, 50000, 100000, 250000, 500000, 1000000]
+  // List harga diperkecil jadi 5 data
+  const quickAmounts = [10000, 25000, 50000, 100000, 250000]
 
   useEffect(() => {
+    setLoading(true)
     fetch(`${API_URL}/user/${username}`)
-      .then(res => res.json())
-      .then(data => setUser(data))
+      .then(res => {
+        if (!res.ok) throw new Error('User not found')
+        return res.json()
+      })
+      .then(data => {
+        setUser(data)
+        setLoading(false)
+      })
+      .catch(() => {
+        setUser(null)
+        setLoading(false)
+      })
   }, [username])
 
   const formatIDR = (val: string) => {
@@ -33,10 +46,7 @@ function Donate() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!agreed) {
-      alert('Harap setujui ketentuan transaksi.')
-      return
-    }
+    if (!agreed) return
 
     try {
       const response = await fetch(`${API_URL}/transactions`, {
@@ -59,6 +69,9 @@ function Donate() {
     }
   }
 
+  if (loading) return <main className="page page-center"><p>Loading...</p></main>
+  if (!user) return <main className="page page-center"><h2>User Not Found</h2></main>
+
   return (
     <main className="page page-center overlay-page">
       <section className="login-card" style={{ maxWidth: '540px' }}>
@@ -80,14 +93,16 @@ function Donate() {
               disabled={isAnonymous}
               required
             />
-            <div className="checkbox" style={{ marginTop: '4px' }}>
+            {/* Checkbox Anonim - Disebelah kiri */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
               <input
                 type="checkbox"
                 id="anon"
                 checked={isAnonymous}
                 onChange={e => setIsAnonymous(e.target.checked)}
+                style={{ width: '16px', height: '16px', margin: 0, cursor: 'pointer' }}
               />
-              <label htmlFor="anon" style={{ display: 'inline', fontSize: '13px', cursor: 'pointer', fontWeight: 400 }}>
+              <label htmlFor="anon" style={{ fontSize: '14px', cursor: 'pointer', fontWeight: 500, margin: 0 }}>
                 Kirim sebagai anonim
               </label>
             </div>
@@ -105,13 +120,14 @@ function Donate() {
                 required
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '8px' }}>
+            {/* Grid 5 Nominal Saja */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginTop: '12px' }}>
               {quickAmounts.map(amt => (
                 <button
                   key={amt}
                   type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ padding: '8px', borderRadius: '10px' }}
+                  className={`btn ${parseInt(form.amount) === amt ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                  style={{ padding: '8px 0', borderRadius: '12px', fontSize: '13px' }}
                   onClick={() => setForm({ ...form, amount: amt.toString() })}
                 >
                   {amt >= 1000000 ? `${amt/1000000}jt` : `${amt/1000}rb`}
@@ -122,34 +138,53 @@ function Donate() {
 
           <label>
             Pesan (Maks. 250 karakter)
-            <textarea
+            <input
+              type="text"
               placeholder="Tulis pesan penyemangat..."
               value={form.note}
               onChange={e => setForm({...form, note: e.target.value.slice(0, 250)})}
-              style={{ minHeight: '80px' }}
+              required
             />
-            <span style={{ fontSize: '11px', textAlign: 'right', color: 'var(--muted-foreground)', fontWeight: 400 }}>
+            <span style={{ fontSize: '11px', textAlign: 'right', color: 'var(--muted-foreground)', fontWeight: 400, marginTop: '4px' }}>
               {form.note.length}/250
             </span>
           </label>
 
-          <div className="checkbox" style={{ alignItems: 'flex-start', gap: '10px', background: 'var(--muted)', padding: '12px', borderRadius: '14px' }}>
+          {/* Checkbox Ketentuan - Disebelah kiri */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'flex-start', 
+            gap: '12px', 
+            background: 'var(--muted)', 
+            padding: '16px', 
+            borderRadius: '16px',
+            border: '1px solid var(--border)'
+          }}>
             <input
               type="checkbox"
               id="terms"
               checked={agreed}
               onChange={e => setAgreed(e.target.checked)}
-              style={{ marginTop: '4px', width: 'auto' }}
+              style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', flexShrink: 0 }}
               required
             />
-            <label htmlFor="terms" style={{ display: 'inline', fontSize: '12px', lineHeight: '1.4', cursor: 'pointer', color: 'var(--muted-foreground)', fontWeight: 400 }}>
-              Dengan ini saya menyatakan transaksi ini: murni dukungan saya untuk {user?.name || 'Kreator'}, tidak dapat dikembalikan, bukan untuk transaksi komersial, bukan untuk aktivitas ilegal apa pun.
+            <label htmlFor="terms" style={{ fontSize: '12px', lineHeight: '1.5', cursor: 'pointer', color: 'var(--foreground)', fontWeight: 500, margin: 0 }}>
+              Saya menyatakan transaksi ini adalah dukungan sukarela, bukan komersial, dan tidak dapat dikembalikan.
             </label>
           </div>
 
           <button
             className="btn btn-primary"
-            style={{ height: '52px', fontSize: '16px', marginTop: '8px' }}
+            style={{ 
+              height: '56px', 
+              fontSize: '16px', 
+              fontWeight: '700',
+              marginTop: '12px',
+              opacity: agreed ? 1 : 0.5,
+              cursor: agreed ? 'pointer' : 'not-allowed',
+              filter: agreed ? 'none' : 'grayscale(0.5)',
+              transition: 'all 0.2s ease'
+            }}
             type="submit"
             disabled={!agreed}
           >

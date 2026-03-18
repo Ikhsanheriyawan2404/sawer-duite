@@ -58,9 +58,18 @@ function Profile() {
 
   const handle = user?.username || username || ''
   const socials = [
-    { 
-      label: 'Instagram', 
-      url: `https://instagram.com/${handle}`, 
+    {
+      label: 'TikTok',
+      url: 'https://www.tiktok.com/@ongobkun',
+      icon: (
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
+        </svg>
+      )
+    },
+    {
+      label: 'Instagram',
+      url: 'https://www.instagram.com/kychan.real/',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
@@ -69,32 +78,13 @@ function Profile() {
         </svg>
       )
     },
-    { 
-      label: 'TikTok', 
-      url: `https://www.tiktok.com/@${handle}`, 
-      icon: (
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"></path>
-        </svg>
-      )
-    },
-    { 
-      label: 'YouTube', 
-      url: `https://www.youtube.com/@${handle}`, 
+    {
+      label: 'YouTube',
+      url: 'https://www.youtube.com/@aikyyfishit',
       icon: (
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.42a2.78 2.78 0 0 0-1.94 2C1 8.11 1 12 1 12s0 3.89.46 5.58a2.78 2.78 0 0 0 1.94 2c1.72.42 8.6.42 8.6.42s6.88 0 8.6-.42a2.78 2.78 0 0 0 1.94-2C23 15.89 23 12 23 12s0-3.89-.46-5.58z"></path>
           <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"></polygon>
-        </svg>
-      )
-    },
-    { 
-      label: 'X', 
-      url: `https://x.com/${handle}`, 
-      icon: (
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 4l11.733 16h4.267l-11.733 -16z"></path>
-          <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"></path>
         </svg>
       )
     },
@@ -103,15 +93,58 @@ function Profile() {
   return (
     <main className="page page-center">
       <div className="login-card" style={{ textAlign: 'center', alignItems: 'center' }}>
-        <div className="brand-mark" style={{ width: '80px', height: '80px', borderRadius: '24px', marginBottom: '8px' }} />
-        <div>
+        <div style={{ position: 'relative', marginBottom: '12px' }}>
+          <img
+            src="/profile.jpg"
+            alt={user.name}
+            style={{
+              width: '100px',
+              height: '100px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '3px solid var(--accent)',
+              boxShadow: '0 4px 14px rgba(0, 82, 255, 0.25)'
+            }}
+          />
+          {/* Verified Badge */}
+          <div style={{
+            position: 'absolute',
+            bottom: '-10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#fff',
+            padding: '4px 12px',
+            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            border: '1px solid var(--border)',
+            whiteSpace: 'nowrap',
+            zIndex: 10
+          }}>
+            <img src="/verified.png" alt="verified" style={{ width: '16px', height: '16px' }} />
+            <span style={{ 
+              fontSize: '10px', 
+              fontWeight: 800, 
+              color: 'var(--accent)', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em' 
+            }}>
+              Verified Account
+            </span>
+          </div>
+        </div>
+        
+        <div style={{ marginTop: '8px' }}>
           <h2 style={{ marginBottom: '4px' }}>{user.name}</h2>
           <p className="muted" style={{ fontWeight: 600 }}>@{user.username}</p>
         </div>
         <p className="lead text-center" style={{ opacity: 0.8 }}>
-          Dukung saya agar bisa terus berkarya dan memberikan konten terbaik!
+          Terimakasih! Jangan lupa tulis username kalian yaa! Supaya diupdate di Leaderboard
+          {/* Dukung saya agar bisa terus berkarya dan memberikan konten terbaik! */}
         </p>
-        
+
         <div className="w-full">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginBottom: '24px' }}>
             {socials.map((s) => (
@@ -129,7 +162,7 @@ function Profile() {
             ))}
           </div>
           <Link to={`/${username}/donate`} className="btn btn-primary w-full" style={{ height: '56px', fontSize: '16px', borderRadius: '16px' }}>
-            Kirim Dukungan
+            Donate Disini
           </Link>
         </div>
       </div>
