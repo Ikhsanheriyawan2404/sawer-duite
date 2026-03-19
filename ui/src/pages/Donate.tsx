@@ -193,7 +193,7 @@ function Donate() {
             
             {!isFixed && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginTop: '12px' }}>
-                {quickAmounts.map(amt => {
+                {quickAmounts.map((amt: number) => {
                   let label = ''
                   if (amt >= 1000000) {
                     const juta = amt / 1000000

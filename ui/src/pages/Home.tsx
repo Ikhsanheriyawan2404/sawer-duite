@@ -106,7 +106,9 @@ function Home() {
           target_amount: data.target_amount || 0,
           target_description: data.target_description || '',
           quick_amounts: data.quick_amounts || [],
-          donation_packages: data.donation_packages || []
+          donation_packages: data.donation_packages || [],
+          custom_input_label: data.custom_input_label || '',
+          custom_input_required: data.custom_input_required || false
         })
         localStorage.setItem('user', JSON.stringify(data))
         fetchQueue(data.username)
@@ -287,14 +289,6 @@ function Home() {
     setFormData({ 
       ...formData, 
       donation_packages: formData.donation_packages.filter((_, i) => i !== index) 
-    })
-  }
-
-  function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
     })
   }
 

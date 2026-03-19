@@ -56,7 +56,6 @@ function Profile() {
   if (loading) return <main className="page page-center"><p>Loading...</p></main>
   if (!user) return <main className="page page-center"><h2>Not found</h2></main>
 
-  const handle = user?.username || username || ''
   const socials = [
     {
       label: 'TikTok',
