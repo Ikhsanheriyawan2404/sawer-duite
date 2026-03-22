@@ -72,16 +72,35 @@ function QueueOverlay() {
     }).format(amount)
   }
 
+  const aggregatedDonors = (() => {
+    const groups: Record<string, { sender: string, custom_input: string, total_amount: number, key: string }> = {}
+    
+    donors.forEach(donor => {
+      const key = donor.custom_input ? `roblox_${donor.custom_input.toLowerCase()}` : `single_${donor.uuid}`
+      if (!groups[key]) {
+        groups[key] = {
+          sender: donor.sender,
+          custom_input: donor.custom_input,
+          total_amount: 0,
+          key: key
+        }
+      }
+      groups[key].total_amount += donor.base_amount
+    })
+
+    return Object.values(groups).sort((a, b) => b.total_amount - a.total_amount)
+  })()
+
   return (
     <main className="queue-overlay">
       <div className="queue-dialog">
         <h2 className="queue-title">Antrian Donasi</h2>
         <div className="queue-list">
-          {donors.length === 0 ? (
+          {aggregatedDonors.length === 0 ? (
             <div className="queue-empty">Belum ada antrian</div>
           ) : (
-            donors.slice(0, 10).map((donor, index) => (
-              <div key={donor.uuid} className="queue-item">
+            aggregatedDonors.slice(0, 10).map((donor, index) => (
+              <div key={donor.key} className="queue-item">
                 <span className="queue-rank">{index + 1}</span>
                 <div className="queue-info">
                   <span className="queue-name">{donor.sender}</span>
@@ -89,7 +108,7 @@ function QueueOverlay() {
                     <span className="queue-custom">{donor.custom_input}</span>
                   )}
                 </div>
-                <span className="queue-amount">{formatAmount(donor.base_amount)}</span>
+                <span className="queue-amount">{formatAmount(donor.total_amount)}</span>
               </div>
             ))
           )}

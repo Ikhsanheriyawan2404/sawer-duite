@@ -141,19 +141,25 @@ function Home() {
     }
   }
 
-  async function toggleQueue(tx: Transaction) {
+  async function toggleGroupQueue(uuids: string[], currentIsQueue: boolean) {
     try {
-      const endpoint = tx.is_queue
-        ? `/transactions/${tx.uuid}/queue/remove`
-        : `/transactions/${tx.uuid}/queue/add`
-      const res = await fetchWithAuth(endpoint, { method: 'POST' })
-      if (res.ok && user) {
+      const endpoint = currentIsQueue
+        ? '/queue/remove'
+        : '/queue/add'
+      
+      const promises = uuids.map(uuid => 
+        fetchWithAuth(`/transactions/${uuid}${endpoint}`, { method: 'POST' })
+      )
+      
+      await Promise.all(promises)
+      
+      if (user) {
         setQueue(prev => prev.map(item => 
-          item.uuid === tx.uuid ? { ...item, is_queue: !item.is_queue } : item
+          uuids.includes(item.uuid) ? { ...item, is_queue: !currentIsQueue } : item
         ))
       }
     } catch (err) {
-      console.error('Failed to toggle queue', err)
+      console.error('Failed to toggle queue group', err)
     }
   }
 
@@ -187,13 +193,54 @@ function Home() {
 
   const filteredQueue = queue.filter(tx => {
     const matchesSearch = (tx.sender?.toLowerCase() || '').includes(search.toLowerCase()) || 
-                          (tx.note?.toLowerCase() || '').includes(search.toLowerCase())
+                          (tx.note?.toLowerCase() || '').includes(search.toLowerCase()) ||
+                          (tx.custom_input?.toLowerCase() || '').includes(search.toLowerCase())
     if (!matchesSearch) return false
     
     if (filter === 'queue') return tx.is_queue
     if (filter === 'done') return !tx.is_queue
     return true
   })
+
+  // Grouping logic for accumulated donations
+  const aggregatedQueue = (() => {
+    const groups: Record<string, { 
+      sender: string, 
+      custom_input: string, 
+      total_base_amount: number, 
+      notes: string[], 
+      is_queue: boolean,
+      uuids: string[],
+      latest_date: string 
+    }> = {}
+
+    filteredQueue.forEach(tx => {
+      // Kunci grouping: utamakan custom_input (roblox username), fallback ke uuid jika kosong agar tetap individu
+      const key = tx.custom_input ? `roblox_${tx.custom_input.toLowerCase()}` : `single_${tx.uuid}`
+      
+      if (!groups[key]) {
+        groups[key] = {
+          sender: tx.sender,
+          custom_input: tx.custom_input,
+          total_base_amount: 0,
+          notes: [],
+          is_queue: false,
+          uuids: [],
+          latest_date: tx.created_at
+        }
+      }
+
+      groups[key].total_base_amount += tx.base_amount
+      groups[key].uuids.push(tx.uuid)
+      if (tx.note && !groups[key].notes.includes(tx.note)) {
+        groups[key].notes.push(tx.note)
+      }
+      // Jika salah satu tx dalam grup masuk queue, maka grup dianggap masuk queue
+      if (tx.is_queue) groups[key].is_queue = true
+    })
+
+    return Object.values(groups).sort((a, b) => b.total_base_amount - a.total_base_amount)
+  })()
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat('id-ID', {
@@ -794,35 +841,42 @@ function Home() {
           </div>
 
           <div className="feed">
-            {filteredQueue.length === 0 ? (
+            {aggregatedQueue.length === 0 ? (
               <p className="muted text-center" style={{ padding: '40px' }}>
                 {loadingQueue ? 'Memuat...' : 'Tidak ada data'}
               </p>
             ) : (
-              filteredQueue.map((tx) => (
-                <div key={tx.uuid} className="feed-row">
+              aggregatedQueue.map((group) => (
+                <div key={group.uuids[0]} className="feed-row">
                   <div className="feed-user-info">
-                    <div className="feed-avatar" style={{ background: tx.is_queue ? 'var(--accent)' : '#e2e8f0' }}>
-                      {tx.sender[0]?.toUpperCase() || '?'}
+                    <div className="feed-avatar" style={{ background: group.is_queue ? 'var(--accent)' : '#e2e8f0' }}>
+                      {group.sender[0]?.toUpperCase() || '?'}
                     </div>
                     <div className="feed-text">
-                      <p className="feed-name">{tx.sender}</p>
-                      {tx.custom_input && (
+                      <p className="feed-name">{group.sender}</p>
+                      {group.custom_input && (
                         <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0' }}>
-                          {user?.custom_input_label || 'Info'}: {tx.custom_input}
+                          {user?.custom_input_label || 'Info'}: {group.custom_input}
                         </p>
                       )}
-                      <p className="feed-note">{tx.note || 'Terima kasih atas dukungannya!'}</p>
+                      <p className="feed-note">
+                        {group.notes.length > 0 ? group.notes.join(' | ') : 'Terima kasih atas dukungannya!'}
+                      </p>
                     </div>
                   </div>
                   <div className="feed-meta">
-                    <p className="feed-amount">{formatCurrency(tx.base_amount)}</p>
+                    <p className="feed-amount">{formatCurrency(group.total_base_amount)}</p>
+                    {group.uuids.length > 1 && (
+                      <span className="badge badge-active" style={{ fontSize: '9px', padding: '2px 6px', marginTop: '2px' }}>
+                        {group.uuids.length}x Donasi
+                      </span>
+                    )}
                     <button
-                      className={`btn btn-sm ${tx.is_queue ? 'btn-ghost' : 'btn-primary'}`}
-                      onClick={() => toggleQueue(tx)}
+                      className={`btn btn-sm ${group.is_queue ? 'btn-ghost' : 'btn-primary'}`}
+                      onClick={() => toggleGroupQueue(group.uuids, group.is_queue)}
                       style={{ padding: '4px 8px', height: '28px', marginTop: '4px' }}
                     >
-                      {tx.is_queue ? '✕' : '↩'}
+                      {group.is_queue ? '✕' : '↩'}
                     </button>
                   </div>
                 </div>
