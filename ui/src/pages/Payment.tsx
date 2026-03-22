@@ -42,14 +42,19 @@ function Payment() {
     if (!tx?.target?.uuid || isPaid || isExpired || loading) return
 
     const wsUrl = `${WS_URL}/ws/${tx.target.uuid}`
+    console.log('[WS] Connecting to:', wsUrl)
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
+
+    socket.onopen = () => console.log('[WS] Connected successfully')
 
     socket.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data)
+        console.log('[WS] Message received:', payload)
         // Check jika ada alert ATAU broadcast status 'paid' dengan uuid transaksi yang sama
         if ((payload.type === 'alert' || payload.type === 'paid') && payload.transaction_uuid === uuid) {
+          console.log('[WS] Payment confirmed!')
           setIsPaid(true)
           
           // Efek suara (Opsional, pastikan file ada di public/)

@@ -10,7 +10,7 @@ type Transaction struct {
 	ID          uint           `gorm:"primaryKey" json:"id"`
 	UUID        string         `gorm:"uniqueIndex;not null" json:"uuid"`
 	TargetID    uint           `gorm:"not null" json:"target_id"`
-	Target      User           `gorm:"foreignKey:TargetID" json:"-"`
+	Target      User           `gorm:"foreignKey:TargetID" json:"target"`
 	Sender      string         `json:"sender"`
 	Amount      int            `json:"amount"`      // Total to pay (e.g., 50089)
 	BaseAmount  int            `json:"base_amount"` // Original amount (e.g., 50000)

@@ -197,6 +197,12 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// Sanitize Target info (jangan bocorkan email atau token streamer ke donor)
+	tx.Target.Email = ""
+	tx.Target.Password = ""
+	tx.Target.AppToken = ""
+	tx.Target.StaticQRIS = ""
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tx)
 }
