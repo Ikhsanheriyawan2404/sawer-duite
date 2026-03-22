@@ -29,6 +29,9 @@ func main() {
 	hub := domain.NewHub()
 	go hub.Run()
 
+	// Alert Queue Manager
+	queueManager := domain.NewAlertQueueManager(hub)
+
 	authService := service.NewAuthService(cfg)
 	qrisService := service.NewQRISService()
 
@@ -41,7 +44,7 @@ func main() {
 
 	healthHandler := handler.NewHealthHandler()
 	authHandler := handler.NewAuthHandler(db, authService)
-	txHandler := handler.NewTransactionHandler(db, qrisService, authService, hub, cfg)
+	txHandler := handler.NewTransactionHandler(db, qrisService, authService, hub, queueManager, cfg)
 
 	r.Get("/health", healthHandler.Check)
 

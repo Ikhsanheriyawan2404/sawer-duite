@@ -18,16 +18,18 @@ type TransactionHandler struct {
 	qrisService       *service.QRISService
 	authService       *service.AuthService
 	hub               *domain.Hub
+	queueManager      *domain.AlertQueueManager
 	defaultStaticQRIS string
 	webhookSecret     string
 }
 
-func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authService *service.AuthService, hub *domain.Hub, cfg domain.Config) *TransactionHandler {
+func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authService *service.AuthService, hub *domain.Hub, queueManager *domain.AlertQueueManager, cfg domain.Config) *TransactionHandler {
 	return &TransactionHandler{
 		db:                db,
 		qrisService:       qrisService,
 		authService:       authService,
 		hub:               hub,
+		queueManager:      queueManager,
 		defaultStaticQRIS: cfg.DefaultStaticQRIS,
 		webhookSecret:     cfg.WebhookSecret,
 	}
@@ -134,14 +136,14 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 		// 3. Update status to paid
 		h.db.Model(&tx).Update("status", "paid")
 
-		// 4. Broadcast to WebSocket
-		h.hub.Broadcast <- domain.AlertMessage{
+		// 4. Enqueue alert (will be sent one-by-one via queue)
+		h.queueManager.Enqueue(domain.AlertMessage{
 			UserUUID: tx.Target.UUID,
 			Type:     "alert",
 			Amount:   tx.BaseAmount, // Show base amount in alert
 			Sender:   tx.Sender,
 			Message:  tx.Note,
-		}
+		})
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -171,7 +173,7 @@ func (h *TransactionHandler) WebSocketHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	// Proceed with WebSocket upgrade
-	domain.ServeWs(h.hub, w, r, userUUID)
+	domain.ServeWs(h.hub, h.queueManager, w, r, userUUID)
 }
 
 func (h *TransactionHandler) TestAlert(w http.ResponseWriter, r *http.Request) {
@@ -185,17 +187,17 @@ func (h *TransactionHandler) TestAlert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Kirim pesan simulasi ke hub
-	h.hub.Broadcast <- domain.AlertMessage{
+	// Enqueue test alert (will be sent one-by-one via queue)
+	h.queueManager.Enqueue(domain.AlertMessage{
 		UserUUID: userUUID,
 		Type:     "alert",
 		Amount:   50000,
 		Sender:   "Tester Ganteng",
 		Message:  "Ini adalah pesan uji coba dari dashboard!",
-	}
+	})
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Test alert sent"))
+	w.Write([]byte("Test alert queued"))
 }
 
 type Supporter struct {

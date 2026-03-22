@@ -28,10 +28,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	Hub      *Hub
-	Conn     *websocket.Conn
-	Send     chan []byte
-	UserUUID string
+	Hub          *Hub
+	Conn         *websocket.Conn
+	Send         chan []byte
+	UserUUID     string
+	QueueManager *AlertQueueManager
 }
 
 type Hub struct {
@@ -113,18 +114,26 @@ func (c *Client) ReadPump() {
 	}()
 	c.Conn.SetReadLimit(maxMessageSize)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.Conn.SetPongHandler(func(string) error { 
+	c.Conn.SetPongHandler(func(string) error {
 		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil 
+		return nil
 	})
 	for {
-		// Kita tidak mengharapkan data dari client, jadi kita buang saja jika ada yang kirim
-		_, _, err := c.Conn.ReadMessage()
+		_, message, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
+		}
+
+		// Handle ACK messages from client
+		var clientMsg ClientMessage
+		if err := json.Unmarshal(message, &clientMsg); err == nil {
+			if clientMsg.Type == "ack" && clientMsg.AlertID != "" && c.QueueManager != nil {
+				log.Printf("[WS] Received ACK from client for alert %s", clientMsg.AlertID)
+				c.QueueManager.HandleACK(c.UserUUID, clientMsg.AlertID)
+			}
 		}
 	}
 }
@@ -160,16 +169,31 @@ func (c *Client) WritePump() {
 	}
 }
 
-func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, userUUID string) {
+func ServeWs(hub *Hub, queueManager *AlertQueueManager, w http.ResponseWriter, r *http.Request, userUUID string) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	client := &Client{Hub: hub, Conn: conn, Send: make(chan []byte, 256), UserUUID: userUUID}
+	client := &Client{
+		Hub:          hub,
+		Conn:         conn,
+		Send:         make(chan []byte, 256),
+		UserUUID:     userUUID,
+		QueueManager: queueManager,
+	}
 	client.Hub.Register <- client
 
 	// Jalankan read dan write di goroutine terpisah
 	go client.WritePump()
 	go client.ReadPump()
+
+	// Check if there are pending alerts in queue for this user
+	if queueManager != nil {
+		queueLen, isPlaying := queueManager.GetQueueStatus(userUUID)
+		if queueLen > 0 && !isPlaying {
+			log.Printf("[WS] New client connected, resuming queue for user %s", userUUID)
+			go queueManager.SendNext(userUUID)
+		}
+	}
 }
