@@ -713,16 +713,17 @@ function Home() {
                 <div className="profile-display" style={{ marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
                   <div className="profile-field" style={{ width: '100%' }}>
                     <p className="profile-label">App Token (Untuk Aplikasi Android Listener)</p>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap' }}>
                       <input 
                         type="text" 
                         readOnly 
                         value={user?.app_token || 'Token belum tersedia'} 
                         className="input" 
-                        style={{ flex: 1, fontFamily: 'monospace', fontSize: '12px', background: 'var(--muted)' }} 
+                        style={{ flex: '1 1 200px', fontFamily: 'monospace', fontSize: '12px', background: 'var(--muted)', minWidth: 0 }} 
                       />
                       <button 
                         className="btn btn-secondary btn-sm"
+                        style={{ flex: '0 0 auto' }}
                         onClick={() => {
                           if (user?.app_token) {
                             navigator.clipboard.writeText(user.app_token);
@@ -852,14 +853,14 @@ function Home() {
                     <div className="feed-avatar" style={{ background: group.is_queue ? 'var(--accent)' : '#e2e8f0' }}>
                       {group.sender[0]?.toUpperCase() || '?'}
                     </div>
-                    <div className="feed-text">
-                      <p className="feed-name">{group.sender}</p>
+                    <div className="feed-text" style={{ minWidth: 0, flex: 1 }}>
+                      <p className="feed-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.sender}</p>
                       {group.custom_input && (
-                        <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0' }}>
+                        <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0', wordBreak: 'break-word' }}>
                           {user?.custom_input_label || 'Info'}: {group.custom_input}
                         </p>
                       )}
-                      <p className="feed-note">
+                      <p className="feed-note" style={{ wordBreak: 'break-word', fontSize: '13px', lineHeight: '1.4' }}>
                         {group.notes.length > 0 ? group.notes.join(' | ') : 'Terima kasih atas dukungannya!'}
                       </p>
                     </div>
