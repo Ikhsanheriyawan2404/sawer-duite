@@ -848,24 +848,30 @@ function Home() {
               </p>
             ) : (
               aggregatedQueue.map((group) => (
-                <div key={group.uuids[0]} className="feed-row">
-                  <div className="feed-user-info">
-                    <div className="feed-avatar" style={{ background: group.is_queue ? 'var(--accent)' : '#e2e8f0' }}>
+                <div key={group.uuids[0]} className="feed-row" style={{ minWidth: 0 }}>
+                  <div className="feed-user-info" style={{ minWidth: 0, flex: 1 }}>
+                    <div className="feed-avatar" style={{ background: group.is_queue ? 'var(--accent)' : '#e2e8f0', flexShrink: 0 }}>
                       {group.sender[0]?.toUpperCase() || '?'}
                     </div>
                     <div className="feed-text" style={{ minWidth: 0, flex: 1 }}>
-                      <p className="feed-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.sender}</p>
+                      <p className="feed-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>{group.sender}</p>
                       {group.custom_input && (
-                        <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0', wordBreak: 'break-word' }}>
+                        <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0', overflowWrap: 'anywhere' }}>
                           {user?.custom_input_label || 'Info'}: {group.custom_input}
                         </p>
                       )}
-                      <p className="feed-note" style={{ wordBreak: 'break-word', fontSize: '13px', lineHeight: '1.4' }}>
+                      <p className="feed-note" style={{ 
+                        overflowWrap: 'anywhere', 
+                        fontSize: '13px', 
+                        lineHeight: '1.4', 
+                        color: 'var(--muted-foreground)',
+                        marginTop: '4px'
+                      }}>
                         {group.notes.length > 0 ? group.notes.join(' | ') : 'Terima kasih atas dukungannya!'}
                       </p>
                     </div>
                   </div>
-                  <div className="feed-meta">
+                  <div className="feed-meta" style={{ flexShrink: 0, textAlign: 'right' }}>
                     <p className="feed-amount">{formatCurrency(group.total_base_amount)}</p>
                     {group.uuids.length > 1 && (
                       <span className="badge badge-active" style={{ fontSize: '9px', padding: '2px 6px', marginTop: '2px' }}>
