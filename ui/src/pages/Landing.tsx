@@ -27,6 +27,12 @@ function Landing() {
             <img src="/gopay-logo.svg" alt="GoPay Merchant" className="merchant-logo" />
           </div>
         </div>
+        <p className="muted" style={{ fontSize: '12px' }}>
+          Hubungi WhatsApp:{' '}
+          <a href="https://wa.me/6282117088123" target="_blank" rel="noreferrer">
+            6282117088123
+          </a>
+        </p>
       </section>
     </main>
   )

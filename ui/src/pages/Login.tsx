@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_URL, setTokens } from '../lib/api'
+import { API_URL, getTokens, refreshTokens, setTokens } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
 function Login() {
@@ -11,6 +11,26 @@ function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    let isMounted = true
+    const { accessToken, refreshToken } = getTokens()
+    if (accessToken) {
+      navigate('/home', { replace: true })
+      return
+    }
+    if (refreshToken) {
+      refreshTokens().then((newAccessToken) => {
+        if (isMounted && newAccessToken) {
+          navigate('/home', { replace: true })
+        }
+      })
+    }
+
+    return () => {
+      isMounted = false
+    }
+  }, [navigate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

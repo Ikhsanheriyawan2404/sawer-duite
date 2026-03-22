@@ -29,7 +29,9 @@ function Header() {
   return (
     <header className="topbar">
       <Link to="/" className="brand">
-        <div className="brand-mark"></div>
+        <div className="brand-mark">
+          <img src="/logo.png" alt="Sawer Om" />
+        </div>
         <span className="brand-name">Sawer Om</span>
       </Link>
       <button onClick={handleAuthAction} className="btn btn-secondary">
