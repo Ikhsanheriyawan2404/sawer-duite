@@ -44,11 +44,12 @@ type Hub struct {
 }
 
 type AlertMessage struct {
-	UserUUID string `json:"user_uuid"`
-	Type     string `json:"type"` // "alert" or "refresh"
-	Amount   int    `json:"amount"`
-	Sender   string `json:"sender"`
-	Message  string `json:"message"`
+	UserUUID        string `json:"user_uuid"`
+	TransactionUUID string `json:"transaction_uuid"`
+	Type            string `json:"type"` // "alert" or "refresh"
+	Amount          int    `json:"amount"`
+	Sender          string `json:"sender"`
+	Message         string `json:"message"`
 }
 
 func NewHub() *Hub {

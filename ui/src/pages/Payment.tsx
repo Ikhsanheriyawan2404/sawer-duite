@@ -49,8 +49,12 @@ function Payment() {
       try {
         const payload = JSON.parse(event.data)
         // Check jika ada alert dengan uuid transaksi yang sama
-        if (payload.type === 'alert' && payload.data?.uuid === uuid) {
+        if (payload.type === 'alert' && payload.transaction_uuid === uuid) {
           setIsPaid(true)
+          
+          // Efek suara (Opsional, pastikan file ada di public/)
+          const audio = new Audio('/money-soundfx.mp3')
+          audio.play().catch(e => console.log('Auto-play blocked:', e))
         }
       } catch (err) {
         console.error('WS parse error:', err)

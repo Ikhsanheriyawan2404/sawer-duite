@@ -169,11 +169,12 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 
 		// 4. Enqueue alert (will be sent one-by-one via queue)
 		h.queueManager.Enqueue(domain.AlertMessage{
-			UserUUID: tx.Target.UUID,
-			Type:     "alert",
-			Amount:   tx.BaseAmount, // Show base amount in alert
-			Sender:   tx.Sender,
-			Message:  tx.Note,
+			UserUUID:        tx.Target.UUID,
+			TransactionUUID: tx.UUID,
+			Type:            "alert",
+			Amount:          tx.BaseAmount, // Show base amount in alert
+			Sender:          tx.Sender,
+			Message:         tx.Note,
 		})
 	}
 
