@@ -64,8 +64,19 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	uniqueCode := rand.Intn(90) + 10
 	totalAmount := req.Amount + uniqueCode
 
+	// Use user's own StaticQRIS or fallback to default
+	qrisBase := target.StaticQRIS
+	if qrisBase == "" {
+		qrisBase = h.defaultStaticQRIS
+	}
+
+	if qrisBase == "" {
+		http.Error(w, "penerima belum menyetel QRIS", http.StatusBadRequest)
+		return
+	}
+
 	// Generate Dynamic QRIS with total amount
-	qrisPayload, err := h.qrisService.GenerateDynamicQRIS(h.defaultStaticQRIS, totalAmount)
+	qrisPayload, err := h.qrisService.GenerateDynamicQRIS(qrisBase, totalAmount)
 	if err != nil {
 		http.Error(w, "failed to generate QRIS", http.StatusInternalServerError)
 		return
@@ -95,9 +106,23 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 }
 
 func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.Request) {
-	// Verify Webhook Secret
-	secret := r.Header.Get("X-Webhook-Secret")
-	if secret == "" || secret != h.webhookSecret {
+	// Identify user by X-App-Token or X-Webhook-Secret
+	appToken := r.Header.Get("X-App-Token")
+	webhookSecret := r.Header.Get("X-Webhook-Secret")
+
+	var targetUser domain.User
+	useAppToken := false
+
+	if appToken != "" {
+		if err := h.db.Where("app_token = ?", appToken).First(&targetUser).Error; err == nil {
+			useAppToken = true
+		} else {
+			http.Error(w, "invalid app token", http.StatusUnauthorized)
+			return
+		}
+	} else if webhookSecret != "" && webhookSecret == h.webhookSecret {
+		// Legacy/Global mode - targetUser remains empty/nil
+	} else {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -116,21 +141,27 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 	}
 
 	// 1. Log notification
-	log := domain.NotificationLog{
+	logEntry := domain.NotificationLog{
 		Message: req.Message,
 		Amount:  int64(req.Amount),
 		Bank:    req.Bank,
 	}
-	log.GenerateHash()
-	if err := h.db.Create(&log).Error; err != nil {
+	logEntry.GenerateHash()
+	if err := h.db.Create(&logEntry).Error; err != nil {
 		// Log error but continue if it's just a duplicate hash
 	}
 
 	// 2. Find matching transaction
 	var tx domain.Transaction
-	err := h.db.Preload("Target").
-		Where("amount = ? AND status = ? AND expired_at > ?", req.Amount, "pending", time.Now()).
-		First(&tx).Error
+	query := h.db.Preload("Target").
+		Where("amount = ? AND status = ? AND expired_at > ?", req.Amount, "pending", time.Now())
+
+	// If using AppToken, filter by that specific user to prevent collisions
+	if useAppToken {
+		query = query.Where("target_id = ?", targetUser.ID)
+	}
+
+	err := query.First(&tx).Error
 
 	if err == nil {
 		// 3. Update status to paid

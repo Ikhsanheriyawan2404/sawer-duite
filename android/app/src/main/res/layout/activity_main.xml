@@ -31,11 +31,39 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Checking status..."
-        android:textSize="16sp"
+        android:textSize="14sp"
         android:textAlignment="center"
-        android:padding="16dp"
+        android:padding="12dp"
         android:background="@android:color/white"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/urlEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Backend URL (https://api.example.com)"
+        android:inputType="textUri"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/tokenEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="App Token (ot_...)"
+        android:inputType="text"
+        android:textSize="14sp"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/saveButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Simpan Konfigurasi"
+        android:textAllCaps="false"
+        android:backgroundTint="@android:color/holo_blue_dark"
+        android:textColor="@android:color/white"
+        android:layout_marginBottom="16dp" />
 
     <Button
         android:id="@+id/enableButton"
@@ -43,8 +71,7 @@
         android:layout_height="wrap_content"
         android:text="Aktifkan Notification Access"
         android:textAllCaps="false"
-        android:padding="16dp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="8dp" />
 
     <Button
         android:id="@+id/testButton"
@@ -52,15 +79,14 @@
         android:layout_height="wrap_content"
         android:text="Test Koneksi Backend"
         android:textAllCaps="false"
-        android:padding="16dp"
         android:backgroundTint="@android:color/darker_gray" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Listening for: id.dana"
+        android:text="Listening for: DANA &amp; GoPay Merchant"
         android:textSize="12sp"
         android:textColor="@android:color/darker_gray"
-        android:layout_marginTop="32dp" />
+        android:layout_marginTop="24dp" />
 
 </LinearLayout>

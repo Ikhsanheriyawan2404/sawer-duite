@@ -12,10 +12,11 @@ class NotificationListener : NotificationListenerService() {
     companion object {
         private const val TAG = "NotificationListener"
 
-        // Target package names untuk DANA
+        // Target package names
         private val TARGET_PACKAGES = setOf(
             "id.dana",
-            "id.dana.business"  // DANA Business jika berbeda package
+            "id.dana.business",
+            "com.gojek.gopaymerchant"
         )
 
         // Cache untuk mencegah duplicate (TTL 10 detik)
@@ -100,9 +101,10 @@ class NotificationListener : NotificationListenerService() {
             // Tambahkan ke cache
             notificationCache[notificationHash] = System.currentTimeMillis()
 
-            // Parse data pembayaran
-            val parsedData = Parser.parsePaymentText(text)
+            // Parse data pembayaran (Pass packageName to detect provider)
+            val parsedData = Parser.parsePaymentText(text, packageName)
 
+            Log.d(TAG, "Parsed Provider: ${parsedData.provider}")
             Log.d(TAG, "Parsed Amount: ${parsedData.amount}")
             Log.d(TAG, "Parsed Bank: ${parsedData.bank}")
 
@@ -112,7 +114,7 @@ class NotificationListener : NotificationListenerService() {
                 message = text,
                 amount = parsedData.amount,
                 bank = parsedData.bank,
-                source = "DANA"
+                source = parsedData.provider
             )
 
             Log.d(TAG, "Payload: $paymentData")
@@ -186,7 +188,7 @@ class NotificationListener : NotificationListenerService() {
         while (!success && retryCount < maxRetries) {
             try {
                 Log.d(TAG, "Sending to backend (attempt ${retryCount + 1}/$maxRetries)")
-                success = NetworkClient.sendPaymentData(paymentData)
+                success = NetworkClient.sendPaymentData(this, paymentData)
 
                 if (success) {
                     Log.d(TAG, "✅ Successfully sent to backend")

@@ -1,5 +1,6 @@
 package com.ongob.paymentlistener
 
+import android.content.Context
 import android.util.Log
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -12,12 +13,6 @@ object NetworkClient {
 
     private const val TAG = "NetworkClient"
 
-    // Backend URL - ganti dengan URL production
-    private const val BACKEND_URL = "https://sawerom-api.duitebot.com/notifications"
-    // Untuk emulator Android gunakan: "http://10.0.2.2:3000/notifications"
-
-    private const val WEBHOOK_SECRET = "ongob-webhook-secret-123"
-
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
     private val client: OkHttpClient by lazy {
@@ -29,7 +24,18 @@ object NetworkClient {
             .build()
     }
 
-    fun sendPaymentData(paymentData: PaymentData): Boolean {
+    fun sendPaymentData(context: Context, paymentData: PaymentData): Boolean {
+        val settings = SettingsManager(context)
+        val baseUrl = settings.backendUrl
+        val appToken = settings.appToken
+
+        // Pastikan URL diakhiri dengan /notifications
+        val fullUrl = if (baseUrl.endsWith("/notifications")) {
+            baseUrl
+        } else {
+            "${baseUrl.removeSuffix("/")}/notifications"
+        }
+
         return try {
             val jsonBody = JSONObject().apply {
                 put("title", paymentData.title)
@@ -39,15 +45,15 @@ object NetworkClient {
                 put("source", paymentData.source)
             }
 
-            Log.d(TAG, "Request URL: $BACKEND_URL")
+            Log.d(TAG, "Request URL: $fullUrl")
             Log.d(TAG, "Request Body: $jsonBody")
 
             val requestBody = jsonBody.toString().toRequestBody(JSON_MEDIA_TYPE)
 
             val request = Request.Builder()
-                .url(BACKEND_URL)
+                .url(fullUrl)
                 .post(requestBody)
-                .addHeader("X-Webhook-Secret", WEBHOOK_SECRET)
+                .addHeader("X-App-Token", appToken)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Accept", "application/json")
                 .build()

@@ -149,6 +149,8 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	user.DonationPackages = req.DonationPackages
 	user.CustomInputLabel = req.CustomInputLabel
 	user.CustomInputRequired = req.CustomInputRequired
+	user.StaticQRIS = req.StaticQRIS
+	user.Provider = req.Provider
 
 	if err := h.db.Save(&user).Error; err != nil {
 		http.Error(w, "failed to update profile", http.StatusInternalServerError)

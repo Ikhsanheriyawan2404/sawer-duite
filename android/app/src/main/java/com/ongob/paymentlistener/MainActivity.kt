@@ -21,16 +21,43 @@ class MainActivity : AppCompatActivity() {
     }
 
     private lateinit var statusTextView: TextView
+    private lateinit var urlEditText: android.widget.EditText
+    private lateinit var tokenEditText: android.widget.EditText
+    private lateinit var saveButton: Button
     private lateinit var enableButton: Button
     private lateinit var testButton: Button
+    private lateinit var settings: SettingsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        settings = SettingsManager(this)
+
         statusTextView = findViewById(R.id.statusTextView)
+        urlEditText = findViewById(R.id.urlEditText)
+        tokenEditText = findViewById(R.id.tokenEditText)
+        saveButton = findViewById(R.id.saveButton)
         enableButton = findViewById(R.id.enableButton)
         testButton = findViewById(R.id.testButton)
+
+        // Load saved settings
+        urlEditText.setText(settings.backendUrl)
+        tokenEditText.setText(settings.appToken)
+
+        saveButton.setOnClickListener {
+            val url = urlEditText.text.toString().trim()
+            val token = tokenEditText.text.toString().trim()
+
+            if (url.isEmpty()) {
+                Toast.makeText(this, "URL tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            settings.backendUrl = url
+            settings.appToken = token
+            Toast.makeText(this, "Konfigurasi disimpan!", Toast.LENGTH_SHORT).show()
+        }
 
         enableButton.setOnClickListener {
             openNotificationAccessSettings()
@@ -113,7 +140,7 @@ class MainActivity : AppCompatActivity() {
                     bank = "BCA",
                     source = "DANA"
                 )
-                val success = NetworkClient.sendPaymentData(testPayload)
+                val success = NetworkClient.sendPaymentData(this, testPayload)
                 runOnUiThread {
                     if (success) {
                         Toast.makeText(this, "✅ Koneksi backend berhasil!", Toast.LENGTH_LONG).show()

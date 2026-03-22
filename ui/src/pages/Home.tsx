@@ -24,6 +24,9 @@ interface User {
   donation_packages: DonationPackage[]
   custom_input_label: string
   custom_input_required: boolean
+  static_qris: string
+  provider: string
+  app_token: string
   created_at: string
   updated_at: string
 }
@@ -57,7 +60,9 @@ function Home() {
     quick_amounts: [] as number[],
     donation_packages: [] as DonationPackage[],
     custom_input_label: '',
-    custom_input_required: false
+    custom_input_required: false,
+    static_qris: '',
+    provider: 'DANA'
   })
   const [newQuickAmount, setNewQuickAmount] = useState('')
   const [newPackage, setNewPackage] = useState({ label: '', amount: '' })
@@ -87,7 +92,9 @@ function Home() {
         quick_amounts: parsed.quick_amounts || [],
         donation_packages: parsed.donation_packages || [],
         custom_input_label: parsed.custom_input_label || '',
-        custom_input_required: parsed.custom_input_required || false
+        custom_input_required: parsed.custom_input_required || false,
+        static_qris: parsed.static_qris || '',
+        provider: parsed.provider || 'DANA'
       })
     }
 
@@ -108,7 +115,9 @@ function Home() {
           quick_amounts: data.quick_amounts || [],
           donation_packages: data.donation_packages || [],
           custom_input_label: data.custom_input_label || '',
-          custom_input_required: data.custom_input_required || false
+          custom_input_required: data.custom_input_required || false,
+          static_qris: data.static_qris || '',
+          provider: data.provider || 'DANA'
         })
         localStorage.setItem('user', JSON.stringify(data))
         fetchQueue(data.username)
@@ -215,7 +224,9 @@ function Home() {
         quick_amounts: user.quick_amounts || [],
         donation_packages: user.donation_packages || [],
         custom_input_label: user.custom_input_label || '',
-        custom_input_required: user.custom_input_required || false
+        custom_input_required: user.custom_input_required || false,
+        static_qris: user.static_qris || '',
+        provider: user.provider || 'DANA'
       })
     }
   }
@@ -543,15 +554,6 @@ function Home() {
                     <label htmlFor="custom_required" style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Aktifkan & Wajib diisi</label>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
-                    Batal
-                  </button>
-                  <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                  </button>
-                </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -588,6 +590,101 @@ function Home() {
                     <p className="profile-value" style={{ fontSize: '14px' }}>
                       {user?.custom_input_label ? `${user.custom_input_label} (${user.custom_input_required ? 'Wajib' : 'Opsional'})` : 'Tidak Aktif'}
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+
+        {/* Payment Settings Card */}
+        <article className="card">
+          <div className="card-header">
+            <h3>Pengaturan Pembayaran</h3>
+            {isEditing && <span className="badge badge-active">Sedang Diedit</span>}
+          </div>
+          <div className="profile-form">
+            {isEditing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Provider Merchant</label>
+                  <select
+                    value={formData.provider}
+                    onChange={e => setFormData({ ...formData, provider: e.target.value })}
+                    className="input"
+                    style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
+                  >
+                    <option value="DANA">DANA Business</option>
+                    <option value="GOPAY">GoPay Merchant</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Kode QRIS Statis</label>
+                  <textarea
+                    value={formData.static_qris}
+                    onChange={e => setFormData({ ...formData, static_qris: e.target.value })}
+                    className="input"
+                    placeholder="Paste kode QRIS dari aplikasi (000201010211...)"
+                    style={{ minHeight: '100px', resize: 'vertical', fontFamily: 'monospace', fontSize: '12px' }}
+                  />
+                  <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '4px' }}>
+                    Pastikan Anda menyalin kode string QRIS dengan benar (bukan gambar).
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                  <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
+                    Batal
+                  </button>
+                  <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="profile-display">
+                  <div className="profile-field">
+                    <p className="profile-label">Provider Merchant</p>
+                    <p className="profile-value">
+                      {user?.provider === 'GOPAY' ? 'GoPay Merchant' : user?.provider === 'DANA' ? 'DANA Business' : (user?.provider || '-')}
+                    </p>
+                  </div>
+                  <div className="profile-field">
+                    <p className="profile-label">Status QRIS</p>
+                    <p className="profile-value" style={{ fontSize: '14px' }}>
+                      {user?.static_qris ? (
+                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Terkonfigurasi ✓</span>
+                      ) : (
+                        <span style={{ color: '#dc2626' }}>Belum disetel</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="profile-display" style={{ marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+                  <div className="profile-field" style={{ width: '100%' }}>
+                    <p className="profile-label">App Token (Untuk Aplikasi Android Listener)</p>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={user?.app_token || 'Token belum tersedia'} 
+                        className="input" 
+                        style={{ flex: 1, fontFamily: 'monospace', fontSize: '12px', background: 'var(--muted)' }} 
+                      />
+                      <button 
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          if (user?.app_token) {
+                            navigator.clipboard.writeText(user.app_token);
+                            alert('Token disalin!');
+                          }
+                        }}
+                      >
+                        Salin
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

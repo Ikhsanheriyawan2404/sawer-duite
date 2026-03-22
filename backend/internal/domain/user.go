@@ -31,14 +31,23 @@ type User struct {
 	// Custom input field untuk donasi (misal: username roblox, ID game, dll)
 	CustomInputLabel    string `json:"custom_input_label"`    // Label field (contoh: "Username Roblox")
 	CustomInputRequired bool   `json:"custom_input_required"` // Apakah wajib diisi
-	CreatedAt           time.Time      `json:"created_at"`
-	UpdatedAt           time.Time      `json:"updated_at"`
-	DeletedAt           gorm.DeletedAt `gorm:"index" json:"-"`
+	
+	// Payment settings
+	StaticQRIS string `gorm:"type:text" json:"static_qris"`
+	Provider   string `gorm:"type:varchar(20)" json:"provider"` // GOPAY, DANA
+	AppToken   string `gorm:"uniqueIndex" json:"app_token"`
+
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	if u.UUID == "" {
 		u.UUID = uuid.New().String()
+	}
+	if u.AppToken == "" {
+		u.AppToken = "ot_" + uuid.New().String() // ongob_token
 	}
 	return nil
 }
@@ -62,6 +71,8 @@ type UpdateProfileRequest struct {
 	DonationPackages    []DonationPackage `json:"donation_packages"`
 	CustomInputLabel    string            `json:"custom_input_label"`
 	CustomInputRequired bool              `json:"custom_input_required"`
+	StaticQRIS          string            `json:"static_qris"`
+	Provider            string            `json:"provider"`
 }
 
 type LoginResponse struct {
