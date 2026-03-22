@@ -198,6 +198,48 @@
   font-size: 13px; font-weight: 600; margin: 0;
 }
 
+/* Landing: Merchant Slideshow */
+.merchant-section {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 20px 0 8px;
+}
+.merchant-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted-foreground);
+  margin: 0;
+}
+.merchant-slider {
+  width: min(720px, 100%); overflow: hidden; position: relative;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 0;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+}
+.merchant-track {
+  display: flex; align-items: center; gap: 32px;
+  width: max-content; padding: 6px 24px;
+  animation: merchant-marquee 18s linear infinite;
+}
+.merchant-logo {
+  height: 32px; width: auto; opacity: 0.9; filter: grayscale(0.1);
+}
+
+@keyframes merchant-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@media (min-width: 768px) {
+  .merchant-section { gap: 16px; padding: 24px 0 12px; }
+  .merchant-slider { padding: 12px 0; }
+  .merchant-logo { height: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-track { animation: none; }
+}
+
 /* Widget Info */
 .widget-info { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
 .widget-header { display: flex; align-items: center; gap: 8px; }
