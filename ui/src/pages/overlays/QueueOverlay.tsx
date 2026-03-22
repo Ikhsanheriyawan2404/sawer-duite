@@ -130,50 +130,50 @@ function QueueOverlay() {
 
         .queue-dialog {
           background: #ffffff;
-          border-radius: 24px;
-          padding: 32px;
-          min-width: 480px;
-          max-width: 600px;
-          box-shadow: 0 10px 40px rgba(0, 82, 255, 0.15);
+          border-radius: 32px;
+          padding: 48px;
+          min-width: 800px;
+          max-width: 1000px;
+          box-shadow: 0 20px 60px rgba(0, 82, 255, 0.2);
           animation: dialogFadeIn 0.5s ease-out both;
         }
 
         .queue-title {
           font-family: 'Calistoga', Georgia, serif;
-          font-size: 28px;
+          font-size: 42px;
           font-weight: 400;
           color: #0052ff;
           text-align: center;
-          margin: 0 0 24px 0;
+          margin: 0 0 32px 0;
           letter-spacing: -0.02em;
         }
 
         .queue-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 16px;
         }
 
         .queue-empty {
           text-align: center;
           color: #0052ff;
-          font-size: 16px;
-          padding: 40px 0;
+          font-size: 20px;
+          padding: 60px 0;
           opacity: 0.6;
         }
 
         .queue-item {
           display: flex;
           align-items: center;
-          gap: 16px;
-          padding: 16px 20px;
+          gap: 24px;
+          padding: 20px 32px;
           background: #f1f5f9;
-          border-radius: 16px;
+          border-radius: 24px;
         }
 
         .queue-rank {
-          width: 32px;
-          height: 32px;
+          width: 48px;
+          height: 48px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -181,12 +181,12 @@ function QueueOverlay() {
           color: #ffffff;
           border-radius: 50%;
           font-weight: 700;
-          font-size: 14px;
+          font-size: 20px;
           flex-shrink: 0;
         }
 
         .queue-name {
-          font-size: 16px;
+          font-size: 24px;
           font-weight: 600;
           color: #0052ff;
         }
@@ -195,17 +195,17 @@ function QueueOverlay() {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 4px;
         }
 
         .queue-custom {
-          font-size: 13px;
+          font-size: 18px;
           color: #64748b;
           font-weight: 500;
         }
 
         .queue-amount {
-          font-size: 16px;
+          font-size: 24px;
           font-weight: 700;
           color: #0052ff;
         }

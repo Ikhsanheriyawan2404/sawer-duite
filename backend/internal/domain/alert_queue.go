@@ -151,6 +151,15 @@ func (m *AlertQueueManager) sendNext(userUUID string) {
 	}
 	m.hub.mu.Unlock()
 
+	// If no clients were reachable, reset isPlaying so the next connecting client can trigger it
+	if sentCount == 0 {
+		log.Printf("[Queue] No clients connected for user %s, putting alert back on wait", userUUID)
+		q.mu.Lock()
+		q.IsPlaying = false
+		q.mu.Unlock()
+		return
+	}
+
 	log.Printf("[Queue] Sent alert %s to %d clients for user %s", item.ID, sentCount, userUUID)
 
 	// Start timeout timer

@@ -167,7 +167,14 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 		// 3. Update status to paid
 		h.db.Model(&tx).Update("status", "paid")
 
-		// 4. Enqueue alert (will be sent one-by-one via queue)
+		// Broadcast immediate paid status to all connected clients (especially the donor page)
+		h.hub.Broadcast <- domain.AlertMessage{
+			UserUUID:        tx.Target.UUID,
+			TransactionUUID: tx.UUID,
+			Type:            "paid",
+		}
+
+		// 4. Enqueue alert (this goes into the FIFO queue for the streamer's overlay)
 		h.queueManager.Enqueue(domain.AlertMessage{
 			UserUUID:        tx.Target.UUID,
 			TransactionUUID: tx.UUID,

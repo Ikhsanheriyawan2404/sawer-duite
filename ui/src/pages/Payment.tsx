@@ -48,8 +48,8 @@ function Payment() {
     socket.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data)
-        // Check jika ada alert dengan uuid transaksi yang sama
-        if (payload.type === 'alert' && payload.transaction_uuid === uuid) {
+        // Check jika ada alert ATAU broadcast status 'paid' dengan uuid transaksi yang sama
+        if ((payload.type === 'alert' || payload.type === 'paid') && payload.transaction_uuid === uuid) {
           setIsPaid(true)
           
           // Efek suara (Opsional, pastikan file ada di public/)
