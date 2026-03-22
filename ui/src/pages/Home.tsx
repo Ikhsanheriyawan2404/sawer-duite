@@ -48,8 +48,8 @@ function Home() {
   useDocumentTitle('Dashboard')
   const [user, setUser] = useState<User | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState({ 
-    name: '', 
+  const [formData, setFormData] = useState({
+    name: '',
     username: '',
     bio: '',
     tiktok: '',
@@ -71,7 +71,7 @@ function Home() {
   const [saving, setSaving] = useState(false)
   const [queue, setQueue] = useState<Transaction[]>([])
   const [loadingQueue, setLoadingQueue] = useState(false)
-  
+
   const [filter, setFilter] = useState<'all' | 'queue' | 'done'>('all')
   const [search, setSearch] = useState('')
 
@@ -80,8 +80,8 @@ function Home() {
     if (savedUser) {
       const parsed = JSON.parse(savedUser)
       setUser(parsed)
-      setFormData({ 
-        name: parsed.name || '', 
+      setFormData({
+        name: parsed.name || '',
         username: parsed.username || '',
         bio: parsed.bio || '',
         tiktok: parsed.tiktok || '',
@@ -103,8 +103,8 @@ function Home() {
       .then(res => res.json())
       .then(data => {
         setUser(data)
-        setFormData({ 
-          name: data.name || '', 
+        setFormData({
+          name: data.name || '',
           username: data.username || '',
           bio: data.bio || '',
           tiktok: data.tiktok || '',
@@ -146,15 +146,15 @@ function Home() {
       const endpoint = currentIsQueue
         ? '/queue/remove'
         : '/queue/add'
-      
-      const promises = uuids.map(uuid => 
+
+      const promises = uuids.map(uuid =>
         fetchWithAuth(`/transactions/${uuid}${endpoint}`, { method: 'POST' })
       )
-      
+
       await Promise.all(promises)
-      
+
       if (user) {
-        setQueue(prev => prev.map(item => 
+        setQueue(prev => prev.map(item =>
           uuids.includes(item.uuid) ? { ...item, is_queue: !currentIsQueue } : item
         ))
       }
@@ -165,10 +165,10 @@ function Home() {
 
   async function handleBulkAction(action: 'clear' | 'reset') {
     if (!user) return
-    const confirmMsg = action === 'clear' 
-      ? 'Kosongkan semua antrean saat ini?' 
+    const confirmMsg = action === 'clear'
+      ? 'Kosongkan semua antrean saat ini?'
       : 'Masukkan semua donasi ke antrean?'
-    
+
     if (!window.confirm(confirmMsg)) return
 
     setLoadingQueue(true)
@@ -181,7 +181,7 @@ function Home() {
             : `/transactions/${tx.uuid}/queue/add`
           return fetchWithAuth(endpoint, { method: 'POST' })
         })
-      
+
       await Promise.all(promises)
       fetchQueue(user.username)
     } catch (err) {
@@ -192,11 +192,11 @@ function Home() {
   }
 
   const filteredQueue = queue.filter(tx => {
-    const matchesSearch = (tx.sender?.toLowerCase() || '').includes(search.toLowerCase()) || 
+    const matchesSearch = (tx.sender?.toLowerCase() || '').includes(search.toLowerCase()) ||
                           (tx.note?.toLowerCase() || '').includes(search.toLowerCase()) ||
                           (tx.custom_input?.toLowerCase() || '').includes(search.toLowerCase())
     if (!matchesSearch) return false
-    
+
     if (filter === 'queue') return tx.is_queue
     if (filter === 'done') return !tx.is_queue
     return true
@@ -204,20 +204,20 @@ function Home() {
 
   // Grouping logic for accumulated donations
   const aggregatedQueue = (() => {
-    const groups: Record<string, { 
-      sender: string, 
-      custom_input: string, 
-      total_base_amount: number, 
-      notes: string[], 
+    const groups: Record<string, {
+      sender: string,
+      custom_input: string,
+      total_base_amount: number,
+      notes: string[],
       is_queue: boolean,
       uuids: string[],
-      latest_date: string 
+      latest_date: string
     }> = {}
 
     filteredQueue.forEach(tx => {
       // Kunci grouping: utamakan custom_input (roblox username), fallback ke uuid jika kosong agar tetap individu
       const key = tx.custom_input ? `roblox_${tx.custom_input.toLowerCase()}` : `single_${tx.uuid}`
-      
+
       if (!groups[key]) {
         groups[key] = {
           sender: tx.sender,
@@ -259,8 +259,8 @@ function Home() {
     setIsEditing(false)
     setError('')
     if (user) {
-      setFormData({ 
-        name: user.name || '', 
+      setFormData({
+        name: user.name || '',
         username: user.username || '',
         bio: user.bio || '',
         tiktok: user.tiktok || '',
@@ -336,8 +336,8 @@ function Home() {
   const addPackage = () => {
     const amt = parseInt(newPackage.amount)
     if (newPackage.label && amt > 0) {
-      setFormData({ 
-        ...formData, 
+      setFormData({
+        ...formData,
         donation_packages: [...formData.donation_packages, { label: newPackage.label, amount: amt }]
       })
       setNewPackage({ label: '', amount: '' })
@@ -345,9 +345,9 @@ function Home() {
   }
 
   const removePackage = (index: number) => {
-    setFormData({ 
-      ...formData, 
-      donation_packages: formData.donation_packages.filter((_, i) => i !== index) 
+    setFormData({
+      ...formData,
+      donation_packages: formData.donation_packages.filter((_, i) => i !== index)
     })
   }
 
@@ -714,14 +714,14 @@ function Home() {
                   <div className="profile-field" style={{ width: '100%' }}>
                     <p className="profile-label">App Token (Untuk Aplikasi Android Listener)</p>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap' }}>
-                      <input 
-                        type="text" 
-                        readOnly 
-                        value={user?.app_token || 'Token belum tersedia'} 
-                        className="input" 
-                        style={{ flex: '1 1 200px', fontFamily: 'monospace', fontSize: '12px', background: 'var(--muted)', minWidth: 0 }} 
+                      <input
+                        type="text"
+                        readOnly
+                        value={user?.app_token || 'Token belum tersedia'}
+                        className="input"
+                        style={{ flex: '1 1 200px', fontFamily: 'monospace', fontSize: '12px', background: 'var(--muted)', minWidth: 0 }}
                       />
-                      <button 
+                      <button
                         className="btn btn-secondary btn-sm"
                         style={{ flex: '0 0 auto' }}
                         onClick={() => {
@@ -821,7 +821,7 @@ function Home() {
           <div className="stack-resp">
             <div className="tab-group flex-1">
               {(['all', 'queue', 'done'] as const).map(t => (
-                <button 
+                <button
                   key={t}
                   className={`btn btn-sm ${filter === t ? 'btn-primary' : 'btn-ghost'}`}
                   onClick={() => setFilter(t)}
@@ -831,7 +831,7 @@ function Home() {
                 </button>
               ))}
             </div>
-            <input 
+            <input
               type="text"
               placeholder="Cari donatur..."
               className="input"
@@ -860,15 +860,6 @@ function Home() {
                           {user?.custom_input_label || 'Info'}: {group.custom_input}
                         </p>
                       )}
-                      <p className="feed-note" style={{ 
-                        overflowWrap: 'anywhere', 
-                        fontSize: '13px', 
-                        lineHeight: '1.4', 
-                        color: 'var(--muted-foreground)',
-                        marginTop: '4px'
-                      }}>
-                        {group.notes.length > 0 ? group.notes.join(' | ') : 'Terima kasih atas dukungannya!'}
-                      </p>
                     </div>
                   </div>
                   <div className="feed-meta" style={{ flexShrink: 0, textAlign: 'right' }}>
