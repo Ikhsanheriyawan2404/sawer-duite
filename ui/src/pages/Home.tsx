@@ -38,6 +38,7 @@ interface Transaction {
   amount: number
   base_amount: number
   note: string
+  custom_input: string
   status: string
   is_queue: boolean
   created_at: string
@@ -806,6 +807,11 @@ function Home() {
                     </div>
                     <div className="feed-text">
                       <p className="feed-name">{tx.sender}</p>
+                      {tx.custom_input && (
+                        <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0' }}>
+                          {user?.custom_input_label || 'Info'}: {tx.custom_input}
+                        </p>
+                      )}
                       <p className="feed-note">{tx.note || 'Terima kasih atas dukungannya!'}</p>
                     </div>
                   </div>
