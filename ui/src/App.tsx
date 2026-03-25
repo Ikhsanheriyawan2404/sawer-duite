@@ -9,21 +9,16 @@ import AlertOverlay from './pages/overlays/AlertOverlay'
 import QueueOverlay from './pages/overlays/QueueOverlay'
 import MediaOverlay from './pages/overlays/MediaOverlay'
 import { ProtectedRoute } from './components/ProtectedRoute'
-import { clearTokens } from './lib/api'
+import { clearTokens, getTokens } from './lib/api'
 import './App.css'
 
 function Header() {
-  const { pathname } = useLocation()
   const navigate = useNavigate()
-  const isHome = pathname === '/home'
+  const { accessToken } = getTokens()
 
-  function handleAuthAction() {
-    if (isHome) {
-      clearTokens()
-      navigate('/login')
-    } else {
-      navigate('/login')
-    }
+  function handleLogout() {
+    clearTokens()
+    navigate('/login')
   }
 
   return (
@@ -34,9 +29,11 @@ function Header() {
         </div>
         <span className="brand-name">Sawer Om</span>
       </Link>
-      <button onClick={handleAuthAction} className="btn btn-secondary">
-        {isHome ? 'Keluar' : 'Masuk'}
-      </button>
+      {accessToken && (
+        <button onClick={handleLogout} className="btn btn-secondary">
+          Keluar
+        </button>
+      )}
     </header>
   )
 }

@@ -98,76 +98,113 @@ function Profile() {
   return (
     <main className="page page-center">
       {/* CARD PROFILE */}
-      <div className="login-card" style={{ textAlign: 'center', alignItems: 'center' }}>
-        <div style={{ position: 'relative', marginBottom: '12px' }}>
+      <div className="login-card" style={{ textAlign: 'center', alignItems: 'center', padding: '32px', gap: '0' }}>
+        {/* Photo Profile */}
+        <div style={{ marginBottom: '12px' }}>
           <img
             src="/profile.jpg"
             alt={user.name}
             style={{
-              width: '100px',
-              height: '100px',
+              width: '90px',
+              height: '90px',
               borderRadius: '50%',
               objectFit: 'cover',
               border: '3px solid var(--accent)',
-              boxShadow: '0 4px 14px rgba(0, 82, 255, 0.25)'
+              boxShadow: '0 4px 14px rgba(0, 82, 255, 0.2)'
             }}
           />
-          <div style={{
-            position: 'absolute',
-            bottom: '-10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#fff',
-            padding: '4px 12px',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+        </div>
+
+        {/* Name & Verified Icon Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '26px', margin: 0, fontWeight: 700 }}>{user.name}</h2>
+          <div className="verified-badge-container">
+            <img 
+              src="/verified.png" 
+              alt="verified" 
+              style={{ width: '22px', height: '22px', cursor: 'help', display: 'block' }} 
+            />
+            <span className="verified-tooltip">Verified Account</span>
+          </div>
+        </div>
+
+        <style>{`
+          .verified-badge-container {
+            position: relative;
+            display: inline-block;
+          }
+          .verified-tooltip {
+            visibility: hidden;
+            width: 120px;
+            background-color: var(--foreground);
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 6px 0;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            pointer-events: none;
+            transform: translateY(10px);
+            box-shadow: var(--shadow-lg);
+          }
+          .verified-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--foreground) transparent transparent transparent;
+          }
+          .verified-badge-container:hover .verified-tooltip {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+          }
+        `}</style>
+
+        {/* Social Media Links */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginBottom: '24px' }}>
+          {socials.map((s) => (
+            <a key={s.label} href={s.url} target="_blank" rel="noreferrer" className="btn btn-secondary" title={s.label} style={{ padding: '0', width: '44px', height: '44px', borderRadius: '12px' }}>
+              {s.icon}
+            </a>
+          ))}
+        </div>
+
+        {/* Donate Button */}
+        <Link to={`/${username}/donate`} className="btn btn-primary w-full" style={{ height: '52px', fontSize: '16px', borderRadius: '14px', marginBottom: '16px' }}>
+          Donate Disini
+        </Link>
+
+        {/* Bio */}
+        {user.bio && (
+          <p style={{
+            fontSize: '15px',
+            lineHeight: '1.6',
+            color: 'var(--foreground)',
+            padding: '16px 20px',
+            background: 'var(--muted)',
+            borderRadius: '16px',
             border: '1px solid var(--border)',
-            whiteSpace: 'nowrap',
-            zIndex: 10
+            fontWeight: 500,
+            width: '100%',
+            textAlign: 'center',
+            margin: 0
           }}>
-            <img src="/verified.png" alt="verified" style={{ width: '16px', height: '16px' }} />
-            <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Verified Account
-            </span>
-          </div>
-        </div>
-
-        <div style={{ marginTop: '8px' }}>
-          <h2 style={{ marginBottom: '4px' }}>{user.name}</h2>
-          <p className="muted" style={{ fontWeight: 600, marginBottom: '12px' }}>@{user.username}</p>
-          {user.bio && (
-            <p style={{
-              fontSize: '15px',
-              lineHeight: '1.6',
-              color: 'var(--foreground)',
-              maxWidth: '420px',
-              margin: '0 auto 16px',
-              padding: '16px 20px',
-              background: 'var(--muted)',
-              borderRadius: '16px',
-              border: '1px solid var(--border)',
-              fontWeight: 500
-            }}>
-              {user.bio}
-            </p>
-          )}
-        </div>
-
-        <div className="w-full">
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginBottom: '24px' }}>
-            {socials.map((s) => (
-              <a key={s.label} href={s.url} target="_blank" rel="noreferrer" className="btn btn-secondary" title={s.label} style={{ padding: '0', width: '44px', height: '44px', borderRadius: '12px' }}>
-                {s.icon}
-              </a>
-            ))}
-          </div>
-          <Link to={`/${username}/donate`} className="btn btn-primary w-full" style={{ height: '56px', fontSize: '16px', borderRadius: '16px' }}>
-            Donate Disini
-          </Link>
-        </div>
+            {user.bio}
+          </p>
+        )}
       </div>
 
       {/* SECTION BAWAH (SINGLE COLUMN) */}
