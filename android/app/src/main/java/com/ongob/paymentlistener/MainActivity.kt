@@ -133,14 +133,7 @@ class MainActivity : AppCompatActivity() {
     private fun testBackendConnection() {
         Thread {
             try {
-                val testPayload = PaymentData(
-                    title = "Test Connection",
-                    message = "Rp10.000 dari BCA berhasil diterima DANA Bisnis",
-                    amount = 10000,
-                    bank = "BCA",
-                    source = "DANA"
-                )
-                val success = NetworkClient.sendPaymentData(this, testPayload)
+                val success = NetworkClient.testConnection(this)
                 runOnUiThread {
                     if (success) {
                         Toast.makeText(this, "✅ Koneksi backend berhasil!", Toast.LENGTH_LONG).show()

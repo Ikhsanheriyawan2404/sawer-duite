@@ -24,6 +24,32 @@ object NetworkClient {
             .build()
     }
 
+    fun testConnection(context: Context): Boolean {
+        val settings = SettingsManager(context)
+        val baseUrl = settings.backendUrl
+
+        // Bersihkan base URL dan pastikan ke /health
+        val cleanBaseUrl = baseUrl.removeSuffix("/notifications").removeSuffix("/")
+        val healthUrl = "$cleanBaseUrl/health"
+
+        return try {
+            Log.d(TAG, "Testing connection to: $healthUrl")
+
+            val request = Request.Builder()
+                .url(healthUrl)
+                .get()
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                Log.d(TAG, "Health Response Code: ${response.code}")
+                response.isSuccessful
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Connection test failed", e)
+            false
+        }
+    }
+
     fun sendPaymentData(context: Context, paymentData: PaymentData): Boolean {
         val settings = SettingsManager(context)
         val baseUrl = settings.backendUrl
