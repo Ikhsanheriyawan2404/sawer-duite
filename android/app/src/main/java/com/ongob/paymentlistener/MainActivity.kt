@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateStatus() {
         val isEnabled = isNotificationListenerEnabled()
         if (isEnabled) {
-            statusTextView.text = "✅ Notification Access: AKTIF\n\nAplikasi siap mendengarkan notifikasi dari DANA Business."
+            statusTextView.text = "✅ Notification Access: AKTIF\n\nAplikasi siap mendengarkan notifikasi pembayaran."
             statusTextView.setTextColor(getColor(android.R.color.holo_green_dark))
             enableButton.text = "Pengaturan Notifikasi"
         } else {
