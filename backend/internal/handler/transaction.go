@@ -20,7 +20,6 @@ type TransactionHandler struct {
 	hub               *domain.Hub
 	queueManager      *domain.AlertQueueManager
 	defaultStaticQRIS string
-	webhookSecret     string
 }
 
 func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authService *service.AuthService, hub *domain.Hub, queueManager *domain.AlertQueueManager, cfg domain.Config) *TransactionHandler {
@@ -31,7 +30,6 @@ func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authSe
 		hub:               hub,
 		queueManager:      queueManager,
 		defaultStaticQRIS: cfg.DefaultStaticQRIS,
-		webhookSecret:     cfg.WebhookSecret,
 	}
 }
 
@@ -106,22 +104,16 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 }
 
 func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.Request) {
-	// Identify user by X-App-Token or X-Webhook-Secret
+	// Identify user by X-App-Token
 	appToken := r.Header.Get("X-App-Token")
-	webhookSecret := r.Header.Get("X-Webhook-Secret")
 
 	var targetUser domain.User
-	useAppToken := false
 
 	if appToken != "" {
-		if err := h.db.Where("app_token = ?", appToken).First(&targetUser).Error; err == nil {
-			useAppToken = true
-		} else {
+		if err := h.db.Where("app_token = ?", appToken).First(&targetUser).Error; err != nil {
 			http.Error(w, "invalid app token", http.StatusUnauthorized)
 			return
 		}
-	} else if webhookSecret != "" && webhookSecret == h.webhookSecret {
-		// Legacy/Global mode - targetUser remains empty/nil
 	} else {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -153,15 +145,9 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 
 	// 2. Find matching transaction
 	var tx domain.Transaction
-	query := h.db.Preload("Target").
-		Where("amount = ? AND status = ? AND expired_at > ?", req.Amount, "pending", time.Now())
-
-	// If using AppToken, filter by that specific user to prevent collisions
-	if useAppToken {
-		query = query.Where("target_id = ?", targetUser.ID)
-	}
-
-	err := query.First(&tx).Error
+	err := h.db.Preload("Target").
+		Where("target_id = ? AND amount = ? AND status = ? AND expired_at > ?", targetUser.ID, req.Amount, "pending", time.Now()).
+		First(&tx).Error
 
 	if err == nil {
 		// 3. Update status to paid
