@@ -144,8 +144,10 @@ class NotificationListener : NotificationListenerService() {
             "pembayaran masuk",
             "payment received",
             "berhasil diterima",
+            "telah diterima",
             "dana masuk",
-            "transfer masuk"
+            "transfer masuk",
+            "pembayaran qris"
         )
 
         val lowerTitle = title.lowercase()

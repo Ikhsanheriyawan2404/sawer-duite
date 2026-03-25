@@ -41,24 +41,27 @@ object Parser {
      */
     fun parseAmount(text: String): Long {
         val patterns = listOf(
-            Regex("""Rp\s?([\d.,]+)""", RegexOption.IGNORE_CASE),
+            Regex("""Rp\.?\s?([\d.,]+)""", RegexOption.IGNORE_CASE),
             Regex("""([\d.,]+)\s?(?:rupiah|rp)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in patterns) {
             val matchResult = pattern.find(text)
             if (matchResult != null) {
-                val rawAmount = matchResult.groupValues[1]
+                var rawAmount = matchResult.groupValues[1]
                 
-                // Hapus titik dan koma, konversi ke Long
-                val cleanAmount = rawAmount
-                    .replace(".", "")
-                    .replace(",", "")
-                    .trim()
+                // Jika tertangkap titik di awal (misal dari Rp.1.000), bersihkan
+                if (rawAmount.startsWith(".")) {
+                    rawAmount = rawAmount.substring(1)
+                }
+
+                // Hapus titik dan koma, konversi ke Long (Format ID: 1.000 atau 1.000,00)
+                // Kita ambil angka saja untuk keamanan
+                val cleanAmount = rawAmount.replace(Regex("""[^\d]"""), "").trim()
 
                 return try {
                     cleanAmount.toLong()
-                } catch (e: NumberFormatException) {
+                } catch (e: Exception) {
                     0L
                 }
             }
@@ -90,12 +93,14 @@ object Parser {
             "STANDARD CHARTERED", "CITIBANK", "UOB", "DBS",
             "BANK JAGO", "JAGO", "SEABANK", "SEA BANK", "OVO",
             "GOPAY", "SHOPEEPAY", "LINKAJA", "KREDIVO",
-            "BANK SYARIAH INDONESIA", "BSI"
+            "BANK SYARIAH INDONESIA", "BSI",
+            "KROM", "NEO", "BNC", "RAYA", "ALO", "ALLO", "DIGIBANK", "TMRW", "LINE", "BLU"
         )
 
         val upperText = text.uppercase()
 
-        val dariPattern = Regex("""DARI\s+(?:BANK\s+)?([A-Z\s]+?)(?:\s+BERHASIL|\s+TELAH|\s+KE|\s+UNTUK|$)""")
+        // Regex ditingkatkan: izinkan titik dan koma di dalam nama bank (misal: PT ..., TBK)
+        val dariPattern = Regex("""DARI\s+(?:BANK\s+)?([A-Z\s.,]+?)(?:\s+BERHASIL|\s+TELAH|\s+KE|\s+UNTUK|$)""")
         val dariMatch = dariPattern.find(upperText)
 
         if (dariMatch != null) {
@@ -103,6 +108,8 @@ object Parser {
             for (bank in knownBanks) {
                 if (potentialBank.contains(bank)) return bank
             }
+            // Fallback: ambil kata pertama jika tidak terdaftar di knownBanks tapi tertangkap regex DARI
+            if (potentialBank.isNotEmpty()) return potentialBank.split(" ")[0]
         }
 
         for (bank in knownBanks) {
