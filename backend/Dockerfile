@@ -21,8 +21,8 @@ FROM alpine:3.21
 
 WORKDIR /app
 
-# Install ca-certificates for HTTPS
-RUN apk add --no-cache ca-certificates tzdata
+# Install ca-certificates, tzdata, and curl for healthchecks
+RUN apk add --no-cache ca-certificates tzdata curl
 
 # Copy binary from builder
 COPY --from=builder /app/server .

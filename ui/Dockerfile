@@ -24,6 +24,9 @@ RUN bun run build
 # Runtime stage
 FROM nginx:alpine
 
+# Install curl for healthchecks
+RUN apk add --no-cache curl
+
 # Copy built files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
