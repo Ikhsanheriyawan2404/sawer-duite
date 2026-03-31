@@ -1,7 +1,6 @@
 services:
   backend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/ongob-backend:latest
-    container_name: ongob-backend
     restart: unless-stopped
     environment:
       DB_URL: host=postgres user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-postgres} dbname=${POSTGRES_DB:-asintel} port=5432 sslmode=disable
@@ -10,14 +9,35 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-15m}
       REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-168h}
-      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-100}
+      RATE_LIMIT_REQUESTS: ${RATE_LIMIT_REQUESTS:-60}
       RATE_LIMIT_DURATION: ${RATE_LIMIT_DURATION:-1m}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
-      DEFAULT_STATIC_QRIS: ${DEFAULT_STATIC_QRIS}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`sawer-api.duitebot.com`)"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
+      - "traefik.http.services.backend.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.backend.loadbalancer.sticky.cookie.name=backend_sticky"
 
   frontend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/ongob-frontend:latest
-    container_name: ongob-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`sawerom.duitebot.com`)"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.services.frontend.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.frontend.loadbalancer.sticky.cookie.name=frontend_sticky"
