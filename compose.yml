@@ -21,8 +21,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`sawer-api.duitebot.com`)"
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
-      - "traefik.http.services.backend.loadbalancer.sticky.cookie=true"
-      - "traefik.http.services.backend.loadbalancer.sticky.cookie.name=backend_sticky"
 
   frontend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/ongob-frontend:latest
@@ -39,5 +37,3 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`sawerom.duitebot.com`)"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
-      - "traefik.http.services.frontend.loadbalancer.sticky.cookie=true"
-      - "traefik.http.services.frontend.loadbalancer.sticky.cookie.name=frontend_sticky"
