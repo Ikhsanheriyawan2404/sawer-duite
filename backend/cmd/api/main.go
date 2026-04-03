@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -15,6 +16,12 @@ import (
 )
 
 func main() {
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		log.Fatalf("Failed to load timezone Asia/Jakarta: %v", err)
+	}
+	time.Local = loc
+
 	cfg := domain.GetConfig()
 
 	// DB Init
