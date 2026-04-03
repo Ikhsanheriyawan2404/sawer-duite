@@ -10,6 +10,7 @@ interface AlertData {
   amount: number
   sender: string
   message?: string
+  audio_url?: string
 }
 
 function AlertOverlay() {
@@ -21,25 +22,6 @@ function AlertOverlay() {
   const isProcessingRef = useRef(false)
   const soundFxRef = useRef<HTMLAudioElement | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null)
-
-  // Load Indonesian voice
-  useEffect(() => {
-    const loadVoice = () => {
-      const voices = window.speechSynthesis.getVoices()
-      const indonesian = voices.find(v => v.name.includes('Google') && v.lang.includes('id'))
-        || voices.find(v => v.lang === 'id-ID')
-        || voices.find(v => v.lang.startsWith('id'))
-      if (indonesian) {
-        voiceRef.current = indonesian
-        console.log('[TTS] Voice:', indonesian.name)
-      }
-    }
-
-    loadVoice()
-    window.speechSynthesis.addEventListener('voiceschanged', loadVoice)
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', loadVoice)
-  }, [])
 
   // Load sound effect
   useEffect(() => {
@@ -49,26 +31,6 @@ function AlertOverlay() {
   }, [])
 
   const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
-
-  const speak = (text: string): Promise<void> => {
-    return new Promise((resolve) => {
-      if (!window.speechSynthesis) return resolve()
-
-      const processedText = text.replace(/rp\.?\s?/gi, ' rupiah ').trim()
-      const utterance = new SpeechSynthesisUtterance(processedText)
-      utterance.lang = 'id-ID'
-      utterance.rate = 1.0
-
-      if (voiceRef.current) {
-        utterance.voice = voiceRef.current
-      }
-
-      utterance.onend = () => resolve()
-      utterance.onerror = () => resolve()
-
-      window.speechSynthesis.speak(utterance)
-    })
-  }
 
   // Send ACK to server
   const sendACK = useCallback((alertId: string) => {
@@ -94,12 +56,17 @@ function AlertOverlay() {
       }
       await delay(3000)
 
-      // 2. Speak: "nominal dari donatur, pesan"
-      const formatted = new Intl.NumberFormat('id-ID').format(data.amount)
-      let text = `${formatted} rupiah dari ${data.sender || 'Seseorang'}`
-      if (data.message) text += `, ${data.message}`
-
-      await speak(text)
+      // 2. Play Google TTS from Backend/MinIO
+      if (data.audio_url) {
+        const ttsAudio = new Audio(data.audio_url)
+        await ttsAudio.play().catch(() => {})
+        
+        // Wait for TTS to finish or a timeout
+        await new Promise((resolve) => {
+          ttsAudio.onended = resolve
+          setTimeout(resolve, 10000) // Max 10s fallback
+        })
+      }
     } catch (err) {
       console.error('[Alert] Error:', err)
     }
@@ -120,11 +87,16 @@ function AlertOverlay() {
 
     socket.onmessage = (e) => {
       try {
-        const payload = JSON.parse(e.data) as AlertData
-        if (payload.type === 'alert') {
-          processAlert(payload)
+        const payload = JSON.parse(e.data)
+        // Check if data is flattened or nested (AlertMessage vs { AlertMessage, AlertID })
+        const alertData = payload.alert_id ? { ...payload, ...payload.AlertMessage } : payload
+        
+        if (alertData.type === 'alert') {
+          processAlert(alertData)
         }
-      } catch {}
+      } catch (err) {
+        console.error('[WS] Message Error:', err)
+      }
     }
 
     socket.onclose = () => setTimeout(connectWS, 5000)

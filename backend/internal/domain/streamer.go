@@ -50,6 +50,7 @@ type AlertMessage struct {
 	Amount          int    `json:"amount"`
 	Sender          string `json:"sender"`
 	Message         string `json:"message"`
+	AudioURL        string `json:"audio_url"`
 }
 
 func NewHub() *Hub {

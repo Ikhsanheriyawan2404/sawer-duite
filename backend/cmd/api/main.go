@@ -41,6 +41,7 @@ func main() {
 
 	authService := service.NewAuthService(cfg)
 	qrisService := service.NewQRISService()
+	ttsService := service.NewTTSService(db, rdb, cfg)
 
 	r := chi.NewRouter()
 
@@ -51,7 +52,7 @@ func main() {
 
 	healthHandler := handler.NewHealthHandler()
 	authHandler := handler.NewAuthHandler(db, authService)
-	txHandler := handler.NewTransactionHandler(db, qrisService, authService, hub, queueManager, cfg)
+	txHandler := handler.NewTransactionHandler(db, qrisService, authService, ttsService, hub, queueManager, cfg)
 
 	r.Get("/health", healthHandler.Check)
 

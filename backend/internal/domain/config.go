@@ -20,6 +20,15 @@ type Config struct {
 	RateLimitRequests int
 	RateLimitDuration time.Duration
 	DefaultStaticQRIS  string
+
+	GoogleAPIKey string
+
+	MinIOEndpoint  string
+	MinIOAccessKey string
+	MinIOSecretKey string
+	MinIOBucket    string
+	MinIOUseSSL    bool
+	MinIOPublicURL string
 }
 
 func GetConfig() Config {
@@ -35,6 +44,15 @@ func GetConfig() Config {
 		RateLimitRequests: getIntEnv("RATE_LIMIT_REQUESTS", 10),
 		RateLimitDuration: parseDuration(getEnv("RATE_LIMIT_DURATION", "1m")),
 		DefaultStaticQRIS: getEnv("DEFAULT_STATIC_QRIS", ""),
+
+		GoogleAPIKey: getEnv("GOOGLE_API_KEY", ""),
+
+		MinIOEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinIOAccessKey: getEnv("MINIO_ACCESS_KEY", ""),
+		MinIOSecretKey: getEnv("MINIO_SECRET_KEY", ""),
+		MinIOBucket:    getEnv("MINIO_BUCKET", "ongob-tts"),
+		MinIOUseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
+		MinIOPublicURL: getEnv("MINIO_PUBLIC_URL", "http://localhost:9000/ongob-tts"),
 	}
 }
 

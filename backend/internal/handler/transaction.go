@@ -2,6 +2,8 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -18,16 +20,18 @@ type TransactionHandler struct {
 	db                *gorm.DB
 	qrisService       *service.QRISService
 	authService       *service.AuthService
+	ttsService        *service.TTSService
 	hub               *domain.Hub
 	queueManager      *domain.AlertQueueManager
 	defaultStaticQRIS string
 }
 
-func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authService *service.AuthService, hub *domain.Hub, queueManager *domain.AlertQueueManager, cfg domain.Config) *TransactionHandler {
+func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authService *service.AuthService, ttsService *service.TTSService, hub *domain.Hub, queueManager *domain.AlertQueueManager, cfg domain.Config) *TransactionHandler {
 	return &TransactionHandler{
 		db:                db,
 		qrisService:       qrisService,
 		authService:       authService,
+		ttsService:        ttsService,
 		hub:               hub,
 		queueManager:      queueManager,
 		defaultStaticQRIS: cfg.DefaultStaticQRIS,
@@ -162,6 +166,19 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 			Type:            "paid",
 		}
 
+		// Generate TTS audio
+		formatted := fmt.Sprintf("%d", tx.BaseAmount)
+		ttsText := fmt.Sprintf("%s rupiah dari %s", formatted, tx.Sender)
+		if tx.Note != "" {
+			ttsText += ". " + tx.Note
+		}
+		audioURL, err := h.ttsService.Generate(ttsText)
+		if err != nil {
+			log.Printf("[Alert] TTS Generation Error: %v", err)
+		} else {
+			log.Printf("[Alert] TTS Generated URL: %s", audioURL)
+		}
+
 		// 4. Enqueue alert (this goes into the FIFO queue for the streamer's overlay)
 		h.queueManager.Enqueue(domain.AlertMessage{
 			UserUUID:        tx.Target.UUID,
@@ -170,6 +187,7 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 			Amount:          tx.BaseAmount, // Show base amount in alert
 			Sender:          tx.Sender,
 			Message:         tx.Note,
+			AudioURL:        audioURL,
 		})
 	}
 
@@ -221,12 +239,16 @@ func (h *TransactionHandler) TestAlert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Enqueue test alert (will be sent one-by-one via queue)
+	testText := "50000 rupiah dari Tester Ganteng. Ini adalah pesan uji coba dari dashboard!"
+	audioURL, _ := h.ttsService.Generate(testText)
+
 	h.queueManager.Enqueue(domain.AlertMessage{
 		UserUUID: userUUID,
 		Type:     "alert",
 		Amount:   50000,
 		Sender:   "Tester Ganteng",
 		Message:  "Ini adalah pesan uji coba dari dashboard!",
+		AudioURL: audioURL,
 	})
 
 	w.WriteHeader(http.StatusOK)

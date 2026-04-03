@@ -20,6 +20,7 @@ func InitDB(cfg domain.Config) *gorm.DB {
 		&domain.User{},
 		&domain.Transaction{},
 		&domain.NotificationLog{},
+		&domain.TTSCache{},
 	)
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
