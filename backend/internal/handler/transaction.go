@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -39,6 +40,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
+	req.CustomInput = strings.TrimSpace(req.CustomInput)
 
 	var target domain.User
 	if err := h.db.Where("username = ?", req.Username).First(&target).Error; err != nil {
