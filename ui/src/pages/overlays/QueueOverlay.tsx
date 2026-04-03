@@ -99,14 +99,16 @@ function QueueOverlay() {
           {aggregatedDonors.length === 0 ? (
             <div className="queue-empty">Belum ada antrian</div>
           ) : (
-            aggregatedDonors.slice(0, 10).map((donor, index) => (
+            aggregatedDonors.slice(0, 15).map((donor, index) => (
               <div key={donor.key} className="queue-item">
                 <span className="queue-rank">{index + 1}</span>
                 <div className="queue-info">
-                  <span className="queue-name">{donor.sender}</span>
-                  {donor.custom_input && (
-                    <span className="queue-custom">{donor.custom_input}</span>
-                  )}
+                  <span className="queue-name">
+                    {donor.sender}
+                    {donor.custom_input && (
+                      <span className="queue-custom"> ({donor.custom_input})</span>
+                    )}
+                  </span>
                 </div>
                 <span className="queue-amount">{formatAmount(donor.total_amount)}</span>
               </div>
@@ -121,99 +123,105 @@ function QueueOverlay() {
           height: 100vh;
           background: transparent;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
+          padding: 20px; /* Dikurangi agar area kerja lebih luas */
           font-family: var(--font-main);
         }
 
         .queue-dialog {
           background: #ffffff;
-          border-radius: 32px;
-          padding: 48px;
-          min-width: 800px;
-          max-width: 1000px;
-          box-shadow: 0 20px 60px rgba(0, 82, 255, 0.2);
+          border-radius: 28px;
+          padding: 24px 32px; /* Rapatkan padding atas-bawah */
+          width: min(1200px, 98%);
+          margin-top: 10px;
+          box-shadow: 0 25px 70px rgba(0, 82, 255, 0.25);
           animation: dialogFadeIn 0.5s ease-out both;
+          border: 5px solid #0052ff;
         }
 
         .queue-title {
-          font-size: 42px;
-          font-weight: 800;
+          font-size: 36px; /* Sedikit dikecilkan agar hemat ruang */
+          font-weight: 900;
           color: #0052ff;
-          text-align: center;
-          margin: 0 0 32px 0;
-          letter-spacing: -0.04em;
+          text-align: left;
+          margin: 0 0 20px 0;
+          letter-spacing: -0.05em;
+          text-transform: uppercase;
         }
 
         .queue-list {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 6px; /* Gap sangat rapat agar muat banyak */
         }
 
         .queue-empty {
           text-align: center;
           color: #0052ff;
-          font-size: 20px;
-          padding: 60px 0;
-          opacity: 0.6;
+          font-size: 24px;
+          padding: 30px 0;
+          font-weight: 600;
+          opacity: 0.7;
         }
 
         .queue-item {
-          display: flex;
+          display: grid;
+          grid-template-columns: 50px 1fr auto;
           align-items: center;
-          gap: 24px;
-          padding: 20px 32px;
+          gap: 16px;
+          padding: 8px 24px; /* Padding vertical sangat tipis untuk menampung baris lebih banyak */
           background: #f1f5f9;
-          border-radius: 24px;
+          border-radius: 14px;
         }
 
         .queue-rank {
-          width: 48px;
-          height: 48px;
+          width: 38px;
+          height: 38px;
           display: flex;
           align-items: center;
           justify-content: center;
           background: #0052ff;
           color: #ffffff;
           border-radius: 50%;
-          font-weight: 700;
+          font-weight: 900;
           font-size: 20px;
           flex-shrink: 0;
         }
 
         .queue-name {
-          font-size: 24px;
-          font-weight: 600;
-          color: #0052ff;
+          font-size: 28px; /* Tetap besar, cuma turun sedikit agar proporsional */
+          font-weight: 800;
+          color: #0f172a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .queue-info {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+          min-width: 0;
         }
 
         .queue-custom {
-          font-size: 18px;
+          font-size: 20px;
           color: #64748b;
-          font-weight: 500;
+          font-weight: 600;
         }
 
         .queue-amount {
-          font-size: 24px;
-          font-weight: 700;
+          font-size: 32px; /* Tetap besar agar nominal jelas */
+          font-weight: 900;
           color: #0052ff;
+          white-space: nowrap;
         }
 
         @keyframes dialogFadeIn {
           from {
-            transform: scale(0.95);
+            transform: scale(0.95) translateY(20px);
             opacity: 0;
           }
           to {
-            transform: scale(1);
+            transform: scale(1) translateY(0);
             opacity: 1;
           }
         }

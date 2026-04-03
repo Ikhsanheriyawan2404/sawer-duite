@@ -148,17 +148,17 @@ function AlertOverlay() {
       <div className="alert-wrapper animate-alert">
         <img src="/alert.gif" alt="thanks" className="alert-gif" />
 
-        <div className="alert-line-primary">
-          <span className="amount-highlight">{formattedAmount}</span>
-          <span className="text-base"> dari </span>
-          <span className="sender-name">{currentAlert.sender || 'Seseorang'}</span>
-        </div>
-
-        {currentAlert.message && (
-          <div className="alert-line-secondary">
-            {currentAlert.message}
+        <div className="alert-content">
+          <div className="alert-main-text">
+            {formattedAmount} dari {currentAlert.sender || 'Seseorang'}
           </div>
-        )}
+
+          {currentAlert.message && (
+            <div className="alert-message-text">
+              {currentAlert.message}
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`
@@ -170,39 +170,40 @@ function AlertOverlay() {
 
         .alert-wrapper {
           display: flex; flex-direction: column; align-items: center;
-          text-align: center; width: 100%; max-width: 900px;
+          text-align: center; width: 100%; max-width: 1000px;
         }
 
         .alert-gif {
-          width: 220px; height: auto; margin-bottom: 24px;
+          width: 250px; height: auto; margin-bottom: 24px;
+          filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
         }
 
-        .alert-line-primary {
-          font-size: 3.5rem; font-weight: 800; line-height: 1.1; color: #ffffff;
-          letter-spacing: -0.04em;
-          text-shadow:
-            2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000,
-            0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000;
-        }
-
-        .amount-highlight {
-          color: #0052ff;
-        }
-
-        .sender-name {
+        .alert-content {
+          background: var(--accent);
+          padding: 28px 44px;
+          border-radius: 28px; /* Border radius dikurangi agar tidak terlalu bulat */
+          box-shadow: 0 15px 40px rgba(0, 82, 255, 0.35);
           color: #ffffff;
+          display: flex; flex-direction: column; gap: 8px;
+          max-width: 850px;
+          border: 3px solid rgba(255, 255, 255, 0.1); /* Border tipis untuk kesan premium */
         }
 
-        .text-base {
-          font-weight: 600; color: #ffffff; font-size: 2rem;
+        .alert-main-text {
+          font-size: 3.2rem; /* Baris pertama lebih besar & menonjol */
+          font-weight: 900;
+          line-height: 1.1;
+          letter-spacing: -0.03em;
+          word-wrap: break-word;
         }
 
-        .alert-line-secondary {
-          font-size: 2.2rem; color: #ffffff; font-weight: 700;
-          margin-top: 12px; max-width: 800px; word-wrap: break-word;
-          text-shadow:
-            1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000,
-            0px 1.5px 0 #000, 0px -1.5px 0 #000, 1.5px 0px 0 #000, -1.5px 0px 0 #000;
+        .alert-message-text {
+          font-size: 2.2rem; /* Ukuran pesan lebih kecil dari baris pertama */
+          font-weight: 700;
+          line-height: 1.3;
+          opacity: 0.9;
+          word-wrap: break-word;
+          margin-top: 4px;
         }
 
         .animate-alert {
@@ -210,7 +211,7 @@ function AlertOverlay() {
         }
 
         @keyframes alertEnter {
-          0% { transform: scale(0.9) translateY(30px); opacity: 0; }
+          0% { transform: scale(0.8) translateY(50px); opacity: 0; }
           100% { transform: scale(1) translateY(0); opacity: 1; }
         }
       `}</style>
