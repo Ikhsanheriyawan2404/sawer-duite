@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchWithAuth } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
@@ -71,6 +71,9 @@ function Home() {
   const [saving, setSaving] = useState(false)
   const [queue, setQueue] = useState<Transaction[]>([])
   const [loadingQueue, setLoadingQueue] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastVisible, setToastVisible] = useState(false)
+  const toastTimerRef = useRef<number | null>(null)
 
   const [filter, setFilter] = useState<'all' | 'queue' | 'done'>('all')
   const [search, setSearch] = useState('')
@@ -125,6 +128,17 @@ function Home() {
       })
       .catch(err => console.error('Failed to fetch profile', err))
   }, [])
+
+  function showToast(message: string) {
+    setToastMessage(message)
+    setToastVisible(true)
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current)
+    }
+    toastTimerRef.current = window.setTimeout(() => {
+      setToastVisible(false)
+    }, 2200)
+  }
 
   async function fetchQueue(username: string) {
     setLoadingQueue(true)
@@ -353,6 +367,9 @@ function Home() {
 
   return (
     <main className="page">
+      <div className={`toast-container ${toastVisible ? 'toast-show' : ''}`} role="status" aria-live="polite">
+        <div className="toast">{toastMessage}</div>
+      </div>
       <section className="dashboard-header">
         <div>
           <h2>Halo, {user?.name || '...'}</h2>
@@ -727,7 +744,7 @@ function Home() {
                         onClick={() => {
                           if (user?.app_token) {
                             navigator.clipboard.writeText(user.app_token);
-                            alert('Token disalin!');
+                            showToast('Token disalin')
                           }
                         }}
                       >
@@ -775,7 +792,7 @@ function Home() {
                     disabled={overlay.status === 'soon'}
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}${overlay.path}`)
-                      alert(`${overlay.label} link copied!`)
+                      showToast('Link disalin')
                     }}
                   >
                     Salin
@@ -792,8 +809,8 @@ function Home() {
                           onClick={() => {
                             if (!user) return
                             fetchWithAuth(`/user/${user.uuid}/test-alert`, { method: 'POST' })
-                              .then(() => alert('Test alert dikirim ke overlay!'))
-                              .catch(() => alert('Gagal mengirim test alert'))
+                              .then(() => showToast('Test alert dikirim'))
+                              .catch(() => showToast('Gagal mengirim test alert'))
                           }}
                         >
                           Test
@@ -883,6 +900,41 @@ function Home() {
           </div>
         </article>
       </section>
+      <style>{`
+        .toast-container {
+          position: fixed;
+          top: calc(12px + env(safe-area-inset-top));
+          left: 50%;
+          transform: translateX(-50%);
+          width: min(92vw, 420px);
+          z-index: 9999;
+          pointer-events: none;
+        }
+        .toast {
+          background: var(--foreground);
+          color: #fff;
+          border-radius: 12px;
+          padding: 10px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          text-align: center;
+          letter-spacing: 0.01em;
+          box-shadow: var(--shadow-lg);
+          opacity: 0;
+          transform: translateY(-8px);
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .toast-show .toast {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        @media (min-width: 640px) {
+          .toast {
+            font-size: 13px;
+            padding: 12px 16px;
+          }
+        }
+      `}</style>
     </main>
   )
 }

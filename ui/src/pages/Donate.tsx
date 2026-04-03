@@ -9,17 +9,17 @@ function Donate() {
   const navigate = useNavigate()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  
+
   // Ambil data dari URL jika ada
   const initialAmount = searchParams.get('amount') || '10000'
   const initialNote = searchParams.get('note') || ''
   const isFixed = searchParams.get('fixed') === 'true'
 
-  const [form, setForm] = useState({ 
-    name: '', 
-    amount: initialAmount, 
+  const [form, setForm] = useState({
+    name: '',
+    amount: initialAmount,
     note: initialNote,
-    customInput: '' 
+    customInput: ''
   })
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [agreed, setAgreed] = useState(false)
@@ -52,7 +52,7 @@ function Donate() {
   }
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isFixed) return 
+    if (isFixed) return
     const val = e.target.value.replace(/\D/g, '')
     setForm({ ...form, amount: val })
   }
@@ -97,13 +97,13 @@ function Donate() {
           <span className="label-text">DUKUNGAN</span>
         </div>
         <h2>Dukung {user?.name || username}</h2>
-        
+
         {isFixed ? (
-          <div style={{ 
-            background: 'var(--accent)', 
-            color: '#fff', 
-            padding: '12px 20px', 
-            borderRadius: '12px', 
+          <div style={{
+            background: 'var(--accent)',
+            color: '#fff',
+            padding: '12px 20px',
+            borderRadius: '12px',
             marginBottom: '20px',
             fontSize: '14px',
             fontWeight: 600,
@@ -176,8 +176,8 @@ function Donate() {
                 value={formatIDR(form.amount)}
                 onChange={handleAmountChange}
                 disabled={isFixed}
-                style={{ 
-                  paddingLeft: '45px', 
+                style={{
+                  paddingLeft: '45px',
                   borderColor: !isMinDonationMet ? '#dc2626' : undefined,
                   background: isFixed ? 'var(--muted)' : undefined,
                   cursor: isFixed ? 'not-allowed' : undefined
@@ -190,7 +190,7 @@ function Donate() {
                 Minimal dukungan adalah Rp{formatIDR(user.min_donation.toString())}
               </p>
             )}
-            
+
             {!isFixed && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginTop: '12px' }}>
                 {quickAmounts.map((amt: number) => {
@@ -221,7 +221,7 @@ function Donate() {
             Pesan (Maks. 250 karakter)
             <input
               type="text"
-              placeholder="Tulis pesan penyemangat..."
+              placeholder="Tulis pesanmu..."
               value={form.note}
               onChange={e => setForm({...form, note: e.target.value.slice(0, 250)})}
               required

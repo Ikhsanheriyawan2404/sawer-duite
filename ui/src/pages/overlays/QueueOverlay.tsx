@@ -116,8 +116,6 @@ function QueueOverlay() {
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Calistoga&family=Inter:wght@400;500;600;700&display=swap');
-
         .queue-overlay {
           width: 100vw;
           height: 100vh;
@@ -125,7 +123,7 @@ function QueueOverlay() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: 'Inter', system-ui, sans-serif;
+          font-family: var(--font-main);
         }
 
         .queue-dialog {
@@ -139,13 +137,12 @@ function QueueOverlay() {
         }
 
         .queue-title {
-          font-family: 'Calistoga', Georgia, serif;
           font-size: 42px;
-          font-weight: 400;
+          font-weight: 800;
           color: #0052ff;
           text-align: center;
           margin: 0 0 32px 0;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.04em;
         }
 
         .queue-list {

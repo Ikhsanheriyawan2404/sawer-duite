@@ -83,12 +83,10 @@ function MediaOverlay() {
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap');
-
         .media-overlay {
           width: 100vw; height: 100vh; background: transparent;
           display: flex; align-items: center; justify-content: center;
-          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-family: var(--font-main);
         }
 
         .media-dialog {

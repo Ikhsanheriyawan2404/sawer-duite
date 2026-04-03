@@ -162,12 +162,10 @@ function AlertOverlay() {
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Calistoga&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
-
         .overlay-container {
           width: 100vw; height: 100vh; background: transparent;
           display: flex; align-items: center; justify-content: center;
-          overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif;
+          overflow: hidden; font-family: var(--font-main);
         }
 
         .alert-wrapper {
@@ -181,7 +179,7 @@ function AlertOverlay() {
 
         .alert-line-primary {
           font-size: 3.5rem; font-weight: 800; line-height: 1.1; color: #ffffff;
-          letter-spacing: -0.02em;
+          letter-spacing: -0.04em;
           text-shadow:
             2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000,
             0px 2px 0 #000, 0px -2px 0 #000, 2px 0px 0 #000, -2px 0px 0 #000;
@@ -189,7 +187,6 @@ function AlertOverlay() {
 
         .amount-highlight {
           color: #0052ff;
-          font-family: 'Calistoga', serif;
         }
 
         .sender-name {
@@ -203,7 +200,6 @@ function AlertOverlay() {
         .alert-line-secondary {
           font-size: 2.2rem; color: #ffffff; font-weight: 700;
           margin-top: 12px; max-width: 800px; word-wrap: break-word;
-          font-family: 'Plus Jakarta Sans', sans-serif;
           text-shadow:
             1.5px 1.5px 0 #000, -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000,
             0px 1.5px 0 #000, 0px -1.5px 0 #000, 1.5px 0px 0 #000, -1.5px 0px 0 #000;

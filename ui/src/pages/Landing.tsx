@@ -8,10 +8,10 @@ function Landing() {
       <div className="hero-copy text-center" style={{ alignItems: 'center', maxWidth: '600px', margin: '0 auto' }}>
         <h1 style={{ fontSize: 'clamp(3rem, 10vw, 5rem)', marginBottom: '16px' }}>Sawer Om.</h1>
         <p className="lead" style={{ marginBottom: '32px' }}>
-          Terima dukungan dari penggemarmu dengan mudah, cepat, dan transparan dalam satu tempat.
+          Terima dukungan fans secara utuh: 100% milikmu, instan lewat QRIS, tanpa biaya potongan sepeser pun
         </p>
         <div className="hero-actions">
-          <Link to="/login" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '16px' }}>
+          <Link to="/login" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '16px', textDecoration: 'none' }}>
             Mulai Sekarang
           </Link>
         </div>

@@ -119,11 +119,19 @@ function Profile() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
           <h2 style={{ fontSize: '26px', margin: 0, fontWeight: 700 }}>{user.name}</h2>
           <div className="verified-badge-container">
-            <img 
-              src="/verified.png" 
-              alt="verified" 
-              style={{ width: '22px', height: '22px', cursor: 'help', display: 'block' }} 
-            />
+            <svg
+              className="verified-badge"
+              style={{ transform: 'translateY(-2px)', height: '99%' }}
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="1.6 1.6 18.79 18.79"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.443 1.054.747 1.687.878.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z"
+                fill="#0095f6"
+              />
+            </svg>
             <span className="verified-tooltip">Verified Account</span>
           </div>
         </div>
@@ -132,6 +140,11 @@ function Profile() {
           .verified-badge-container {
             position: relative;
             display: inline-block;
+          }
+          .verified-badge {
+            width: 22px;
+            height: 22px;
+            display: block;
           }
           .verified-tooltip {
             visibility: hidden;
@@ -183,7 +196,7 @@ function Profile() {
         </div>
 
         {/* Donate Button */}
-        <Link to={`/${username}/donate`} className="btn btn-primary w-full" style={{ height: '52px', fontSize: '16px', borderRadius: '14px', marginBottom: '16px' }}>
+        <Link to={`/${username}/donate`} className="btn btn-primary w-full" style={{ height: '52px', fontSize: '16px', borderRadius: '14px', marginBottom: '16px', textDecoration: 'none' }}>
           Donate Disini
         </Link>
 
@@ -209,7 +222,7 @@ function Profile() {
 
       {/* SECTION BAWAH (SINGLE COLUMN) */}
       <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
-        
+
         {/* BARIS 0: PILIHAN DUKUNGAN (PAKET) */}
         {user?.donation_packages?.length > 0 && (
           <article className="card" style={{ padding: '24px' }}>
@@ -220,8 +233,8 @@ function Profile() {
               {user.donation_packages.map((p: any, i: number) => (
                 <div
                   key={i}
-                  style={{ 
-                    padding: '16px 20px', 
+                  style={{
+                    padding: '16px 20px',
                     borderRadius: '16px',
                     border: '1px solid var(--border)',
                     background: '#fff',
@@ -240,9 +253,9 @@ function Profile() {
                     <Link
                       to={`/${username}/donate?amount=${p.amount}&note=${encodeURIComponent(p.label)}&fixed=true`}
                       className="btn btn-primary"
-                      style={{ 
-                        padding: '6px 16px', 
-                        fontSize: '13px', 
+                      style={{
+                        padding: '6px 16px',
+                        fontSize: '13px',
                         height: 'auto',
                         borderRadius: '10px',
                         minWidth: '70px',
@@ -276,14 +289,14 @@ function Profile() {
                   <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent)' }}>{realPercent}%</span>
                 </div>
                 <div style={{ height: '12px', background: 'var(--muted)', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                  <div 
-                    style={{ 
-                      height: '100%', 
-                      background: 'var(--gradient)', 
+                  <div
+                    style={{
+                      height: '100%',
+                      background: 'var(--gradient)',
                       width: `${progressPercent}%`,
                       transition: 'width 1s ease-in-out',
                       boxShadow: '0 0 10px rgba(0, 82, 255, 0.3)'
-                    }} 
+                    }}
                   />
                 </div>
               </div>
@@ -316,14 +329,22 @@ function Profile() {
           <div className="feed">
             {stats?.top_supporters[topFilter]?.length ? (
               stats.top_supporters[topFilter].slice(0, 10).map((s, i) => (
-                <div key={i} className="feed-row" style={{ padding: '12px 0' }}>
-                  <div className="feed-user-info">
-                    <div className="feed-avatar" style={{ background: i < 3 ? 'var(--accent)' : '#e2e8f0', color: i < 3 ? '#fff' : 'inherit' }}>
+                <div key={i} className="feed-row" style={{ minWidth: 0 }}>
+                  <div className="feed-user-info" style={{ minWidth: 0, flex: 1 }}>
+                    <div className="feed-avatar" style={{ background: i < 3 ? 'var(--accent)' : '#e2e8f0', color: i < 3 ? '#fff' : 'inherit', flexShrink: 0 }}>
                       {i + 1}
                     </div>
-                    <p className="feed-name" style={{ fontWeight: 700 }}>{s.sender}</p>
+                    <div className="feed-text" style={{ minWidth: 0, flex: 1 }}>
+                      <p className="feed-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>
+                        {s.sender}
+                      </p>
+                    </div>
                   </div>
-                  <span className="feed-amount" style={{ color: 'var(--accent)', fontWeight: 800 }}>{formatCurrency(s.amount)}</span>
+                  <div className="feed-meta" style={{ flexShrink: 0, textAlign: 'right' }}>
+                    <p className="feed-amount" style={{ color: 'var(--accent)', fontWeight: 800 }}>
+                      {formatCurrency(s.amount)}
+                    </p>
+                  </div>
                 </div>
               ))
             ) : (
@@ -340,17 +361,21 @@ function Profile() {
           <div className="feed">
             {stats?.recent?.length ? (
               stats.recent.slice(0, 10).map((tx) => (
-                <div key={tx.uuid} className="feed-row" style={{ alignItems: 'flex-start', padding: '16px 0' }}>
-                  <div className="feed-user-info">
-                    <div className="feed-avatar">{tx.sender[0]?.toUpperCase()}</div>
-                    <div className="feed-text">
-                      <p className="feed-name" style={{ fontWeight: 700 }}>{tx.sender}</p>
-                      <p className="feed-note" style={{ whiteSpace: 'normal', fontSize: '14px', marginTop: '4px' }}>{tx.note || 'Terima kasih!'}</p>
+                <div key={tx.uuid} className="feed-row" style={{ minWidth: 0 }}>
+                  <div className="feed-user-info" style={{ minWidth: 0, flex: 1 }}>
+                    <div className="feed-avatar" style={{ flexShrink: 0 }}>{tx.sender[0]?.toUpperCase()}</div>
+                    <div className="feed-text" style={{ minWidth: 0, flex: 1 }}>
+                      <p className="feed-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>{tx.sender}</p>
+                      <p className="feed-note" style={{ whiteSpace: 'normal', fontSize: '14px', marginTop: '4px', color: 'var(--muted-foreground)' }}>
+                        {tx.note || 'Terima kasih!'}
+                      </p>
                     </div>
                   </div>
-                  <div className="feed-meta" style={{ textAlign: 'right' }}>
+                  <div className="feed-meta" style={{ flexShrink: 0, textAlign: 'right' }}>
                     <p className="feed-amount" style={{ fontWeight: 700 }}>{formatCurrency(tx.base_amount)}</p>
-                    <p style={{ fontSize: '11px', opacity: 0.6, marginTop: '4px' }}>{new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
+                    <p style={{ fontSize: '11px', opacity: 0.6, marginTop: '4px' }}>
+                      {new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                    </p>
                   </div>
                 </div>
               ))

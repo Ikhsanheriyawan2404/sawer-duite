@@ -75,7 +75,7 @@
   background: rgba(0, 82, 255, 0.05); padding: 6px 14px; width: fit-content;
 }
 .label-text {
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--accent); font-weight: 700;
 }
 .pulse-dot {
