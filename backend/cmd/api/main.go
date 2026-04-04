@@ -53,6 +53,7 @@ func main() {
 	healthHandler := handler.NewHealthHandler()
 	authHandler := handler.NewAuthHandler(db, authService)
 	txHandler := handler.NewTransactionHandler(db, qrisService, authService, ttsService, hub, queueManager, cfg)
+	clientLogHandler := handler.NewClientLogHandler(db)
 
 	r.Get("/health", healthHandler.Check)
 
@@ -70,6 +71,7 @@ func main() {
 
 	// Webhook dari Android (protected by secret header)
 	r.Post("/notifications", txHandler.ProcessNotification)
+	r.Post("/client-logs", clientLogHandler.Create)
 
 	// WebSocket (protected by JWT query param - handled in handler)
 	r.Get("/ws/{uuid}", txHandler.WebSocketHandler)

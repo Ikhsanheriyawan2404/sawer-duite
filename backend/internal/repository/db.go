@@ -20,6 +20,7 @@ func InitDB(cfg domain.Config) *gorm.DB {
 		&domain.User{},
 		&domain.Transaction{},
 		&domain.NotificationLog{},
+		&domain.ClientLog{},
 		&domain.TTSCache{},
 	)
 	if err != nil {
