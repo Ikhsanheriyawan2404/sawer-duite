@@ -7,6 +7,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import org.json.JSONArray
 import java.util.concurrent.TimeUnit
 
 object NetworkClient {
@@ -80,6 +81,7 @@ object NetworkClient {
                 .url(fullUrl)
                 .post(requestBody)
                 .addHeader("X-App-Token", appToken)
+                .addHeader("X-Request-Id", java.util.UUID.randomUUID().toString())
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Accept", "application/json")
                 .build()
@@ -99,6 +101,37 @@ object NetworkClient {
             }
         } catch (e: Exception) {
             Log.e(TAG, "❌ Network error", e)
+            false
+        }
+    }
+
+    fun sendClientLogs(context: Context, logs: JSONArray): Boolean {
+        val settings = SettingsManager(context)
+        val baseUrl = settings.backendUrl
+        val appToken = settings.appToken
+
+        val fullUrl = if (baseUrl.endsWith("/client-logs")) {
+            baseUrl
+        } else {
+            "${baseUrl.removeSuffix("/")}/client-logs"
+        }
+
+        return try {
+            val requestBody = logs.toString().toRequestBody(JSON_MEDIA_TYPE)
+
+            val request = Request.Builder()
+                .url(fullUrl)
+                .post(requestBody)
+                .addHeader("X-App-Token", appToken)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Accept", "application/json")
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                response.isSuccessful
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to send client logs", e)
             false
         }
     }

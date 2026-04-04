@@ -3,9 +3,11 @@ package com.ongob.paymentlistener
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import android.os.SystemClock
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.UUID
 
 class NotificationListener : NotificationListenerService() {
 
@@ -52,11 +54,23 @@ class NotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         Log.d(TAG, "NotificationListener connected")
+        ClientLogger.log(
+            this,
+            level = "info",
+            event = "LISTENER_CONNECTED",
+            message = "Notification listener connected"
+        )
     }
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
         Log.d(TAG, "NotificationListener disconnected")
+        ClientLogger.log(
+            this,
+            level = "warn",
+            event = "LISTENER_DISCONNECTED",
+            message = "Notification listener disconnected"
+        )
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -76,25 +90,77 @@ class NotificationListener : NotificationListenerService() {
             val notification = sbn.notification
             val extras = notification.extras
 
-            // Ambil title dan text dari extras
-            val title = extras.getString("android.title") ?: extras.getCharSequence("android.title")?.toString() ?: ""
-            val text = extras.getString("android.text") ?: extras.getCharSequence("android.text")?.toString() ?: ""
+            // Ambil title dan text dari extras (termasuk bigText/textLines)
+            val extracted = NotificationTextExtractor.extract(extras)
+            val title = extracted.title
+            val text = extracted.text
 
             Log.d(TAG, "Title: $title")
             Log.d(TAG, "Text: $text")
 
+            ClientLogger.log(
+                this,
+                level = "info",
+                event = "NOTIF_RECEIVED",
+                message = "Notification received",
+                data = mapOf(
+                    "package" to packageName,
+                    "id" to sbn.id,
+                    "postTime" to sbn.postTime,
+                    "title" to title,
+                    "text" to text,
+                    "rawLines" to extracted.rawLines,
+                    "network" to ClientLogger.NetworkInfo.collect(this)
+                )
+            )
+
+            if (text.isBlank()) {
+                ClientLogger.log(
+                    this,
+                    level = "warn",
+                    event = "NOTIF_EMPTY_TEXT",
+                    message = "Notification text is empty",
+                    data = mapOf(
+                        "package" to packageName,
+                        "title" to title
+                    )
+                )
+            }
+
             // Cek apakah ini notifikasi pembayaran masuk
             if (!isPaymentNotification(title, text)) {
                 Log.d(TAG, "Bukan notifikasi pembayaran masuk, skip...")
+                ClientLogger.log(
+                    this,
+                    level = "info",
+                    event = "NOTIF_SKIPPED",
+                    message = "Not a payment notification",
+                    data = mapOf(
+                        "package" to packageName,
+                        "title" to title,
+                        "text" to text
+                    )
+                )
                 return
             }
 
             // Generate hash untuk cek duplicate
-            val notificationHash = generateHash(text)
+            val notificationHash = generateHash(packageName, title, text, sbn.postTime)
 
             // Cek duplicate
             if (isDuplicate(notificationHash)) {
                 Log.d(TAG, "Duplicate notification detected, skip...")
+                ClientLogger.log(
+                    this,
+                    level = "info",
+                    event = "NOTIF_SKIPPED",
+                    message = "Duplicate notification",
+                    data = mapOf(
+                        "package" to packageName,
+                        "title" to title,
+                        "text" to text
+                    )
+                )
                 return
             }
 
@@ -107,6 +173,18 @@ class NotificationListener : NotificationListenerService() {
             Log.d(TAG, "Parsed Provider: ${parsedData.provider}")
             Log.d(TAG, "Parsed Amount: ${parsedData.amount}")
             Log.d(TAG, "Parsed Bank: ${parsedData.bank}")
+
+            ClientLogger.log(
+                this,
+                level = "info",
+                event = "NOTIF_PARSED",
+                message = "Parsed payment data",
+                data = mapOf(
+                    "provider" to parsedData.provider,
+                    "amount" to parsedData.amount,
+                    "bank" to parsedData.bank
+                )
+            )
 
             // Buat payload
             val paymentData = PaymentData(
@@ -126,6 +204,13 @@ class NotificationListener : NotificationListenerService() {
 
         } catch (e: Exception) {
             Log.e(TAG, "Error processing notification", e)
+            ClientLogger.log(
+                this,
+                level = "error",
+                event = "NOTIF_ERROR",
+                message = "Error processing notification",
+                error = e
+            )
         }
     }
 
@@ -158,8 +243,9 @@ class NotificationListener : NotificationListenerService() {
         }
     }
 
-    private fun generateHash(text: String): String {
-        return text.hashCode().toString()
+    private fun generateHash(packageName: String, title: String, text: String, postTime: Long): String {
+        val payload = "$packageName|$title|$text|$postTime"
+        return payload.hashCode().toString()
     }
 
     private fun isDuplicate(hash: String): Boolean {
@@ -190,7 +276,28 @@ class NotificationListener : NotificationListenerService() {
         while (!success && retryCount < maxRetries) {
             try {
                 Log.d(TAG, "Sending to backend (attempt ${retryCount + 1}/$maxRetries)")
+                val attemptId = UUID.randomUUID().toString()
+                val start = SystemClock.elapsedRealtime()
+                val appTokenPresent = SettingsManager(this).appToken.isNotBlank()
                 success = NetworkClient.sendPaymentData(this, paymentData)
+                val durationMs = SystemClock.elapsedRealtime() - start
+
+                ClientLogger.log(
+                    this,
+                    level = if (success) "info" else "warn",
+                    event = if (success) "SEND_SUCCESS" else "SEND_FAIL",
+                    message = "Send attempt finished",
+                    data = mapOf(
+                        "attemptId" to attemptId,
+                        "attempt" to (retryCount + 1),
+                        "durationMs" to durationMs,
+                        "amount" to paymentData.amount,
+                        "bank" to paymentData.bank,
+                        "source" to paymentData.source,
+                        "appTokenPresent" to appTokenPresent,
+                        "network" to ClientLogger.NetworkInfo.collect(this)
+                    )
+                )
 
                 if (success) {
                     Log.d(TAG, "✅ Successfully sent to backend")
@@ -203,6 +310,21 @@ class NotificationListener : NotificationListenerService() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error sending to backend", e)
+                ClientLogger.log(
+                    this,
+                    level = "error",
+                    event = "SEND_ERROR",
+                    message = "Exception during send",
+                    error = e,
+                    data = mapOf(
+                        "attempt" to (retryCount + 1),
+                        "amount" to paymentData.amount,
+                        "bank" to paymentData.bank,
+                        "source" to paymentData.source,
+                        "appTokenPresent" to SettingsManager(this).appToken.isNotBlank(),
+                        "network" to ClientLogger.NetworkInfo.collect(this)
+                    )
+                )
                 retryCount++
                 if (retryCount < maxRetries) {
                     Thread.sleep(2000)
@@ -212,6 +334,20 @@ class NotificationListener : NotificationListenerService() {
 
         if (!success) {
             Log.e(TAG, "❌ Failed to send to backend after $maxRetries attempts")
+            ClientLogger.log(
+                this,
+                level = "error",
+                event = "SEND_GAVE_UP",
+                message = "Failed to send after retries",
+                data = mapOf(
+                    "maxRetries" to maxRetries,
+                    "amount" to paymentData.amount,
+                    "bank" to paymentData.bank,
+                    "source" to paymentData.source,
+                    "appTokenPresent" to SettingsManager(this).appToken.isNotBlank(),
+                    "network" to ClientLogger.NetworkInfo.collect(this)
+                )
+            )
         }
     }
 }
