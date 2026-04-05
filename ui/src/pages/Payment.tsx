@@ -230,7 +230,7 @@ function Payment() {
               <div style={{ fontSize: '64px', marginBottom: '16px' }}>⌛</div>
               <h3 style={{ color: '#111', marginBottom: '8px', fontSize: '1.2rem' }}>Waktu Habis</h3>
               <p className="muted" style={{ fontSize: '14px', marginBottom: '24px', lineHeight: '1.5' }}>
-                QR Code ini sudah tidak berlaku karena melewati batas waktu 3 menit.
+                QR Code ini sudah tidak berlaku karena melewati batas waktu 5 menit.
               </p>
               <button
                 onClick={() => navigate(`/${tx.target?.username || ''}`)}

@@ -97,7 +97,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		QRISPayload: qrisPayload,
 		Status:      "pending",
 		IsQueue:     true, // Default: masuk antrian
-		ExpiredAt:   time.Now().Add(3 * time.Minute),
+		ExpiredAt:   time.Now().Add(5 * time.Minute),
 	}
 
 	if err := h.db.Create(&tx).Error; err != nil {
