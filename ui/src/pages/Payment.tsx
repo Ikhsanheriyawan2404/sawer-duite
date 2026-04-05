@@ -56,10 +56,6 @@ function Payment() {
         if ((payload.type === 'alert' || payload.type === 'paid') && payload.transaction_uuid === uuid) {
           console.log('[WS] Payment confirmed!')
           setIsPaid(true)
-          
-          // Efek suara (Opsional, pastikan file ada di public/)
-          const audio = new Audio('/money-soundfx.mp3')
-          audio.play().catch(e => console.log('Auto-play blocked:', e))
         }
       } catch (err) {
         console.error('WS parse error:', err)
