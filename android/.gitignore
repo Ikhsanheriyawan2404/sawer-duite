@@ -6,7 +6,10 @@
 # Build outputs
 build/
 **/build/
+release/
 captures/
+*.apk
+*.aab
 
 # Local config
 local.properties

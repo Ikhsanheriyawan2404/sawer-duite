@@ -169,7 +169,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Versi 1.1.0"
+                android:text="Versi 1.1.5"
                 android:textColor="#DEE2E6"
                 android:textSize="10sp" />
         </LinearLayout>

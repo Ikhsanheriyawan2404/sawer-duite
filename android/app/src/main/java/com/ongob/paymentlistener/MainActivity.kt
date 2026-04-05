@@ -69,6 +69,9 @@ class MainActivity : AppCompatActivity() {
 
         // Start foreground service to keep app alive
         startKeepAliveService()
+
+        // Schedule listener watchdog
+        WatchdogScheduler.ensureScheduled(this)
     }
 
     override fun onResume() {

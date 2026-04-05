@@ -87,6 +87,8 @@ class NotificationListener : NotificationListenerService() {
         Log.d(TAG, "Package: $packageName")
 
         try {
+            SettingsManager(this).lastNotificationTs = System.currentTimeMillis()
+
             val notification = sbn.notification
             val extras = notification.extras
 

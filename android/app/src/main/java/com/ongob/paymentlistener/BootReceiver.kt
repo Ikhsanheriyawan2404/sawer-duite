@@ -25,6 +25,8 @@ class BootReceiver : BroadcastReceiver() {
                 } else {
                     it.startService(serviceIntent)
                 }
+
+                WatchdogScheduler.ensureScheduled(it)
             }
         }
     }
