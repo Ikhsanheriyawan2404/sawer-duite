@@ -3,6 +3,11 @@ name: Build and Push to GHCR
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'backend/**'
+      - 'ui/**'
+      - '.github/workflows/deploy.yml'
+      - 'Dockerfile'
   workflow_dispatch:
 
 env:
