@@ -33,6 +33,13 @@ function Landing() {
             6282117088123
           </a>
         </p>
+        <p className="muted" style={{ margin: 0, fontSize: '12px', textAlign: 'center' }}>
+          <Link to="/privacy">Privacy Policy</Link>
+          {' '}•{' '}
+          <Link to="/terms">Terms of Service</Link>
+          {' '}•{' '}
+          Copyright {new Date().getFullYear()} by brogrammer.id
+        </p>
       </section>
     </main>
   )

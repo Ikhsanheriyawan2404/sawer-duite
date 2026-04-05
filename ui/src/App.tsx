@@ -5,6 +5,8 @@ import Home from './pages/Home'
 import Profile from './pages/Profile'
 import Donate from './pages/Donate'
 import Payment from './pages/Payment'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
 import AlertOverlay from './pages/overlays/AlertOverlay'
 import QueueOverlay from './pages/overlays/QueueOverlay'
 import MediaOverlay from './pages/overlays/MediaOverlay'
@@ -57,6 +59,8 @@ function AppShell() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
         <Route
           path="/home"
           element={
