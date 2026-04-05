@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
@@ -260,4 +261,46 @@ func (h *AuthHandler) GetUserByUUID(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(publicUser)
+}
+
+func (h *AuthHandler) ListPublicUsers(w http.ResponseWriter, r *http.Request) {
+	limit := 12
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if parsed, err := strconv.Atoi(v); err == nil {
+			if parsed < 1 {
+				limit = 1
+			} else if parsed > 50 {
+				limit = 50
+			} else {
+				limit = parsed
+			}
+		}
+	}
+
+	var users []domain.User
+	if err := h.db.Select("username", "name").
+		Order("created_at desc").
+		Limit(limit).
+		Find(&users).Error; err != nil {
+		http.Error(w, "failed to fetch users", http.StatusInternalServerError)
+		return
+	}
+
+	publicUsers := make([]struct {
+		Username string `json:"username"`
+		Name     string `json:"name"`
+	}, 0, len(users))
+
+	for _, user := range users {
+		publicUsers = append(publicUsers, struct {
+			Username string `json:"username"`
+			Name     string `json:"name"`
+		}{
+			Username: user.Username,
+			Name:     user.Name,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(publicUsers)
 }

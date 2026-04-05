@@ -62,6 +62,7 @@ func main() {
 	r.Post("/refresh", authHandler.Refresh)
 	r.Get("/user/{username}", authHandler.GetUserByUsername)
 	r.Get("/user/uuid/{uuid}", authHandler.GetUserByUUID)
+	r.Get("/users", authHandler.ListPublicUsers)
 
 	// Public Transaction Routes (untuk donor, tidak perlu login)
 	r.Post("/transactions", txHandler.CreateTransaction)

@@ -228,6 +228,39 @@
   height: 32px; width: auto; opacity: 0.9; filter: grayscale(0.1);
 }
 
+/* Landing: Creator Slider */
+.user-slider {
+  width: min(820px, 100%); overflow: hidden; position: relative;
+  border-radius: 18px; border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 0;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+}
+.user-track {
+  display: flex; align-items: center; gap: 16px;
+  width: max-content; padding: 6px 18px;
+  animation: merchant-marquee 22s linear infinite;
+}
+.user-pill {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border);
+  background: var(--background); box-shadow: var(--shadow-xs);
+  min-width: 240px;
+}
+.user-avatar {
+  width: 36px; height: 36px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 12px; color: #1a1a1a;
+  background: radial-gradient(circle at 30% 30%, #cfe4ff, #9fc7ff);
+  border: 2px solid rgba(47, 140, 255, 0.2);
+}
+.user-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.user-name-row { display: flex; align-items: center; gap: 6px; }
+.user-name { margin: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.user-handle { margin: 0; font-size: 12px; color: var(--muted-foreground); }
+.user-button { padding: 6px 10px; font-size: 12px; border-radius: 10px; }
+
 @keyframes merchant-marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -241,6 +274,56 @@
 
 @media (prefers-reduced-motion: reduce) {
   .merchant-track { animation: none; }
+  .user-track { animation: none; }
+}
+
+/* Verified Badge */
+.verified-badge-container {
+  position: relative;
+  display: inline-block;
+}
+.verified-badge {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.verified-tooltip {
+  visibility: hidden;
+  width: 120px;
+  background-color: var(--foreground);
+  color: #fff;
+  text-align: center;
+  border-radius: 8px;
+  padding: 6px 0;
+  position: absolute;
+  z-index: 10;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -60px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  pointer-events: none;
+  transform: translateY(10px);
+  box-shadow: var(--shadow-lg);
+}
+.verified-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--foreground) transparent transparent transparent;
+}
+.verified-badge-container:hover .verified-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Widget Info */

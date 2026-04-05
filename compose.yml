@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/ongob-backend:latest
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/sawer-duite-backend:latest
     restart: unless-stopped
     environment:
       DB_URL: host=postgres user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-postgres} dbname=${POSTGRES_DB:-asintel} port=5432 sslmode=disable
