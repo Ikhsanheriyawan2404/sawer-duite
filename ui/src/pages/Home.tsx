@@ -24,6 +24,7 @@ interface User {
   donation_packages: DonationPackage[]
   custom_input_label: string
   custom_input_required: boolean
+  queue_title: string
   static_qris: string
   provider: string
   app_token: string
@@ -62,6 +63,7 @@ function Home() {
     donation_packages: [] as DonationPackage[],
     custom_input_label: '',
     custom_input_required: false,
+    queue_title: '',
     static_qris: '',
     provider: 'DANA'
   })
@@ -97,6 +99,7 @@ function Home() {
         donation_packages: parsed.donation_packages || [],
         custom_input_label: parsed.custom_input_label || '',
         custom_input_required: parsed.custom_input_required || false,
+        queue_title: parsed.queue_title || '',
         static_qris: parsed.static_qris || '',
         provider: parsed.provider || 'DANA'
       })
@@ -120,6 +123,7 @@ function Home() {
           donation_packages: data.donation_packages || [],
           custom_input_label: data.custom_input_label || '',
           custom_input_required: data.custom_input_required || false,
+          queue_title: data.queue_title || '',
           static_qris: data.static_qris || '',
           provider: data.provider || 'DANA'
         })
@@ -287,6 +291,7 @@ function Home() {
         donation_packages: user.donation_packages || [],
         custom_input_label: user.custom_input_label || '',
         custom_input_required: user.custom_input_required || false,
+        queue_title: user.queue_title || '',
         static_qris: user.static_qris || '',
         provider: user.provider || 'DANA'
       })
@@ -619,6 +624,20 @@ function Home() {
                     <label htmlFor="custom_required" style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Aktifkan & Wajib diisi</label>
                   </div>
                 </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Kustomisasi Overlay</h4>
+                  <div className="form-group">
+                    <label>Judul Antrian Donasi</label>
+                    <input
+                      type="text"
+                      value={formData.queue_title}
+                      onChange={e => setFormData({ ...formData, queue_title: e.target.value })}
+                      placeholder="Contoh: Antrian Request"
+                      className="input"
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -655,6 +674,10 @@ function Home() {
                     <p className="profile-value" style={{ fontSize: '14px' }}>
                       {user?.custom_input_label ? `${user.custom_input_label} (${user.custom_input_required ? 'Wajib' : 'Opsional'})` : 'Tidak Aktif'}
                     </p>
+                  </div>
+                  <div className="profile-field">
+                    <p className="profile-label">Judul Antrian</p>
+                    <p className="profile-value" style={{ fontSize: '14px' }}>{user?.queue_title || 'Antrian Donasi'}</p>
                   </div>
                 </div>
               </div>

@@ -31,6 +31,7 @@ type User struct {
 	// Custom input field untuk donasi (misal: username roblox, ID game, dll)
 	CustomInputLabel    string `json:"custom_input_label"`    // Label field (contoh: "Username Roblox")
 	CustomInputRequired bool   `json:"custom_input_required"` // Apakah wajib diisi
+	QueueTitle          string `json:"queue_title"`           // Judul antrian di overlay (contoh: "Antrian Donasi")
 	
 	// Payment settings
 	StaticQRIS string `gorm:"type:text" json:"static_qris"`
@@ -71,6 +72,7 @@ type UpdateProfileRequest struct {
 	DonationPackages    []DonationPackage `json:"donation_packages"`
 	CustomInputLabel    string            `json:"custom_input_label"`
 	CustomInputRequired bool              `json:"custom_input_required"`
+	QueueTitle          string            `json:"queue_title"`
 	StaticQRIS          string            `json:"static_qris"`
 	Provider            string            `json:"provider"`
 }

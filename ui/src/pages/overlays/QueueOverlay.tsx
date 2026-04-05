@@ -16,6 +16,7 @@ function QueueOverlay() {
   const { uuid } = useParams()
   const [donors, setDonors] = useState<Transaction[]>([])
   const [username, setUsername] = useState<string | null>(null)
+  const [queueTitle, setQueueTitle] = useState<string>('Antrian Donasi')
   const socketRef = useRef<WebSocket | null>(null)
 
   const fetchQueue = useCallback(async (targetUsername: string) => {
@@ -53,6 +54,7 @@ function QueueOverlay() {
       .then(res => res.json())
       .then(user => {
         setUsername(user.username)
+        setQueueTitle(user.queue_title || 'Antrian Donasi')
         fetchQueue(user.username)
       }).catch(() => {})
   }, [uuid, fetchQueue])
@@ -94,7 +96,7 @@ function QueueOverlay() {
   return (
     <main className="queue-overlay">
       <div className="queue-dialog">
-        <h2 className="queue-title">Antrian Donasi</h2>
+        <h2 className="queue-title">{queueTitle}</h2>
         <div className="queue-list">
           {aggregatedDonors.length === 0 ? (
             <div className="queue-empty">Belum ada antrian</div>

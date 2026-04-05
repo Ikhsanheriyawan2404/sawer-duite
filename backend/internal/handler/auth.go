@@ -149,6 +149,7 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	user.DonationPackages = req.DonationPackages
 	user.CustomInputLabel = req.CustomInputLabel
 	user.CustomInputRequired = req.CustomInputRequired
+	user.QueueTitle = req.QueueTitle
 	user.StaticQRIS = req.StaticQRIS
 	user.Provider = req.Provider
 
@@ -187,6 +188,7 @@ func (h *AuthHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 		DonationPackages    []domain.DonationPackage `json:"donation_packages"`
 		CustomInputLabel    string                   `json:"custom_input_label"`
 		CustomInputRequired bool                     `json:"custom_input_required"`
+		QueueTitle          string                   `json:"queue_title"`
 	}{
 		ID:                  user.ID,
 		UUID:                user.UUID,
@@ -203,6 +205,7 @@ func (h *AuthHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 		DonationPackages:    user.DonationPackages,
 		CustomInputLabel:    user.CustomInputLabel,
 		CustomInputRequired: user.CustomInputRequired,
+		QueueTitle:          user.QueueTitle,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -235,6 +238,7 @@ func (h *AuthHandler) GetUserByUUID(w http.ResponseWriter, r *http.Request) {
 		DonationPackages    []domain.DonationPackage `json:"donation_packages"`
 		CustomInputLabel    string                   `json:"custom_input_label"`
 		CustomInputRequired bool                     `json:"custom_input_required"`
+		QueueTitle          string                   `json:"queue_title"`
 	}{
 		ID:                  user.ID,
 		UUID:                user.UUID,
@@ -251,6 +255,7 @@ func (h *AuthHandler) GetUserByUUID(w http.ResponseWriter, r *http.Request) {
 		DonationPackages:    user.DonationPackages,
 		CustomInputLabel:    user.CustomInputLabel,
 		CustomInputRequired: user.CustomInputRequired,
+		QueueTitle:          user.QueueTitle,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
