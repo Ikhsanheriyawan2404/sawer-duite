@@ -1,82 +1,88 @@
-# CLAUDE.md
+# Sawer Duite Project Context
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Sawer Duite is a comprehensive payment notification system designed to capture, process, and display real-time payment alerts (specifically from DANA) for streamers or merchants.
 
-## Project Overview
+## Project Structure
 
-Ongob is a payment notification system consisting of three components:
-- **Android app** (`android/`): Kotlin app that listens to DANA payment notifications and forwards them to the backend
-- **Backend** (`backend/`): Go REST API with Chi router, GORM/PostgreSQL, and JWT authentication
-- **Web UI** (`ui/`): React + TypeScript frontend with Vite
+- **`android/`**: Kotlin-based Android application that acts as a notification listener.
+- **`backend/`**: Go REST API that processes payment data, manages users, and handles TTS (Text-to-Speech) generation.
+- **`ui/`**: React + TypeScript frontend for displaying alerts and managing the system.
 
-## Development Commands
+---
 
-### Backend (Go)
+## 🏗 Backend (Go)
+
+- **Framework**: [Chi Router](https://github.com/go-chi/chi)
+- **Database**: PostgreSQL with [GORM](https://gorm.io/)
+- **Cache/Rate Limiting**: Redis
+- **Auth**: JWT (Access & Refresh tokens)
+- **Storage**: MinIO (for TTS and media assets)
+- **Architecture**: Clean Architecture (Domain, Handler, Middleware, Repository, Service)
+
+### Key Commands
 ```bash
 cd backend
 go run cmd/api/main.go        # Run API server (port 3000)
 go test ./...                 # Run all tests
-go test ./internal/service    # Run tests for specific package
 ```
 
-### Web UI (React/Vite)
+### Environment Variables (See `.env.example`)
+- `DB_URL`: PostgreSQL connection string.
+- `REDIS_URL`: Redis connection string.
+- `JWT_SECRET` / `JWT_REFRESH_SECRET`: Secrets for token signing.
+- `MINIO_*`: Configuration for object storage.
+
+---
+
+## 💻 Web UI (React)
+
+- **Framework**: React 19 + TypeScript + Vite
+- **Routing**: React Router 7
+- **Styling**: Vanilla CSS (per project preference)
+- **Icons**: SVG-based system
+
+### Key Commands
 ```bash
 cd ui
 bun install                   # Install dependencies
-bun run dev                   # Development server
+bun run dev                   # Start development server
 bun run build                 # Build for production
-bun run lint                  # ESLint
 ```
 
-### Android
+---
+
+## 📱 Android App (Kotlin)
+
+- **Core Logic**: `NotificationListenerService` captures notifications from the DANA app.
+- **Parsing**: `Parser.kt` extracts transaction amounts and bank names using regex.
+- **Persistence**: `SettingsManager` for local configuration.
+- **Background Tasks**: WorkManager for log uploads and watchdog services.
+
+### Key Commands
 ```bash
 cd android
-./gradlew build               # Build APK
-./gradlew assembleDebug       # Debug APK
+./gradlew assembleDebug       # Build debug APK
+./gradlew assembleRelease     # Build release APK
 ```
 
-## Architecture
+---
 
-### Backend Structure (Clean Architecture)
-```
-backend/
-├── cmd/api/main.go           # Entry point, router setup
-└── internal/
-    ├── domain/               # Data models and config
-    ├── handler/              # HTTP handlers
-    ├── middleware/           # Auth, CORS middleware
-    ├── repository/           # Database layer (GORM)
-    └── service/              # Business logic (JWT)
-```
+## 🚀 Deployment & Infrastructure
 
-**Request flow**: Router → Middleware → Handler → Service → Repository
+- **Docker**: `compose.yml` for production-like environment with Traefik integration.
+- **CI/CD**: GitHub Actions for:
+    - Android builds and signing (`.github/workflows/android-build.yml`).
+    - Backend/Frontend deployment (`.github/workflows/deploy.yml`).
+- **Permissions**: The Android build requires `contents: write` permission in GitHub Actions to create releases.
 
-### Web UI Structure
-```
-ui/src/
-├── App.tsx                   # Routes and layout
-├── pages/                    # Route components
-├── components/               # Reusable components (ProtectedRoute)
-└── lib/api.ts                # API client with auth helpers
-```
+---
 
-### Android Components
-- `NotificationListener`: Listens for DANA app notifications, filters payment notifications, prevents duplicates via cache
-- `Parser`: Extracts amount (Rp format) and bank name from notification text
-- `NetworkClient`: Sends parsed payment data to backend with retry logic
+## 🛠 Development Conventions
 
-## Key Patterns
-
-- Backend uses dependency injection: handlers receive db and services via constructors
-- Authentication: JWT access/refresh tokens, middleware extracts `user_id` to context
-- UI stores tokens in localStorage, auto-clears on 401 response
-- Android uses `NotificationListenerService` with 10-second duplicate cache
-
-## Database
-
-PostgreSQL with GORM auto-migration. Default connection on port 5433 (configured in `domain/config.go`).
-
-## Code Style
-
-- Indent: 2 spaces (all files except Makefile)
-- Go: space indentation (non-standard, per .editorconfig)
+- **Language Standards**: 
+    - Go: 2-space indentation (via `.editorconfig`).
+    - Web: TypeScript for type safety, React 19 primitives.
+    - Android: Kotlin with Coroutines and WorkManager.
+- **Database**: GORM Auto-migration is used.
+- **Authentication**: JWT tokens are extracted from headers via middleware. 
+- **Security**: Sensitive keys must be stored in `.env` and never committed.
