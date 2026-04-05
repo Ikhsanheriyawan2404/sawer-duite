@@ -30,7 +30,7 @@ services:
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
 
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/ongob-frontend:latest
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/sawer-duite-frontend:latest
     restart: unless-stopped
     depends_on:
       backend:
@@ -42,5 +42,5 @@ services:
       retries: 3
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`sawerom.duitebot.com`)"
+      - "traefik.http.routers.frontend.rule=Host(`sawerom.duitebot.com`,`sawer.duitebot.com`)"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"

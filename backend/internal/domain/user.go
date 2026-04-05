@@ -48,7 +48,7 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 		u.UUID = uuid.New().String()
 	}
 	if u.AppToken == "" {
-		u.AppToken = "ot_" + uuid.New().String() // ongob_token
+		u.AppToken = "sd_" + uuid.New().String() // sawerduite_token
 	}
 	return nil
 }

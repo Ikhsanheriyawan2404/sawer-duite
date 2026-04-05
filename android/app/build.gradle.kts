@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.ongob.paymentlistener"
+    namespace = "com.sawerduite.paymentlistener"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.ongob.paymentlistener"
+        applicationId = "com.sawerduite.paymentlistener"
         minSdk = 26
         targetSdk = 34
         versionCode = 2

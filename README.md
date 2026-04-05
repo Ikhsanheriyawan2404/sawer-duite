@@ -38,7 +38,7 @@ Setelah mendapatkan QRIS Statis dari merchant (DANA/Gopay):
 
 ### 4. Instalasi Aplikasi Android (Listener)
 Aplikasi Android ini adalah jantung dari sistem yang bertugas mengirim notifikasi ke dashboard.
-1. Download file `.apk` terbaru dari [GitHub Release](https://github.com/ikhsan/ongob/releases).
+1. Download file `.apk` terbaru dari [GitHub Release](https://github.com/Ikhsanheriyawan2404/sawer-duite/releases).
 2. **Disclaimer & Keamanan**:
    - **Play Protect**: Karena aplikasi ini didownload di luar Play Store, Google mungkin akan menampilkan peringatan "Blocked by Play Protect". Pilih **Install Anyway**. Ini normal untuk aplikasi open source yang tidak didaftarkan secara berbayar ke Google.
    - **Izin Notifikasi**: Aplikasi akan meminta izin **Notification Access**. Izin ini wajib diberikan agar aplikasi bisa membaca pesan "Pembayaran Masuk" dari DANA/Gopay.

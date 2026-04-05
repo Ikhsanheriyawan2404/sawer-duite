@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis_rate/v10"
-	"github.com/ikhsan/ongob/backend/internal/domain"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
 	"github.com/redis/go-redis/v9"
 )
 

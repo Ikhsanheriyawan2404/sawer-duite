@@ -7,11 +7,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/ikhsan/ongob/backend/internal/domain"
-	"github.com/ikhsan/ongob/backend/internal/handler"
-	"github.com/ikhsan/ongob/backend/internal/middleware"
-	"github.com/ikhsan/ongob/backend/internal/repository"
-	"github.com/ikhsan/ongob/backend/internal/service"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/handler"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/middleware"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/repository"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/service"
 	"github.com/redis/go-redis/v9"
 )
 

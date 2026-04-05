@@ -35,7 +35,7 @@ func GetConfig() Config {
 	_ = godotenv.Load()
 
 	return Config{
-		DBURL:             getEnv("DB_URL", "host=localhost user=postgres password=postgres dbname=ongob port=5432 sslmode=disable"),
+		DBURL:             getEnv("DB_URL", "host=localhost user=postgres password=postgres dbname=sawerduite port=5432 sslmode=disable"),
 		JWTSecret:         getEnv("JWT_SECRET", "super-secret-access-key"),
 		JWTRefreshSecret:  getEnv("JWT_REFRESH_SECRET", "super-secret-refresh-key"),
 		AccessTokenTTL:    parseDuration(getEnv("ACCESS_TOKEN_TTL", "15m")),
@@ -50,9 +50,9 @@ func GetConfig() Config {
 		MinIOEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
 		MinIOAccessKey: getEnv("MINIO_ACCESS_KEY", ""),
 		MinIOSecretKey: getEnv("MINIO_SECRET_KEY", ""),
-		MinIOBucket:    getEnv("MINIO_BUCKET", "ongob-tts"),
+		MinIOBucket:    getEnv("MINIO_BUCKET", "sawerduite-tts"),
 		MinIOUseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
-		MinIOPublicURL: getEnv("MINIO_PUBLIC_URL", "http://localhost:9000/ongob-tts"),
+		MinIOPublicURL: getEnv("MINIO_PUBLIC_URL", "http://localhost:9000/sawerduite-tts"),
 	}
 }
 

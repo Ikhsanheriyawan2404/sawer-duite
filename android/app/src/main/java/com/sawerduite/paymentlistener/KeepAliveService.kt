@@ -1,4 +1,4 @@
-package com.ongob.paymentlistener
+package com.sawerduite.paymentlistener
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -51,7 +51,7 @@ class KeepAliveService : Service() {
                 "Sawer Om Listener Service",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Mendengarkan notifikasi pembayaran DANA"
+                description = "Mendengarkan notifikasi pembayaran"
                 setShowBadge(false)
             }
 
@@ -70,7 +70,7 @@ class KeepAliveService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Sawer Om Listener Aktif")
-            .setContentText("Mendengarkan notifikasi pembayaran DANA")
+            .setContentText("Mendengarkan notifikasi pembayaran")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(true)

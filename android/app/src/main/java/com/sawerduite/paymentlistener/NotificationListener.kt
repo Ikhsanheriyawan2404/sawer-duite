@@ -1,4 +1,4 @@
-package com.ongob.paymentlistener
+package com.sawerduite.paymentlistener
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification

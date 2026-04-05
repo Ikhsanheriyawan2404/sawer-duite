@@ -1,6 +1,6 @@
 # Sawer Duite Project Context
 
-Sawer Duite is a comprehensive payment notification system designed to capture, process, and display real-time payment alerts (specifically from DANA) for streamers or merchants.
+Sawer Duite is a comprehensive payment notification system designed to capture, process, and display real-time payment alerts (specifically from DANA and GoPay) for streamers or merchants.
 
 ## Project Structure
 

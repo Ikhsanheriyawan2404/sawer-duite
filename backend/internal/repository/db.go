@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
-	"github.com/ikhsan/ongob/backend/internal/domain"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -43,11 +43,11 @@ func SeedUser(db *gorm.DB) {
 	user := domain.User{
 		UUID:              uuid.New().String(),
 		Email:             "admin@gmail.com",
-		Username:          "ongob",
+		Username:          "sawerduite",
 		Password:          string(hashedPassword),
 		Name:              "Aikyy",
 		Bio:               "Terimakasih! Jangan lupa tulis username kalian yaa! Supaya diupdate di Leaderboard",
-		TikTok:            "https://tiktok.com/@ongobkun",
+		TikTok:            "https://tiktok.com/@sawerduite",
 		Instagram:         "https://instagram.com/kychan.real",
 		YouTube:           "https://youtube.com/@aikyyfishit",
 		MinDonation:       10_000,

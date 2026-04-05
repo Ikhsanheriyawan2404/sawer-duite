@@ -1,10 +1,10 @@
-package com.ongob.paymentlistener
+package com.sawerduite.paymentlistener
 
 import android.content.Context
 import android.content.SharedPreferences
 
 class SettingsManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("ongob_settings", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context.getSharedPreferences("sawerduite_settings", Context.MODE_PRIVATE)
 
     companion object {
         private const val KEY_BACKEND_URL = "backend_url"

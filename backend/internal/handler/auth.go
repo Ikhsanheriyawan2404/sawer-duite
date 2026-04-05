@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/ikhsan/ongob/backend/internal/domain"
-	"github.com/ikhsan/ongob/backend/internal/service"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/service"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
