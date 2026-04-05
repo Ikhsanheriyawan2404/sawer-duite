@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Diperlukan untuk membuat release dan upload asset
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
