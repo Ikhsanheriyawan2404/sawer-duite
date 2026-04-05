@@ -25,6 +25,10 @@ jobs:
       - name: Build APK (Release)
         run: cd android && ./gradlew assembleRelease
 
+      - name: Install Android Build Tools 29.0.3
+        run: |
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "build-tools;29.0.3"
+
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
         id: sign_app
@@ -34,7 +38,6 @@ jobs:
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
-          buildToolsVersion: "34.0.0"
 
       - name: Create Release and Upload APK
         uses: softprops/action-gh-release@v2
