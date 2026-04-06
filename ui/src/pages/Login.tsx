@@ -63,10 +63,7 @@ function Login() {
   return (
     <main className="page page-center">
       <section className="login-card">
-        <div className="section-label">
-          <span className="pulse-dot" />
-          <span className="label-text">LOGIN</span>
-        </div>
+        <p className="section-intro-label">SELAMAT DATANG</p>
         <h2>Masuk ke akunmu.</h2>
 
         {error && <p style={{ color: '#ff4d4d', fontSize: '14px', margin: 0 }}>{error}</p>}

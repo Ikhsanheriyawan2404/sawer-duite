@@ -129,18 +129,21 @@ function Payment() {
   return (
     <main className="page page-center overlay-page">
       <section className="login-card" style={{ maxWidth: '500px', textAlign: 'center', alignItems: 'center' }}>
-        <div className="section-label" style={{
-          background: isPaid ? '#dcfce7' : isExpired ? '#fee2e2' : '#e6f0ff',
-          color: isPaid ? '#16a34a' : isExpired ? '#dc2626' : '#0052ff'
+        <p className="section-intro-label" style={{
+          color: isPaid ? '#16a34a' : isExpired ? '#dc2626' : '#0052ff',
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontWeight: '700',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          fontSize: '12px',
+          marginBottom: '10px'
         }}>
-          <span className="pulse-dot" style={{
-            backgroundColor: isPaid ? '#22c55e' : isExpired ? '#ef4444' : '#0052ff',
-            animation: (isPaid || isExpired) ? 'none' : undefined
-          }} />
-          <span className="label-text">
-            {isPaid ? 'PEMBAYARAN BERHASIL' : isExpired ? 'SESSION EXPIRED' : 'QRIS DYNAMIC'}
-          </span>
-        </div>
+          {!isPaid && !isExpired && <span className="status-pulse-dot" style={{ backgroundColor: '#0052ff' }} />}
+          {isPaid ? 'PEMBAYARAN BERHASIL' : isExpired ? 'SESSI KADALUARSA' : 'QRIS DINAMIS'}
+        </p>
 
         <div style={{ marginTop: '16px' }}>
           <p className="muted" style={{ fontSize: '14px' }}>Total Pembayaran</p>

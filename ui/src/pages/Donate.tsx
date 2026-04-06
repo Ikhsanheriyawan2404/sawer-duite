@@ -104,10 +104,7 @@ function Donate() {
   return (
     <main className="page page-center overlay-page">
       <section className="login-card" style={{ maxWidth: '540px' }}>
-        <div className="section-label">
-          <span className="pulse-dot" />
-          <span className="label-text">DUKUNGAN</span>
-        </div>
+        <p className="section-intro-label">KIRIM DUKUNGAN</p>
         <h2>Dukung {user?.name || username}</h2>
         {!hasQRIS && (
           <div style={{

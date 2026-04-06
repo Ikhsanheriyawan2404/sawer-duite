@@ -101,3 +101,29 @@ a:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* General styling for section intro labels */
+.section-intro-label {
+  font-size: 0.75rem; /* Equivalent to 12px */
+  font-weight: 600;
+  color: var(--muted-foreground); /* A more subdued color */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px; /* Spacing below the label */
+  display: block; /* Ensures it takes its own line */
+}
+
+/* For the Payment page's dynamic status dot */
+.status-pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite; /* Keep the pulse effect */
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0.7; }
+}
