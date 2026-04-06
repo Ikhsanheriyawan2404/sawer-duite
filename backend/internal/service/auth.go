@@ -39,7 +39,7 @@ func (s *AuthService) GenerateRefreshToken(userID uint) (string, error) {
 }
 
 func (s *AuthService) ValidateAccessToken(tokenString string) (uint, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return []byte(s.config.JWTSecret), nil
 	})
 
@@ -57,7 +57,7 @@ func (s *AuthService) ValidateAccessToken(tokenString string) (uint, error) {
 }
 
 func (s *AuthService) ValidateRefreshToken(tokenString string) (uint, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return []byte(s.config.JWTRefreshSecret), nil
 	})
 

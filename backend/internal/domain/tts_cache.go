@@ -14,7 +14,6 @@ type TTSCache struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// GenerateTextHash creates SHA256 hash from text
 func GenerateTextHash(text string) string {
 	hash := sha256.Sum256([]byte(text))
 	return hex.EncodeToString(hash[:])

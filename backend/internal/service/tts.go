@@ -40,12 +40,9 @@ type GoogleTTSResponse struct {
 }
 
 func NewTTSService(db *gorm.DB, rdb *redis.Client, cfg domain.Config) *TTSService {
-	// Clean endpoint from http:// or https:// if present
 	endpoint := cfg.MinIOEndpoint
 	endpoint = strings.TrimPrefix(endpoint, "http://")
 	endpoint = strings.TrimPrefix(endpoint, "https://")
-
-	log.Printf("[TTS] Initializing MinIO with endpoint: %s (SSL: %v)", endpoint, cfg.MinIOUseSSL)
 
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.MinIOAccessKey, cfg.MinIOSecretKey, ""),
@@ -182,7 +179,7 @@ func (s *TTSService) uploadToMinIO(fileName string, data []byte) (string, error)
 		if err != nil {
 			return "", fmt.Errorf("failed to create bucket: %v", err)
 		}
-		
+
 		policy := fmt.Sprintf(`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::%s/*"]}]}`, bucketName)
 		err = s.minioClient.SetBucketPolicy(ctx, bucketName, policy)
 		if err != nil {

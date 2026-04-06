@@ -52,13 +52,11 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Minimal donation validation
 	if target.MinDonation > 0 && int64(req.Amount) < target.MinDonation {
 		http.Error(w, "nominal donasi di bawah batas minimal", http.StatusBadRequest)
 		return
 	}
 
-	// Custom input validation - jika user mewajibkan custom input, harus diisi
 	if target.CustomInputRequired && target.CustomInputLabel != "" && req.CustomInput == "" {
 		http.Error(w, target.CustomInputLabel+" wajib diisi", http.StatusBadRequest)
 		return
@@ -79,7 +77,6 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Generate Dynamic QRIS with total amount
 	qrisPayload, err := h.qrisService.GenerateDynamicQRIS(qrisBase, totalAmount)
 	if err != nil {
 		http.Error(w, "failed to generate QRIS", http.StatusInternalServerError)
@@ -96,7 +93,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		CustomInput: req.CustomInput,
 		QRISPayload: qrisPayload,
 		Status:      "pending",
-		IsQueue:     true, // Default: masuk antrian
+		IsQueue:     true,
 		ExpiredAt:   time.Now().Add(5 * time.Minute),
 	}
 
@@ -203,7 +200,7 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Sanitize Target info (jangan bocorkan email atau token streamer ke donor)
+	// Sanitize Target info
 	tx.Target.Email = ""
 	tx.Target.Password = ""
 	tx.Target.AppToken = ""
@@ -216,7 +213,6 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 func (h *TransactionHandler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	userUUID := chi.URLParam(r, "uuid")
 
-	// Validate user exists
 	var user domain.User
 	if err := h.db.Where("uuid = ?", userUUID).First(&user).Error; err != nil {
 		http.Error(w, "invalid channel", http.StatusNotFound)
@@ -230,7 +226,6 @@ func (h *TransactionHandler) WebSocketHandler(w http.ResponseWriter, r *http.Req
 func (h *TransactionHandler) TestAlert(w http.ResponseWriter, r *http.Request) {
 	userUUID := chi.URLParam(r, "uuid")
 
-	// Verify ownership - user can only test alert on their own UUID
 	userID := r.Context().Value("user_id").(uint)
 	var user domain.User
 	if err := h.db.Where("id = ? AND uuid = ?", userID, userUUID).First(&user).Error; err != nil {
@@ -269,7 +264,6 @@ func (h *TransactionHandler) GetUserStats(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// 1. Total Amount & Total Donors (paid only)
 	var stats struct {
 		TotalAmount int64 `json:"total_amount"`
 		TotalDonors int64 `json:"total_donors"`
@@ -279,14 +273,12 @@ func (h *TransactionHandler) GetUserStats(w http.ResponseWriter, r *http.Request
 		Where("target_id = ? AND status = ?", user.ID, "paid").
 		Scan(&stats)
 
-	// 2. Recent Donations
 	var recent []domain.Transaction
 	h.db.Where("target_id = ? AND status = ?", user.ID, "paid").
 		Order("created_at DESC").
 		Limit(10).
 		Find(&recent)
 
-	// 3. Top Supporters (All time, Day, Week, Month)
 	topSupporters := make(map[string][]Supporter)
 
 	periods := map[string]time.Time{
@@ -339,7 +331,6 @@ func (h *TransactionHandler) UpdateQueue(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Verify ownership - user can only update their own transactions
 	if tx.Target.ID != userID {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
@@ -372,7 +363,6 @@ func (h *TransactionHandler) AddToQueue(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Verify ownership
 	if tx.Target.ID != userID {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
@@ -405,7 +395,6 @@ func (h *TransactionHandler) RemoveFromQueue(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Verify ownership
 	if tx.Target.ID != userID {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return

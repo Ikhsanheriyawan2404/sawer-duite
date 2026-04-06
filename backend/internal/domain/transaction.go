@@ -12,7 +12,7 @@ type Transaction struct {
 	TargetID    uint           `gorm:"not null" json:"target_id"`
 	Target      User           `gorm:"foreignKey:TargetID" json:"target"`
 	Sender      string         `json:"sender"`
-	Amount      int            `json:"amount"`      // Total to pay (e.g., 50089)
+	Amount      int            `json:"amount"`      // Total to pay with unique code (e.g., 50089)
 	BaseAmount  int            `json:"base_amount"` // Original amount (e.g., 50000)
 	Note        string         `json:"note"`
 	CustomInput string         `json:"custom_input"` // Nilai custom input (misal: username roblox)

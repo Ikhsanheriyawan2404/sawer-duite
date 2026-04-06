@@ -16,13 +16,11 @@ type NotificationLog struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// GenerateHash creates SHA256 hash from message
 func (n *NotificationLog) GenerateHash() {
 	hash := sha256.Sum256([]byte(n.Message))
 	n.Hash = hex.EncodeToString(hash[:])
 }
 
-// HashMessage returns SHA256 hash of a string
 func HashMessage(message string) string {
 	hash := sha256.Sum256([]byte(message))
 	return hex.EncodeToString(hash[:])

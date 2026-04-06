@@ -39,7 +39,7 @@ func SeedUser(db *gorm.DB) {
 		return
 	}
 
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("asintel"), bcrypt.DefaultCost)
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("anone"), bcrypt.DefaultCost)
 	user := domain.User{
 		UUID:              uuid.New().String(),
 		Email:             "admin@gmail.com",
@@ -59,6 +59,6 @@ func SeedUser(db *gorm.DB) {
 	if err := db.Create(&user).Error; err != nil {
 		log.Println("Failed to seed user:", err)
 	} else {
-		log.Println("Default user seeded: admin@gmail.com / asintel")
+		log.Println("Default user seeded: admin@gmail.com / anone")
 	}
 }

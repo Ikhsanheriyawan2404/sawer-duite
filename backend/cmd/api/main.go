@@ -24,19 +24,15 @@ func main() {
 
 	cfg := domain.GetConfig()
 
-	// DB Init
 	db := repository.InitDB(cfg)
 
-	// Redis Init
 	rdb := redis.NewClient(&redis.Options{
 		Addr: cfg.RedisURL,
 	})
 
-	// Hub Init for WebSockets
 	hub := domain.NewHub()
 	go hub.Run()
 
-	// Alert Queue Manager
 	queueManager := domain.NewAlertQueueManager(hub)
 
 	authService := service.NewAuthService(cfg)

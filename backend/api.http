@@ -1,15 +1,158 @@
+### Variables
+# @baseUrl = http://localhost:3000
+@baseUrl = https://sawer-api.duitebot.com
+
+# Auto-populated after running login
+@accessToken = {{login.response.body.access_token}}
+@refreshToken = {{login.response.body.refresh_token}}
+@appToken = YOUR_ANDROID_APP_TOKEN_HERE
+
+###########################################################
+### SYSTEM & HEALTH
+###########################################################
+
 ### Health Check
-GET http://localhost:3000/health
+GET {{baseUrl}}/health
+
+###########################################################
+### AUTHENTICATION
+###########################################################
 
 ### Login
-POST http://localhost:3000/login
+# @name login
+POST {{baseUrl}}/login
 Content-Type: application/json
 
 {
-  "email": "admin@gmail.com",
+  "email": "ikhsan@gmail.com",
   "password": "asintel"
 }
 
-### Get Profile (Paste Access Token below)
-GET http://localhost:3000/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzM2NjY4ODQsInR5cGUiOiJhY2Nlc3MiLCJ1c2VyX2lkIjo0fQ.WYFKvEK9QhsGgPvgOBMuSIhPvZhuZ-oHf5-oJY9ZACM
+### Refresh Token
+POST {{baseUrl}}/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### Get Current User Profile (Authenticated)
+GET {{baseUrl}}/me
+Authorization: Bearer {{accessToken}}
+
+### Update Profile (Authenticated)
+POST {{baseUrl}}/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Ikhsan Heriyawan",
+  "username": "ikhsan",
+  "bio": "Streaming setiap malam Jumat",
+  "tiktok": "https://tiktok.com/@ikhsan",
+  "instagram": "https://instagram.com/ikhsan",
+  "youtube": "https://youtube.com/@ikhsan",
+  "min_donation": 10000,
+  "target_amount": 1000000,
+  "target_description": "Beli PC Baru",
+  "quick_amounts": [10000, 25000, 50000, 100000],
+  "custom_input_label": "Pesan Rahasia",
+  "custom_input_required": false,
+  "queue_title": "Antrian Donasi"
+}
+
+###########################################################
+### PUBLIC USER DATA
+###########################################################
+
+### Get Public User by Username
+GET {{baseUrl}}/user/ikhsan
+
+### Get Public User by UUID
+GET {{baseUrl}}/user/uuid/4c3bdbe2-b9a0-4be5-8116-63b9a7c4805c
+
+### List Public Users
+GET {{baseUrl}}/users?limit=10
+
+###########################################################
+### TRANSACTIONS & DONATIONS
+###########################################################
+
+### Create Transaction (Donation)
+# @name createTransaction
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+
+{
+  "username": "brogrammer",
+  "amount": 50000,
+  "sender": "Donatur Budiman",
+  "note": "Semangat bang streamingnya!",
+  "custom_input": "ini data tambahan"
+}
+
+### Get Transaction Details
+GET {{baseUrl}}/transactions/{{createTransaction.response.body.uuid}}
+
+### Get User Donation Stats (Landing Page)
+GET {{baseUrl}}/user/ikhsan/stats
+
+### Get Queue List (Overlay)
+GET {{baseUrl}}/user/ikhsan/queue?status=paid&is_queue=true&sort_by=base_amount&order=desc
+
+###########################################################
+### NOTIFICATIONS & LOGS (From Android App)
+###########################################################
+
+### Process Payment Notification (Mock Dana/GoPay)
+POST {{baseUrl}}/notifications
+X-App-Token: {{appToken}}
+Content-Type: application/json
+
+{
+  "title": "DANA",
+  "message": "Berhasil terima uang Rp 50.000 dari Donatur Budiman",
+  "amount": 50000,
+  "bank": "DANA",
+  "source": "NotificationListener"
+}
+
+### Upload Client Logs
+POST {{baseUrl}}/client-logs
+X-App-Token: {{appToken}}
+Content-Type: application/json
+
+[
+  {
+    "ts": 1712419200000,
+    "level": "INFO",
+    "event": "NOTIFICATION_CAPTURED",
+    "message": "Captured notification from DANA",
+    "device": {"model": "Pixel 6", "os": "Android 14"}
+  }
+]
+
+###########################################################
+### OVERLAY & QUEUE MANAGEMENT (Authenticated)
+###########################################################
+
+### Trigger Test Alert
+POST {{baseUrl}}/user/{{login.response.body.user.uuid}}/test-alert
+Authorization: Bearer {{accessToken}}
+
+### Update Queue Status for Transaction
+PATCH {{baseUrl}}/transactions/{{createTransaction.response.body.uuid}}/queue
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "is_queue": false
+}
+
+### Add Transaction Back to Queue
+POST {{baseUrl}}/transactions/{{createTransaction.response.body.uuid}}/queue/add
+Authorization: Bearer {{accessToken}}
+
+### Remove Transaction from Queue
+POST {{baseUrl}}/transactions/{{createTransaction.response.body.uuid}}/queue/remove
+Authorization: Bearer {{accessToken}}

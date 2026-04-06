@@ -117,20 +117,17 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate
 	if req.Name == "" || req.Username == "" {
 		http.Error(w, "name and username are required", http.StatusBadRequest)
 		return
 	}
 
-	// Check if username already taken by another user
 	var existingUser domain.User
 	if err := h.db.Where("username = ? AND id != ?", req.Username, userID).First(&existingUser).Error; err == nil {
 		http.Error(w, "username already taken", http.StatusConflict)
 		return
 	}
 
-	// Update user
 	var user domain.User
 	if err := h.db.First(&user, userID).Error; err != nil {
 		http.Error(w, "user not found", http.StatusNotFound)
@@ -172,7 +169,6 @@ func (h *AuthHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Only return public info
 	publicUser := struct {
 		ID                  uint                     `json:"id"`
 		UUID                string                   `json:"uuid"`
@@ -222,7 +218,6 @@ func (h *AuthHandler) GetUserByUUID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Only return public info
 	publicUser := struct {
 		ID                  uint                     `json:"id"`
 		UUID                string                   `json:"uuid"`
