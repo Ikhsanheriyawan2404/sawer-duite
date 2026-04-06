@@ -1,133 +1,94 @@
 package domain
 
 import (
+	"context"
 	"encoding/json"
 	"log"
-	"sync"
+	"strings"
+	"strconv"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 // AlertQueueItem represents a single alert in the queue
-type AlertQueueItem struct {
-	ID        string       `json:"id"`
-	Alert     AlertMessage `json:"alert"`
-	CreatedAt time.Time    `json:"created_at"`
-}
+// Stored as JSON in Redis list per user
+// Payload already includes alert_id
 
-// UserAlertQueue manages FIFO queue for a single user
-type UserAlertQueue struct {
-	UserUUID    string
-	Queue       []AlertQueueItem
-	IsPlaying   bool              // true if waiting for ACK
-	CurrentID   string            // ID of currently playing alert
-	mu          sync.Mutex
-}
-
-// AlertQueueManager manages all user queues
 type AlertQueueManager struct {
-	queues     map[string]*UserAlertQueue
-	hub        *Hub
-	mu         sync.RWMutex
+	rdb        *redis.Client
 	ackTimeout time.Duration
+	lockTTL    time.Duration
 }
 
 // ClientMessage represents incoming message from client
+// NOTE: keep in sync with WS payload from frontend
+
 type ClientMessage struct {
 	Type    string `json:"type"`    // "ack"
 	AlertID string `json:"alert_id"`
 }
 
-// NewAlertQueueManager creates a new queue manager
-func NewAlertQueueManager(hub *Hub) *AlertQueueManager {
+func NewAlertQueueManager(rdb *redis.Client) *AlertQueueManager {
 	return &AlertQueueManager{
-		queues:     make(map[string]*UserAlertQueue),
-		hub:        hub,
-		ackTimeout: 60 * time.Second, // Timeout if client doesn't ACK
+		rdb:        rdb,
+		ackTimeout: 60 * time.Second,
+		lockTTL:    5 * time.Second,
 	}
 }
 
-// getOrCreateQueue gets existing queue or creates new one for user
-func (m *AlertQueueManager) getOrCreateQueue(userUUID string) *UserAlertQueue {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if q, exists := m.queues[userUUID]; exists {
-		return q
-	}
-
-	q := &UserAlertQueue{
-		UserUUID: userUUID,
-		Queue:    make([]AlertQueueItem, 0),
-	}
-	m.queues[userUUID] = q
-	return q
+func (m *AlertQueueManager) queueKey(userUUID string) string {
+	return "queue:" + userUUID
 }
 
-// generateAlertID creates unique ID for alert
+func (m *AlertQueueManager) playingKey(userUUID string) string {
+	return "queue:" + userUUID + ":playing"
+}
+
+func (m *AlertQueueManager) lockKey(userUUID string) string {
+	return "queue:" + userUUID + ":lock"
+}
+
+func (m *AlertQueueManager) inflightKey() string {
+	return "queue:inflight"
+}
+
+func (m *AlertQueueManager) channelKey(userUUID string) string {
+	return "ws:" + userUUID
+}
+
+func (m *AlertQueueManager) inflightMember(userUUID, alertID string) string {
+	return userUUID + ":" + alertID
+}
+
+func (m *AlertQueueManager) PublishRaw(userUUID string, payload []byte) error {
+	ctx := context.Background()
+	return m.rdb.Publish(ctx, m.channelKey(userUUID), payload).Err()
+}
+
+func (m *AlertQueueManager) PublishAlertMessage(alert AlertMessage) error {
+	data, err := json.Marshal(alert)
+	if err != nil {
+		return err
+	}
+	return m.PublishRaw(alert.UserUUID, data)
+}
+
 func generateAlertID() string {
-	return time.Now().Format("20060102150405.000000")
+	return uuid.New().String()
 }
 
-// Enqueue adds alert to user's queue
 func (m *AlertQueueManager) Enqueue(alert AlertMessage) {
-	q := m.getOrCreateQueue(alert.UserUUID)
+	ctx := context.Background()
+	alertID := generateAlertID()
 
-	q.mu.Lock()
-	item := AlertQueueItem{
-		ID:        generateAlertID(),
-		Alert:     alert,
-		CreatedAt: time.Now(),
-	}
-	q.Queue = append(q.Queue, item)
-	queueLen := len(q.Queue)
-	isPlaying := q.IsPlaying
-	q.mu.Unlock()
-
-	log.Printf("[Queue] Alert enqueued for user %s, queue length: %d", alert.UserUUID, queueLen)
-
-	// If not currently playing, send next alert
-	if !isPlaying {
-		m.sendNext(alert.UserUUID)
-	}
-}
-
-// SendNext sends the next alert in queue to all user's clients (exported for ServeWs)
-func (m *AlertQueueManager) SendNext(userUUID string) {
-	m.sendNext(userUUID)
-}
-
-// sendNext sends the next alert in queue to all user's clients
-func (m *AlertQueueManager) sendNext(userUUID string) {
-	m.mu.RLock()
-	q, exists := m.queues[userUUID]
-	m.mu.RUnlock()
-
-	if !exists {
-		return
-	}
-
-	q.mu.Lock()
-	if len(q.Queue) == 0 {
-		q.IsPlaying = false
-		q.CurrentID = ""
-		q.mu.Unlock()
-		log.Printf("[Queue] Queue empty for user %s", userUUID)
-		return
-	}
-
-	// Get first item (FIFO)
-	item := q.Queue[0]
-	q.IsPlaying = true
-	q.CurrentID = item.ID
-	q.mu.Unlock()
-
-	// Build message with alert ID
 	payload := struct {
 		AlertMessage
 		AlertID string `json:"alert_id"`
 	}{
-		AlertMessage: item.Alert,
-		AlertID:      item.ID,
+		AlertMessage: alert,
+		AlertID:      alertID,
 	}
 
 	data, err := json.Marshal(payload)
@@ -136,110 +97,178 @@ func (m *AlertQueueManager) sendNext(userUUID string) {
 		return
 	}
 
-	// Send to all clients of this user
-	m.hub.mu.Lock()
-	clients := m.hub.Clients[userUUID]
-	sentCount := 0
-	for client := range clients {
-		select {
-		case client.Send <- data:
-			sentCount++
-		default:
-			// Client buffer full, skip
-			log.Printf("[Queue] Client buffer full, skipping")
-		}
-	}
-	m.hub.mu.Unlock()
-
-	// If no clients were reachable, reset isPlaying so the next connecting client can trigger it
-	if sentCount == 0 {
-		log.Printf("[Queue] No clients connected for user %s, putting alert back on wait", userUUID)
-		q.mu.Lock()
-		q.IsPlaying = false
-		q.mu.Unlock()
+	if err := m.rdb.RPush(ctx, m.queueKey(alert.UserUUID), data).Err(); err != nil {
+		log.Printf("[Queue] Failed to enqueue alert: %v", err)
 		return
 	}
 
-	log.Printf("[Queue] Sent alert %s to %d clients for user %s", item.ID, sentCount, userUUID)
-
-	// Start timeout timer
-	go m.startACKTimeout(userUUID, item.ID)
+	// Try to send immediately
+	m.SendNext(alert.UserUUID)
 }
 
-// startACKTimeout handles timeout if client doesn't ACK
-func (m *AlertQueueManager) startACKTimeout(userUUID string, alertID string) {
-	time.Sleep(m.ackTimeout)
+func (m *AlertQueueManager) SendNext(userUUID string) {
+	ctx := context.Background()
+	lockVal := uuid.New().String()
 
-	m.mu.RLock()
-	q, exists := m.queues[userUUID]
-	m.mu.RUnlock()
+	ok, err := m.rdb.SetNX(ctx, m.lockKey(userUUID), lockVal, m.lockTTL).Result()
+	if err != nil || !ok {
+		return
+	}
+	defer m.releaseLock(ctx, userUUID, lockVal)
 
-	if !exists {
+	playing, err := m.rdb.Get(ctx, m.playingKey(userUUID)).Result()
+	if err == nil && playing != "" {
+		return
+	}
+	if err != nil && err != redis.Nil {
+		log.Printf("[Queue] Failed to read playing key: %v", err)
 		return
 	}
 
-	q.mu.Lock()
-	// Check if this alert is still current (not yet ACKed)
-	if q.CurrentID == alertID && q.IsPlaying {
-		log.Printf("[Queue] ACK timeout for alert %s, auto-advancing", alertID)
-		// Remove from queue and send next
-		if len(q.Queue) > 0 {
-			q.Queue = q.Queue[1:]
-		}
-		q.IsPlaying = false
-		q.CurrentID = ""
-		q.mu.Unlock()
-		m.sendNext(userUUID)
-	} else {
-		q.mu.Unlock()
+	data, err := m.rdb.LPop(ctx, m.queueKey(userUUID)).Bytes()
+	if err == redis.Nil {
+		return
+	}
+	if err != nil {
+		log.Printf("[Queue] Failed to pop queue: %v", err)
+		return
+	}
+
+	var parsed struct {
+		AlertID string `json:"alert_id"`
+	}
+	if err := json.Unmarshal(data, &parsed); err != nil || parsed.AlertID == "" {
+		log.Printf("[Queue] Invalid alert payload: %v", err)
+		return
+	}
+
+	if err := m.rdb.Set(ctx, m.playingKey(userUUID), parsed.AlertID, m.ackTimeout+5*time.Second).Err(); err != nil {
+		log.Printf("[Queue] Failed to set playing key: %v", err)
+		return
+	}
+
+	deadline := time.Now().Add(m.ackTimeout).Unix()
+	if err := m.rdb.ZAdd(ctx, m.inflightKey(), redis.Z{Score: float64(deadline), Member: m.inflightMember(userUUID, parsed.AlertID)}).Err(); err != nil {
+		log.Printf("[Queue] Failed to add inflight: %v", err)
+		return
+	}
+
+	if err := m.PublishRaw(userUUID, data); err != nil {
+		log.Printf("[Queue] Failed to publish alert: %v", err)
 	}
 }
 
-// HandleACK processes ACK from client
 func (m *AlertQueueManager) HandleACK(userUUID string, alertID string) {
-	m.mu.RLock()
-	q, exists := m.queues[userUUID]
-	m.mu.RUnlock()
+	ctx := context.Background()
+	lockVal := uuid.New().String()
 
-	if !exists {
-		log.Printf("[Queue] ACK received but no queue for user %s", userUUID)
+	ok, err := m.rdb.SetNX(ctx, m.lockKey(userUUID), lockVal, m.lockTTL).Result()
+	if err != nil || !ok {
+		return
+	}
+	defer m.releaseLock(ctx, userUUID, lockVal)
+
+	playing, err := m.rdb.Get(ctx, m.playingKey(userUUID)).Result()
+	if err == redis.Nil || playing == "" {
+		return
+	}
+	if err != nil {
+		log.Printf("[Queue] Failed to read playing key: %v", err)
+		return
+	}
+	if playing != alertID {
+		log.Printf("[Queue] ACK mismatch: expected %s, got %s", playing, alertID)
 		return
 	}
 
-	q.mu.Lock()
-	// Verify this ACK is for current alert
-	if q.CurrentID != alertID {
-		log.Printf("[Queue] ACK mismatch: expected %s, got %s", q.CurrentID, alertID)
-		q.mu.Unlock()
-		return
+	if err := m.rdb.Del(ctx, m.playingKey(userUUID)).Err(); err != nil {
+		log.Printf("[Queue] Failed to clear playing: %v", err)
+	}
+	if err := m.rdb.ZRem(ctx, m.inflightKey(), m.inflightMember(userUUID, alertID)).Err(); err != nil {
+		log.Printf("[Queue] Failed to remove inflight: %v", err)
 	}
 
-	// Remove from queue
-	if len(q.Queue) > 0 {
-		q.Queue = q.Queue[1:]
-	}
-	q.IsPlaying = false
-	q.CurrentID = ""
-	remainingLen := len(q.Queue)
-	q.mu.Unlock()
-
-	log.Printf("[Queue] ACK received for alert %s, remaining in queue: %d", alertID, remainingLen)
-
-	// Send next alert
-	m.sendNext(userUUID)
+	m.SendNext(userUUID)
 }
 
-// GetQueueStatus returns queue status for a user
 func (m *AlertQueueManager) GetQueueStatus(userUUID string) (int, bool) {
-	m.mu.RLock()
-	q, exists := m.queues[userUUID]
-	m.mu.RUnlock()
-
-	if !exists {
+	ctx := context.Background()
+	lenRes, err := m.rdb.LLen(ctx, m.queueKey(userUUID)).Result()
+	if err != nil {
 		return 0, false
 	}
+	playing, err := m.rdb.Get(ctx, m.playingKey(userUUID)).Result()
+	if err == redis.Nil || playing == "" {
+		return int(lenRes), false
+	}
+	if err != nil {
+		return int(lenRes), false
+	}
+	return int(lenRes), true
+}
 
-	q.mu.Lock()
-	defer q.mu.Unlock()
-	return len(q.Queue), q.IsPlaying
+func (m *AlertQueueManager) RunTimeoutWorker(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			m.reapExpired(ctx)
+		}
+	}
+}
+
+func (m *AlertQueueManager) reapExpired(ctx context.Context) {
+	now := time.Now().Unix()
+	for {
+		members, err := m.rdb.ZRangeByScore(ctx, m.inflightKey(), &redis.ZRangeBy{Min: "-inf", Max: fmtInt64(now), Offset: 0, Count: 100}).Result()
+		if err != nil || len(members) == 0 {
+			return
+		}
+
+		for _, member := range members {
+			parts := strings.SplitN(member, ":", 2)
+			if len(parts) != 2 {
+				_ = m.rdb.ZRem(ctx, m.inflightKey(), member).Err()
+				continue
+			}
+			userUUID := parts[0]
+			alertID := parts[1]
+
+			lockVal := uuid.New().String()
+			ok, err := m.rdb.SetNX(ctx, m.lockKey(userUUID), lockVal, m.lockTTL).Result()
+			if err != nil || !ok {
+				continue
+			}
+
+			playing, err := m.rdb.Get(ctx, m.playingKey(userUUID)).Result()
+			if err == nil && playing == alertID {
+				_ = m.rdb.Del(ctx, m.playingKey(userUUID)).Err()
+				_ = m.rdb.ZRem(ctx, m.inflightKey(), member).Err()
+				m.releaseLock(ctx, userUUID, lockVal)
+				m.SendNext(userUUID)
+				continue
+			}
+			_ = m.rdb.ZRem(ctx, m.inflightKey(), member).Err()
+			m.releaseLock(ctx, userUUID, lockVal)
+		}
+	}
+}
+
+func (m *AlertQueueManager) releaseLock(ctx context.Context, userUUID, lockVal string) {
+	lua := redis.NewScript(`
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+	return redis.call("DEL", KEYS[1])
+else
+	return 0
+end
+`)
+	_, _ = lua.Run(ctx, m.rdb, []string{m.lockKey(userUUID)}, lockVal).Result()
+}
+
+func fmtInt64(v int64) string {
+	return strconv.FormatInt(v, 10)
 }

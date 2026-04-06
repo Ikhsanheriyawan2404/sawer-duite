@@ -35,9 +35,15 @@ type Client struct {
 	QueueManager *AlertQueueManager
 }
 
+type RawMessage struct {
+	UserUUID string
+	Payload  []byte
+}
+
 type Hub struct {
 	Clients    map[string]map[*Client]bool
 	Broadcast  chan AlertMessage
+	BroadcastRaw chan RawMessage
 	Register   chan *Client
 	Unregister chan *Client
 	mu         sync.Mutex
@@ -57,6 +63,7 @@ func NewHub() *Hub {
 	return &Hub{
 		Clients:    make(map[string]map[*Client]bool),
 		Broadcast:  make(chan AlertMessage),
+		BroadcastRaw: make(chan RawMessage, 256),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 	}
@@ -101,6 +108,19 @@ func (h *Hub) Run() {
 				default:
 					close(client.Send)
 					delete(h.Clients[alert.UserUUID], client)
+				}
+			}
+			h.mu.Unlock()
+
+		case raw := <-h.BroadcastRaw:
+			h.mu.Lock()
+			clients := h.Clients[raw.UserUUID]
+			for client := range clients {
+				select {
+				case client.Send <- raw.Payload:
+				default:
+					close(client.Send)
+					delete(h.Clients[raw.UserUUID], client)
 				}
 			}
 			h.mu.Unlock()

@@ -154,11 +154,11 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 		h.db.Model(&tx).Update("status", "paid")
 
 		// Broadcast immediate paid status to all connected clients (especially the donor page)
-		h.hub.Broadcast <- domain.AlertMessage{
+		_ = h.queueManager.PublishAlertMessage(domain.AlertMessage{
 			UserUUID:        tx.Target.UUID,
 			TransactionUUID: tx.UUID,
 			Type:            "paid",
-		}
+		})
 
 		// Generate TTS audio
 		formatted := fmt.Sprintf("%d", tx.BaseAmount)
@@ -331,10 +331,10 @@ func (h *TransactionHandler) UpdateQueue(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Broadcast refresh to WS
-	h.hub.Broadcast <- domain.AlertMessage{
+	_ = h.queueManager.PublishAlertMessage(domain.AlertMessage{
 		UserUUID: tx.Target.UUID,
 		Type:     "refresh",
-	}
+	})
 
 	tx.IsQueue = req.IsQueue
 	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(tx))
@@ -362,10 +362,10 @@ func (h *TransactionHandler) AddToQueue(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Broadcast refresh to WS
-	h.hub.Broadcast <- domain.AlertMessage{
+	_ = h.queueManager.PublishAlertMessage(domain.AlertMessage{
 		UserUUID: tx.Target.UUID,
 		Type:     "refresh",
-	}
+	})
 
 	tx.IsQueue = true
 	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(tx))
@@ -393,10 +393,10 @@ func (h *TransactionHandler) RemoveFromQueue(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Broadcast refresh to WS
-	h.hub.Broadcast <- domain.AlertMessage{
+	_ = h.queueManager.PublishAlertMessage(domain.AlertMessage{
 		UserUUID: tx.Target.UUID,
 		Type:     "refresh",
-	}
+	})
 
 	tx.IsQueue = false
 	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(tx))

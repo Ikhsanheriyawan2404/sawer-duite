@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
@@ -33,7 +34,9 @@ func main() {
 	hub := domain.NewHub()
 	go hub.Run()
 
-	queueManager := domain.NewAlertQueueManager(hub)
+	queueManager := domain.NewAlertQueueManager(rdb)
+	go hub.RunRedisSubscriber(context.Background(), rdb)
+	go queueManager.RunTimeoutWorker(context.Background())
 
 	authService := service.NewAuthService(cfg)
 	qrisService := service.NewQRISService()
