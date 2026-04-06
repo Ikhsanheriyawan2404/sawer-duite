@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { API_URL, WS_URL } from '../lib/api'
+import { API_URL } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import QRCode from 'qrcode'
 
@@ -13,69 +13,70 @@ function Payment() {
   const [isExpired, setIsExpired] = useState(false)
   const [isPaid, setIsPaid] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const socketRef = useRef<WebSocket | null>(null)
+  const lastStatusRef = useRef<string | null>(null)
+  const lastExpiredAtRef = useRef<string | null>(null)
+  const isPaidRef = useRef(false)
+  const isExpiredRef = useRef(false)
+  const loadingRef = useRef(true)
+  const txRef = useRef<any>(null)
 
   useDocumentTitle(isPaid ? 'Pembayaran Berhasil' : isExpired ? 'Pembayaran Expired' : 'Pembayaran')
+  useEffect(() => { isPaidRef.current = isPaid }, [isPaid])
+  useEffect(() => { isExpiredRef.current = isExpired }, [isExpired])
+  useEffect(() => { loadingRef.current = loading }, [loading])
+  useEffect(() => { txRef.current = tx }, [tx])
 
-  // Fetch transaction data
+  // Poll transaction status (every 3s)
   useEffect(() => {
-    fetch(`${API_URL}/transactions/${uuid}`)
-      .then(res => res.json())
-      .then(data => {
-        const now = new Date().getTime()
-        const expiry = new Date(data.expired_at).getTime()
+    if (!uuid) return
+    let isMounted = true
+    const controller = new AbortController()
 
-        if (data.status === 'paid') {
-          setIsPaid(true)
-        } else if (data.status === 'expired' || expiry - now <= 0) {
-          setIsExpired(true)
-        }
+    const syncTx = (data: any) => {
+      if (!isMounted) return
+      const now = new Date().getTime()
+      const expiry = new Date(data.expired_at).getTime()
 
+      if (data.status === 'paid') {
+        if (!isPaidRef.current) setIsPaid(true)
+      } else if (data.status === 'expired' || expiry - now <= 0) {
+        if (!isExpiredRef.current) setIsExpired(true)
+      }
+
+      // Avoid unnecessary re-renders when nothing changes
+      const statusChanged = lastStatusRef.current !== data.status
+      const expiryChanged = lastExpiredAtRef.current !== data.expired_at
+      if (statusChanged || expiryChanged || !txRef.current) {
         setTx(data)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [uuid])
+        lastStatusRef.current = data.status
+        lastExpiredAtRef.current = data.expired_at
+      }
 
-  // WebSocket untuk listen payment status
-  useEffect(() => {
-    if (!tx?.target?.uuid || isPaid || isExpired || loading) return
+      if (loadingRef.current) setLoading(false)
+    }
 
-    const wsUrl = `${WS_URL}/ws/${tx.target.uuid}`
-    const socket = new WebSocket(wsUrl)
-    socketRef.current = socket
-
-    socket.onopen = () => console.log('[WS] Connected successfully')
-
-    socket.onmessage = (event) => {
+    const fetchTx = async () => {
       try {
-        const payload = JSON.parse(event.data)
-        console.log('[WS] Message received:', payload)
-        // Check jika ada alert ATAU broadcast status 'paid' dengan uuid transaksi yang sama
-        if ((payload.type === 'alert' || payload.type === 'paid') && payload.transaction_uuid === uuid) {
-          console.log('[WS] Payment confirmed!')
-          setIsPaid(true)
-        }
-      } catch (err) {
-        console.error('WS parse error:', err)
+        const res = await fetch(`${API_URL}/transactions/${uuid}`, { signal: controller.signal })
+        if (!res.ok) throw new Error('failed')
+        const data = await res.json()
+        syncTx(data)
+      } catch {
+        if (loading && isMounted) setLoading(false)
       }
     }
 
-    socket.onclose = () => {
-      // Reconnect jika belum paid/expired
-      if (!isPaid && !isExpired) {
-        setTimeout(() => {
-          if (socketRef.current?.readyState === WebSocket.CLOSED) {
-            // Trigger reconnect by re-running effect
-          }
-        }, 3000)
-      }
-    }
+    fetchTx()
+    const timer = setInterval(() => {
+      if (!isPaidRef.current && !isExpiredRef.current) fetchTx()
+    }, 3000)
 
     return () => {
-      socket.close()
+      isMounted = false
+      controller.abort()
+      clearInterval(timer)
     }
-  }, [tx?.target?.uuid, uuid, isPaid, isExpired, loading])
+  }, [uuid])
 
   useEffect(() => {
     if (tx?.qris_payload && canvasRef.current && !isExpired && !isPaid && !loading) {
