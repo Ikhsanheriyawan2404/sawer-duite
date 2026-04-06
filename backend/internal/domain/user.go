@@ -59,6 +59,7 @@ type PublicUser struct {
 	CustomInputLabel    string            `json:"custom_input_label"`
 	CustomInputRequired bool              `json:"custom_input_required"`
 	QueueTitle          string            `json:"queue_title"`
+	HasQRIS             bool              `json:"has_qris"`
 }
 
 func (u *User) ToPublic() PublicUser {
@@ -78,6 +79,7 @@ func (u *User) ToPublic() PublicUser {
 		CustomInputLabel:    u.CustomInputLabel,
 		CustomInputRequired: u.CustomInputRequired,
 		QueueTitle:          u.QueueTitle,
+		HasQRIS:             u.StaticQRIS != "",
 	}
 }
 

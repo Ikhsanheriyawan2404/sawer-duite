@@ -19,7 +19,6 @@ type Config struct {
 	RedisURL          string
 	RateLimitRequests int
 	RateLimitDuration time.Duration
-	DefaultStaticQRIS  string
 
 	GoogleAPIKey string
 
@@ -43,7 +42,6 @@ func GetConfig() Config {
 		RedisURL:          getEnv("REDIS_URL", "localhost:6379"),
 		RateLimitRequests: getIntEnv("RATE_LIMIT_REQUESTS", 10),
 		RateLimitDuration: parseDuration(getEnv("RATE_LIMIT_DURATION", "1m")),
-		DefaultStaticQRIS: getEnv("DEFAULT_STATIC_QRIS", ""),
 
 		GoogleAPIKey: getEnv("GOOGLE_API_KEY", ""),
 

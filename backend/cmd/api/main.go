@@ -48,7 +48,7 @@ func main() {
 
 	healthHandler := handler.NewHealthHandler()
 	authHandler := handler.NewAuthHandler(db, authService)
-	txHandler := handler.NewTransactionHandler(db, qrisService, authService, ttsService, hub, queueManager, cfg)
+	txHandler := handler.NewTransactionHandler(db, qrisService, authService, ttsService, hub, queueManager)
 	clientLogHandler := handler.NewClientLogHandler(db)
 
 	r.Get("/health", healthHandler.Check)

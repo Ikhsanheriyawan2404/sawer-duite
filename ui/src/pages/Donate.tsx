@@ -9,6 +9,7 @@ function Donate() {
   const navigate = useNavigate()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Ambil data dari URL jika ada
   const initialAmount = searchParams.get('amount') || '10000'
@@ -59,10 +60,12 @@ function Donate() {
 
   const isMinDonationMet = !user?.min_donation || parseInt(form.amount) >= user.min_donation
   const isCustomInputMet = !user?.custom_input_required || !user?.custom_input_label || form.customInput.trim() !== ''
+  const hasQRIS = user?.has_qris !== false
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!agreed || !isMinDonationMet || !isCustomInputMet) return
+    if (!agreed || !isMinDonationMet || !isCustomInputMet || !hasQRIS) return
+    setSubmitError(null)
 
     try {
       const response = await fetch(`${API_URL}/transactions`, {
@@ -77,12 +80,21 @@ function Donate() {
         }),
       })
 
-      if (!response.ok) throw new Error('Gagal membuat transaksi')
+      if (!response.ok) {
+        if (response.status === 400) {
+          const data = await response.json().catch(() => ({}))
+          if (data?.message) {
+            setSubmitError(data.message)
+            return
+          }
+        }
+        throw new Error('Gagal membuat transaksi')
+      }
 
       const data = await response.json()
       navigate(`/payment/${data.uuid}`)
     } catch (err) {
-      alert('Terjadi kesalahan, silakan coba lagi.')
+      setSubmitError('Terjadi kesalahan, silakan coba lagi.')
     }
   }
 
@@ -97,6 +109,21 @@ function Donate() {
           <span className="label-text">DUKUNGAN</span>
         </div>
         <h2>Dukung {user?.name || username}</h2>
+        {!hasQRIS && (
+          <div style={{
+            background: '#fff7ed',
+            color: '#9a3412',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            border: '1px solid #fed7aa',
+            marginTop: '10px',
+            marginBottom: '20px',
+            fontSize: '13px',
+            fontWeight: 600
+          }}>
+            Streamer ini belum menyiapkan QRIS, jadi donasi belum bisa dilakukan.
+          </div>
+        )}
 
         {isFixed ? (
           <div style={{
@@ -253,6 +280,12 @@ function Donate() {
             </label>
           </div>
 
+          {submitError && (
+            <div style={{ color: '#dc2626', fontSize: '12px', fontWeight: 600, marginTop: '12px' }}>
+              {submitError}
+            </div>
+          )}
+
           <button
             className="btn btn-primary"
             style={{
@@ -260,13 +293,13 @@ function Donate() {
               fontSize: '16px',
               fontWeight: '700',
               marginTop: '12px',
-              opacity: (agreed && isMinDonationMet && isCustomInputMet) ? 1 : 0.5,
-              cursor: (agreed && isMinDonationMet && isCustomInputMet) ? 'pointer' : 'not-allowed',
-              filter: (agreed && isMinDonationMet && isCustomInputMet) ? 'none' : 'grayscale(0.5)',
+              opacity: (agreed && isMinDonationMet && isCustomInputMet && hasQRIS) ? 1 : 0.5,
+              cursor: (agreed && isMinDonationMet && isCustomInputMet && hasQRIS) ? 'pointer' : 'not-allowed',
+              filter: (agreed && isMinDonationMet && isCustomInputMet && hasQRIS) ? 'none' : 'grayscale(0.5)',
               transition: 'all 0.2s ease'
             }}
             type="submit"
-            disabled={!agreed || !isMinDonationMet || !isCustomInputMet}
+            disabled={!agreed || !isMinDonationMet || !isCustomInputMet || !hasQRIS}
           >
             Lanjut Pembayaran
           </button>

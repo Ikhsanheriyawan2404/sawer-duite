@@ -54,3 +54,42 @@ type QueueListQuery struct {
 	Limit    int    `json:"limit"`     // default: 50
 	Offset   int    `json:"offset"`    // default: 0
 }
+
+
+type PublicTransaction struct {
+	ID          uint              `json:"id"`
+	UUID        string            `json:"uuid"`
+	TargetID    uint              `json:"target_id"`
+	Target      PublicUser `json:"target"`
+	Sender      string            `json:"sender"`
+	Amount      int               `json:"amount"`
+	BaseAmount  int               `json:"base_amount"`
+	Note        string            `json:"note"`
+	CustomInput string            `json:"custom_input"`
+	QRISPayload string            `json:"qris_payload"`
+	Status      string            `json:"status"`
+	IsQueue     bool              `json:"is_queue"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+	ExpiredAt   time.Time         `json:"expired_at"`
+}
+
+func ToPublicTransaction(tx Transaction) PublicTransaction {
+	return PublicTransaction{
+		ID:          tx.ID,
+		UUID:        tx.UUID,
+		TargetID:    tx.TargetID,
+		Target:      tx.Target.ToPublic(),
+		Sender:      tx.Sender,
+		Amount:      tx.Amount,
+		BaseAmount:  tx.BaseAmount,
+		Note:        tx.Note,
+		CustomInput: tx.CustomInput,
+		QRISPayload: tx.QRISPayload,
+		Status:      tx.Status,
+		IsQueue:     tx.IsQueue,
+		CreatedAt:   tx.CreatedAt,
+		UpdatedAt:   tx.UpdatedAt,
+		ExpiredAt:   tx.ExpiredAt,
+	}
+}

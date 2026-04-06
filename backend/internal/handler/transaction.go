@@ -23,10 +23,9 @@ type TransactionHandler struct {
 	ttsService        *service.TTSService
 	hub               *domain.Hub
 	queueManager      *domain.AlertQueueManager
-	defaultStaticQRIS string
 }
 
-func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authService *service.AuthService, ttsService *service.TTSService, hub *domain.Hub, queueManager *domain.AlertQueueManager, cfg domain.Config) *TransactionHandler {
+func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authService *service.AuthService, ttsService *service.TTSService, hub *domain.Hub, queueManager *domain.AlertQueueManager) *TransactionHandler {
 	return &TransactionHandler{
 		db:                db,
 		qrisService:       qrisService,
@@ -34,7 +33,6 @@ func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authSe
 		ttsService:        ttsService,
 		hub:               hub,
 		queueManager:      queueManager,
-		defaultStaticQRIS: cfg.DefaultStaticQRIS,
 	}
 }
 
@@ -65,11 +63,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	uniqueCode := rand.Intn(90) + 10
 	totalAmount := req.Amount + uniqueCode
 
-	// Use user's own StaticQRIS or fallback to default
 	qrisBase := target.StaticQRIS
-	if qrisBase == "" {
-		qrisBase = h.defaultStaticQRIS
-	}
 
 	if qrisBase == "" {
 		JSONError(w, "penerima belum menyetel QRIS", http.StatusBadRequest)
@@ -101,8 +95,13 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tx)
+	JSONResponse(w, http.StatusOK, domain.CreateTransactionResponse{
+		UUID:        tx.UUID,
+		Amount:      tx.Amount,
+		BaseAmount:  tx.BaseAmount,
+		QRISPayload: tx.QRISPayload,
+		ExpiredAt:   tx.ExpiredAt,
+	})
 }
 
 func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.Request) {
@@ -198,14 +197,7 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Sanitize Target info
-	tx.Target.Email = ""
-	tx.Target.Password = ""
-	tx.Target.AppToken = ""
-	tx.Target.StaticQRIS = ""
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tx)
+	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(tx))
 }
 
 func (h *TransactionHandler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -345,8 +337,7 @@ func (h *TransactionHandler) UpdateQueue(w http.ResponseWriter, r *http.Request)
 	}
 
 	tx.IsQueue = req.IsQueue
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tx)
+	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(tx))
 }
 
 // AddToQueue adds a transaction to the queue
@@ -377,8 +368,7 @@ func (h *TransactionHandler) AddToQueue(w http.ResponseWriter, r *http.Request) 
 	}
 
 	tx.IsQueue = true
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tx)
+	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(tx))
 }
 
 // RemoveFromQueue removes a transaction from the queue
@@ -409,8 +399,7 @@ func (h *TransactionHandler) RemoveFromQueue(w http.ResponseWriter, r *http.Requ
 	}
 
 	tx.IsQueue = false
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tx)
+	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(tx))
 }
 
 // GetQueueList returns transactions list sorted by amount
