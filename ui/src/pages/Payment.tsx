@@ -42,7 +42,6 @@ function Payment() {
     if (!tx?.target?.uuid || isPaid || isExpired || loading) return
 
     const wsUrl = `${WS_URL}/ws/${tx.target.uuid}`
-    console.log('[WS] Connecting to:', wsUrl)
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
 

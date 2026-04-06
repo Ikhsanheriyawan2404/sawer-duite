@@ -1,6 +1,5 @@
 ### Variables
-# @baseUrl = http://localhost:3000
-@baseUrl = https://sawer-api.duitebot.com
+@baseUrl = http://localhost:3000
 
 # Auto-populated after running login
 @accessToken = {{login.response.body.access_token}}
@@ -25,7 +24,7 @@ Content-Type: application/json
 
 {
   "email": "ikhsan@gmail.com",
-  "password": "asintel"
+  "password": "anone"
 }
 
 ### Refresh Token

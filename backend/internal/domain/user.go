@@ -32,7 +32,7 @@ type User struct {
 	CustomInputLabel    string `json:"custom_input_label"`    // Label field (contoh: "Username Roblox")
 	CustomInputRequired bool   `json:"custom_input_required"` // Apakah wajib diisi
 	QueueTitle          string `json:"queue_title"`           // Judul antrian di overlay (contoh: "Antrian Donasi")
-	
+
 	// Payment settings
 	StaticQRIS string `gorm:"type:text" json:"static_qris"`
 	Provider   string `gorm:"type:varchar(20)" json:"provider"` // GOPAY, DANA
@@ -41,6 +41,63 @@ type User struct {
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+type PublicUser struct {
+	ID                  uint              `json:"id"`
+	Username            string            `json:"username"`
+	Name                string            `json:"name"`
+	Bio                 string            `json:"bio"`
+	TikTok              string            `json:"tiktok"`
+	Instagram           string            `json:"instagram"`
+	YouTube             string            `json:"youtube"`
+	MinDonation         int64             `json:"min_donation"`
+	TargetAmount        int64             `json:"target_amount"`
+	TargetDescription   string            `json:"target_description"`
+	QuickAmounts        []int64           `json:"quick_amounts"`
+	DonationPackages    []DonationPackage `json:"donation_packages"`
+	CustomInputLabel    string            `json:"custom_input_label"`
+	CustomInputRequired bool              `json:"custom_input_required"`
+	QueueTitle          string            `json:"queue_title"`
+}
+
+func (u *User) ToPublic() PublicUser {
+	return PublicUser{
+		ID:                  u.ID,
+		Username:            u.Username,
+		Name:                u.Name,
+		Bio:                 u.Bio,
+		TikTok:              u.TikTok,
+		Instagram:           u.Instagram,
+		YouTube:             u.YouTube,
+		MinDonation:         u.MinDonation,
+		TargetAmount:        u.TargetAmount,
+		TargetDescription:   u.TargetDescription,
+		QuickAmounts:        u.QuickAmounts,
+		DonationPackages:    u.DonationPackages,
+		CustomInputLabel:    u.CustomInputLabel,
+		CustomInputRequired: u.CustomInputRequired,
+		QueueTitle:          u.QueueTitle,
+	}
+}
+
+func (u *User) UpdateFromRequest(req UpdateProfileRequest) {
+	u.Name = req.Name
+	u.Username = req.Username
+	u.Bio = req.Bio
+	u.TikTok = req.TikTok
+	u.Instagram = req.Instagram
+	u.YouTube = req.YouTube
+	u.MinDonation = req.MinDonation
+	u.TargetAmount = req.TargetAmount
+	u.TargetDescription = req.TargetDescription
+	u.QuickAmounts = req.QuickAmounts
+	u.DonationPackages = req.DonationPackages
+	u.CustomInputLabel = req.CustomInputLabel
+	u.CustomInputRequired = req.CustomInputRequired
+	u.QueueTitle = req.QueueTitle
+	u.StaticQRIS = req.StaticQRIS
+	u.Provider = req.Provider
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

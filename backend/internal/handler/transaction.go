@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/service"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -40,25 +40,24 @@ func NewTransactionHandler(db *gorm.DB, qrisService *service.QRISService, authSe
 
 func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	var req domain.CreateTransactionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	if !BindJSON(w, r, &req) {
 		return
 	}
 	req.CustomInput = strings.TrimSpace(req.CustomInput)
 
 	var target domain.User
 	if err := h.db.Where("username = ?", req.Username).First(&target).Error; err != nil {
-		http.Error(w, "recipient not found", http.StatusNotFound)
+		JSONError(w, "recipient not found", http.StatusNotFound)
 		return
 	}
 
 	if target.MinDonation > 0 && int64(req.Amount) < target.MinDonation {
-		http.Error(w, "nominal donasi di bawah batas minimal", http.StatusBadRequest)
+		JSONError(w, "nominal donasi di bawah batas minimal", http.StatusBadRequest)
 		return
 	}
 
 	if target.CustomInputRequired && target.CustomInputLabel != "" && req.CustomInput == "" {
-		http.Error(w, target.CustomInputLabel+" wajib diisi", http.StatusBadRequest)
+		JSONError(w, target.CustomInputLabel+" wajib diisi", http.StatusBadRequest)
 		return
 	}
 
@@ -73,13 +72,13 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	}
 
 	if qrisBase == "" {
-		http.Error(w, "penerima belum menyetel QRIS", http.StatusBadRequest)
+		JSONError(w, "penerima belum menyetel QRIS", http.StatusBadRequest)
 		return
 	}
 
 	qrisPayload, err := h.qrisService.GenerateDynamicQRIS(qrisBase, totalAmount)
 	if err != nil {
-		http.Error(w, "failed to generate QRIS", http.StatusInternalServerError)
+		JSONError(w, "failed to generate QRIS", http.StatusInternalServerError)
 		return
 	}
 
@@ -98,7 +97,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	}
 
 	if err := h.db.Create(&tx).Error; err != nil {
-		http.Error(w, "failed to create transaction", http.StatusInternalServerError)
+		JSONError(w, "failed to create transaction", http.StatusInternalServerError)
 		return
 	}
 
@@ -114,11 +113,11 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 
 	if appToken != "" {
 		if err := h.db.Where("app_token = ?", appToken).First(&targetUser).Error; err != nil {
-			http.Error(w, "invalid app token", http.StatusUnauthorized)
+			JSONError(w, "invalid app token", http.StatusUnauthorized)
 			return
 		}
 	} else {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		JSONError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -130,8 +129,7 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 		Source  string `json:"source"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	if !BindJSON(w, r, &req) {
 		return
 	}
 
@@ -196,7 +194,7 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 
 	var tx domain.Transaction
 	if err := h.db.Preload("Target").Where("uuid = ?", id).First(&tx).Error; err != nil {
-		http.Error(w, "transaction not found", http.StatusNotFound)
+		JSONError(w, "transaction not found", http.StatusNotFound)
 		return
 	}
 
@@ -215,7 +213,7 @@ func (h *TransactionHandler) WebSocketHandler(w http.ResponseWriter, r *http.Req
 
 	var user domain.User
 	if err := h.db.Where("uuid = ?", userUUID).First(&user).Error; err != nil {
-		http.Error(w, "invalid channel", http.StatusNotFound)
+		JSONError(w, "invalid channel", http.StatusNotFound)
 		return
 	}
 
@@ -229,7 +227,7 @@ func (h *TransactionHandler) TestAlert(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("user_id").(uint)
 	var user domain.User
 	if err := h.db.Where("id = ? AND uuid = ?", userID, userUUID).First(&user).Error; err != nil {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		JSONError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
@@ -260,7 +258,7 @@ func (h *TransactionHandler) GetUserStats(w http.ResponseWriter, r *http.Request
 
 	var user domain.User
 	if err := h.db.Where("username = ?", username).First(&user).Error; err != nil {
-		http.Error(w, "user not found", http.StatusNotFound)
+		JSONError(w, "user not found", http.StatusNotFound)
 		return
 	}
 
@@ -306,7 +304,7 @@ func (h *TransactionHandler) GetUserStats(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"total_amount":   stats.TotalAmount,
 		"total_donors":   stats.TotalDonors,
 		"recent":         recent,
@@ -320,24 +318,23 @@ func (h *TransactionHandler) UpdateQueue(w http.ResponseWriter, r *http.Request)
 	userID := r.Context().Value("user_id").(uint)
 
 	var req domain.UpdateQueueRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	if !BindJSON(w, r, &req) {
 		return
 	}
 
 	var tx domain.Transaction
 	if err := h.db.Preload("Target").Where("uuid = ?", txUUID).First(&tx).Error; err != nil {
-		http.Error(w, "transaction not found", http.StatusNotFound)
+		JSONError(w, "transaction not found", http.StatusNotFound)
 		return
 	}
 
 	if tx.Target.ID != userID {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		JSONError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
 	if err := h.db.Model(&tx).Update("is_queue", req.IsQueue).Error; err != nil {
-		http.Error(w, "failed to update queue status", http.StatusInternalServerError)
+		JSONError(w, "failed to update queue status", http.StatusInternalServerError)
 		return
 	}
 
@@ -359,17 +356,17 @@ func (h *TransactionHandler) AddToQueue(w http.ResponseWriter, r *http.Request) 
 
 	var tx domain.Transaction
 	if err := h.db.Preload("Target").Where("uuid = ?", txUUID).First(&tx).Error; err != nil {
-		http.Error(w, "transaction not found", http.StatusNotFound)
+		JSONError(w, "transaction not found", http.StatusNotFound)
 		return
 	}
 
 	if tx.Target.ID != userID {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		JSONError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
 	if err := h.db.Model(&tx).Update("is_queue", true).Error; err != nil {
-		http.Error(w, "failed to add to queue", http.StatusInternalServerError)
+		JSONError(w, "failed to add to queue", http.StatusInternalServerError)
 		return
 	}
 
@@ -391,17 +388,17 @@ func (h *TransactionHandler) RemoveFromQueue(w http.ResponseWriter, r *http.Requ
 
 	var tx domain.Transaction
 	if err := h.db.Preload("Target").Where("uuid = ?", txUUID).First(&tx).Error; err != nil {
-		http.Error(w, "transaction not found", http.StatusNotFound)
+		JSONError(w, "transaction not found", http.StatusNotFound)
 		return
 	}
 
 	if tx.Target.ID != userID {
-		http.Error(w, "forbidden", http.StatusForbidden)
+		JSONError(w, "forbidden", http.StatusForbidden)
 		return
 	}
 
 	if err := h.db.Model(&tx).Update("is_queue", false).Error; err != nil {
-		http.Error(w, "failed to remove from queue", http.StatusInternalServerError)
+		JSONError(w, "failed to remove from queue", http.StatusInternalServerError)
 		return
 	}
 
@@ -422,7 +419,7 @@ func (h *TransactionHandler) GetQueueList(w http.ResponseWriter, r *http.Request
 
 	var user domain.User
 	if err := h.db.Where("username = ?", username).First(&user).Error; err != nil {
-		http.Error(w, "user not found", http.StatusNotFound)
+		JSONError(w, "user not found", http.StatusNotFound)
 		return
 	}
 
@@ -470,7 +467,7 @@ func (h *TransactionHandler) GetQueueList(w http.ResponseWriter, r *http.Request
 
 	var transactions []domain.Transaction
 	if err := query.Find(&transactions).Error; err != nil {
-		http.Error(w, "failed to fetch transactions", http.StatusInternalServerError)
+		JSONError(w, "failed to fetch transactions", http.StatusInternalServerError)
 		return
 	}
 
