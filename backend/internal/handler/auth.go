@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/service"
@@ -18,6 +19,76 @@ type AuthHandler struct {
 
 func NewAuthHandler(db *gorm.DB, authService *service.AuthService) *AuthHandler {
 	return &AuthHandler{db: db, authService: authService}
+}
+
+func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var req domain.RegisterRequest
+	if !BindJSON(w, r, &req) {
+		return
+	}
+
+	if req.Email == "" || req.Password == "" {
+		JSONError(w, "email and password are required", http.StatusBadRequest)
+		return
+	}
+
+	if req.Password != req.PasswordConfirmation {
+		JSONError(w, "passwords do not match", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Password) < 8 {
+		JSONError(w, "password must be at least 8 characters", http.StatusBadRequest)
+		return
+	}
+
+	var existing domain.User
+	if err := h.db.Where("email = ?", req.Email).First(&existing).Error; err == nil {
+		JSONError(w, "email already registered", http.StatusConflict)
+		return
+	}
+
+	username := ""
+	parts := strings.Split(req.Email, "@")
+	if len(parts) > 0 {
+		username = parts[0]
+	}
+
+	baseUsername := username
+	for i := 1; ; i++ {
+		var u domain.User
+		if err := h.db.Where("username = ?", username).First(&u).Error; err != nil {
+			break
+		}
+		username = baseUsername + strconv.Itoa(i)
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		JSONError(w, "failed to process password", http.StatusInternalServerError)
+		return
+	}
+
+	user := domain.User{
+		Email:    req.Email,
+		Username: username,
+		Password: string(hashedPassword),
+		Name:     username,
+	}
+
+	if err := h.db.Create(&user).Error; err != nil {
+		JSONError(w, "failed to create user", http.StatusInternalServerError)
+		return
+	}
+
+	accessToken, _ := h.authService.GenerateAccessToken(user.ID)
+	refreshToken, _ := h.authService.GenerateRefreshToken(user.ID)
+
+	JSONResponse(w, http.StatusCreated, domain.LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         user,
+	})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {

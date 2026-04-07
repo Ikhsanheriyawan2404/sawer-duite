@@ -57,6 +57,7 @@ func main() {
 	r.Get("/health", healthHandler.Check)
 
 	// Auth Routes (Public)
+	r.Post("/register", authHandler.Register)
 	r.Post("/login", authHandler.Login)
 	r.Post("/refresh", authHandler.Refresh)
 	r.Get("/user/{username}", authHandler.GetUserByUsername)

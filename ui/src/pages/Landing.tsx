@@ -100,11 +100,6 @@ function Landing() {
 
       <footer style={{ width: '100%', maxWidth: '900px', margin: '0 auto' }}>
         <p className="muted" style={{ margin: 0, fontSize: '12px', textAlign: 'center' }}>
-          Hubungi WhatsApp:{' '}
-          <a href="https://wa.me/6282117088123" target="_blank" rel="noreferrer">
-            6282117088123
-          </a>
-          {' '}•{' '}
           <Link to="/privacy">Privacy Policy</Link>
           {' '}•{' '}
           <Link to="/terms">Terms of Service</Link>
