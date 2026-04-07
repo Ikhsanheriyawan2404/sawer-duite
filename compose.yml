@@ -20,9 +20,9 @@ services:
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+      interval: 2s
+      timeout: 2s
+      retries: 5
     stop_grace_period: 30s
     deploy:
       update_config:
@@ -49,9 +49,9 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+      interval: 2s
+      timeout: 2s
+      retries: 5
     stop_grace_period: 15s
     deploy:
       update_config:
