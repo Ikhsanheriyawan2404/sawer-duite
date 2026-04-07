@@ -54,13 +54,13 @@ function AlertOverlay() {
         soundFxRef.current.currentTime = 0
         await soundFxRef.current.play().catch(() => {})
       }
-      await delay(3000)
+      await delay(2500)
 
       // 2. Play Google TTS from Backend/MinIO
       if (data.audio_url) {
         const ttsAudio = new Audio(data.audio_url)
         await ttsAudio.play().catch(() => {})
-        
+
         // Wait for TTS to finish or a timeout
         await new Promise((resolve) => {
           ttsAudio.onended = resolve
@@ -154,7 +154,6 @@ function AlertOverlay() {
           background: var(--accent);
           padding: 28px 44px;
           border-radius: 28px; /* Border radius dikurangi agar tidak terlalu bulat */
-          box-shadow: 0 15px 40px rgba(0, 82, 255, 0.35);
           color: #ffffff;
           display: flex; flex-direction: column; gap: 8px;
           max-width: 850px;

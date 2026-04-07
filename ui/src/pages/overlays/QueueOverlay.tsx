@@ -137,7 +137,6 @@ function QueueOverlay() {
           padding: 24px 32px; /* Rapatkan padding atas-bawah */
           width: min(1200px, 98%);
           margin-top: 10px;
-          box-shadow: 0 25px 70px rgba(0, 82, 255, 0.25);
           animation: dialogFadeIn 0.5s ease-out both;
           border: 5px solid #0052ff;
         }
