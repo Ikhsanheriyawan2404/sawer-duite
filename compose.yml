@@ -24,22 +24,14 @@ services:
       timeout: 2s
       retries: 5
     stop_grace_period: 30s
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-        failure_action: rollback
-        delay: 5s
-        monitor: 10s
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`sawer-api.duitebot.com`)"
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
+      - "traefik.http.services.backend.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.backend.loadbalancer.sticky.cookie.name=backend_sticky"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.interval=2s"
 
   frontend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/sawer-duite-frontend:latest
@@ -53,19 +45,11 @@ services:
       timeout: 2s
       retries: 5
     stop_grace_period: 15s
-    deploy:
-      update_config:
-        order: start-first
-        parallelism: 1
-        failure_action: rollback
-        delay: 10s
-        monitor: 20s
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`sawerom.duitebot.com`,`sawer.duitebot.com`)"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.services.frontend.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.frontend.loadbalancer.sticky.cookie.name=frontend_sticky"
+      - "traefik.http.services.frontend.loadbalancer.healthcheck.path=/"
+      - "traefik.http.services.frontend.loadbalancer.healthcheck.interval=2s"

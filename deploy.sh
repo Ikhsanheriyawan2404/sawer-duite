@@ -10,7 +10,10 @@ echo "🔄 Deploy with minimal downtime using plain Docker Compose..."
 # 1) Menjaga minimal 2 replica aktif
 # 2) Batasi recreate paralel supaya satu-satu (hindari semua mati bareng)
 export COMPOSE_PARALLEL_LIMIT=1
-docker compose up -d --scale backend=2 --scale frontend=2 --remove-orphans --wait
+
+# Deploy backend dulu, tunggu sehat, baru frontend
+docker compose up -d --no-deps --scale backend=2 --remove-orphans --wait
+docker compose up -d --no-deps --scale frontend=2 --remove-orphans --wait
 
 echo "✅ Deployment successful! Current status:"
 docker compose ps
