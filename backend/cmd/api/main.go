@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/handler"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/middleware"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/repository"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/service"
+	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -38,9 +38,18 @@ func main() {
 	go hub.RunRedisSubscriber(context.Background(), rdb)
 	go queueManager.RunTimeoutWorker(context.Background())
 
-	authService := service.NewAuthService(cfg)
+	userRepo := repository.NewUserRepository(db)
+	txRepo := repository.NewTransactionRepository(db)
+	notifRepo := repository.NewNotificationRepository(db)
+	clientLogRepo := repository.NewClientLogRepository(db)
+	ttsCacheRepo := repository.NewTTSCacheRepository(db)
+
+	// 2. Services
+	authService := service.NewAuthService(cfg, userRepo)
 	qrisService := service.NewQRISService()
-	ttsService := service.NewTTSService(db, rdb, cfg)
+	ttsService := service.NewTTSService(ttsCacheRepo, rdb, cfg)
+	txService := service.NewTransactionService(txRepo, userRepo, notifRepo, qrisService, ttsService, hub, queueManager)
+	clientLogService := service.NewClientLogService(clientLogRepo)
 
 	r := chi.NewRouter()
 
@@ -50,9 +59,9 @@ func main() {
 	r.Use(middleware.RateLimit(rdb, cfg))
 
 	healthHandler := handler.NewHealthHandler()
-	authHandler := handler.NewAuthHandler(db, authService)
-	txHandler := handler.NewTransactionHandler(db, qrisService, authService, ttsService, hub, queueManager)
-	clientLogHandler := handler.NewClientLogHandler(db)
+	authHandler := handler.NewAuthHandler(authService)
+	txHandler := handler.NewTransactionHandler(txService, authService, hub, queueManager)
+	clientLogHandler := handler.NewClientLogHandler(authService, clientLogService)
 
 	r.Get("/health", healthHandler.Check)
 
@@ -64,31 +73,28 @@ func main() {
 	r.Get("/user/uuid/{uuid}", authHandler.GetUserByUUID)
 	r.Get("/users", authHandler.ListPublicUsers)
 
-	// Public Transaction Routes (untuk donor, tidak perlu login)
+	// Public Transaction Routes
 	r.Post("/transactions", txHandler.CreateTransaction)
 	r.Get("/transactions/{uuid}", txHandler.GetTransaction)
-	r.Get("/user/{username}/stats", txHandler.GetUserStats) // Public stats untuk landing page
-	r.Get("/user/{username}/queue", txHandler.GetQueueList) // Public queue untuk overlay
+	r.Get("/user/{username}/stats", txHandler.GetUserStats)
+	r.Get("/user/{username}/queue", txHandler.GetQueueList)
 
-	// Webhook dari Android (protected by secret header)
+	// Webhook & Logs
 	r.Post("/notifications", txHandler.ProcessNotification)
 	r.Post("/client-logs", clientLogHandler.Create)
 
-	// WebSocket (protected by JWT query param - handled in handler)
+	// WebSocket
 	r.Get("/ws/{uuid}", txHandler.WebSocketHandler)
 
-	// Protected Routes (memerlukan JWT)
+	// Protected Routes
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(authService))
 
-		// User profile
 		r.Get("/me", authHandler.Me)
 		r.Post("/me", authHandler.UpdateProfile)
 
-		// Test alert (hanya owner yang bisa test)
 		r.Post("/user/{uuid}/test-alert", txHandler.TestAlert)
 
-		// Queue Management (hanya owner yang bisa manage)
 		r.Patch("/transactions/{uuid}/queue", txHandler.UpdateQueue)
 		r.Post("/transactions/{uuid}/queue/add", txHandler.AddToQueue)
 		r.Post("/transactions/{uuid}/queue/remove", txHandler.RemoveFromQueue)

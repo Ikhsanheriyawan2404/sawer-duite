@@ -6,15 +6,19 @@ import (
 	"time"
 
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
-	"gorm.io/gorm"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/service"
 )
 
 type ClientLogHandler struct {
-	db *gorm.DB
+	authService *service.AuthService
+	logService  *service.ClientLogService
 }
 
-func NewClientLogHandler(db *gorm.DB) *ClientLogHandler {
-	return &ClientLogHandler{db: db}
+func NewClientLogHandler(authService *service.AuthService, logService *service.ClientLogService) *ClientLogHandler {
+	return &ClientLogHandler{
+		authService: authService,
+		logService:  logService,
+	}
 }
 
 type clientLogRequest struct {
@@ -29,18 +33,15 @@ type clientLogRequest struct {
 }
 
 func (h *ClientLogHandler) Create(w http.ResponseWriter, r *http.Request) {
-	// Identify user by X-App-Token
 	appToken := r.Header.Get("X-App-Token")
-
-	var targetUser domain.User
-
-	if appToken != "" {
-		if err := h.db.Where("app_token = ?", appToken).First(&targetUser).Error; err != nil {
-			JSONError(w, "invalid app token", http.StatusUnauthorized)
-			return
-		}
-	} else {
+	if appToken == "" {
 		JSONError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	targetUser, err := h.authService.GetUserByAppToken(appToken)
+	if err != nil {
+		JSONError(w, "invalid app token", http.StatusUnauthorized)
 		return
 	}
 
@@ -68,12 +69,7 @@ func (h *ClientLogHandler) Create(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if len(logs) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-
-	if err := h.db.Create(&logs).Error; err != nil {
+	if err := h.logService.CreateBatch(logs); err != nil {
 		JSONError(w, "failed to save logs", http.StatusInternalServerError)
 		return
 	}

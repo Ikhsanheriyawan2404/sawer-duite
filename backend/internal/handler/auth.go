@@ -3,22 +3,18 @@ package handler
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/service"
 	"github.com/go-chi/chi/v5"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
-	db          *gorm.DB
 	authService *service.AuthService
 }
 
-func NewAuthHandler(db *gorm.DB, authService *service.AuthService) *AuthHandler {
-	return &AuthHandler{db: db, authService: authService}
+func NewAuthHandler(authService *service.AuthService) *AuthHandler {
+	return &AuthHandler{authService: authService}
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -27,68 +23,19 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Email == "" || req.Password == "" {
-		JSONError(w, "email and password are required", http.StatusBadRequest)
-		return
-	}
-
-	if req.Password != req.PasswordConfirmation {
-		JSONError(w, "passwords do not match", http.StatusBadRequest)
-		return
-	}
-
-	if len(req.Password) < 8 {
-		JSONError(w, "password must be at least 8 characters", http.StatusBadRequest)
-		return
-	}
-
-	var existing domain.User
-	if err := h.db.Where("email = ?", req.Email).First(&existing).Error; err == nil {
-		JSONError(w, "email already registered", http.StatusConflict)
-		return
-	}
-
-	username := ""
-	parts := strings.Split(req.Email, "@")
-	if len(parts) > 0 {
-		username = parts[0]
-	}
-
-	baseUsername := username
-	for i := 1; ; i++ {
-		var u domain.User
-		if err := h.db.Where("username = ?", username).First(&u).Error; err != nil {
-			break
-		}
-		username = baseUsername + strconv.Itoa(i)
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	resp, err := h.authService.Register(req)
 	if err != nil {
-		JSONError(w, "failed to process password", http.StatusInternalServerError)
+		status := http.StatusInternalServerError
+		if err.Error() == "email and password are required" || err.Error() == "passwords do not match" || err.Error() == "password must be at least 8 characters" {
+			status = http.StatusBadRequest
+		} else if err.Error() == "email already registered" {
+			status = http.StatusConflict
+		}
+		JSONError(w, err.Error(), status)
 		return
 	}
 
-	user := domain.User{
-		Email:    req.Email,
-		Username: username,
-		Password: string(hashedPassword),
-		Name:     username,
-	}
-
-	if err := h.db.Create(&user).Error; err != nil {
-		JSONError(w, "failed to create user", http.StatusInternalServerError)
-		return
-	}
-
-	accessToken, _ := h.authService.GenerateAccessToken(user.ID)
-	refreshToken, _ := h.authService.GenerateRefreshToken(user.ID)
-
-	JSONResponse(w, http.StatusCreated, domain.LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		User:         user,
-	})
+	JSONResponse(w, http.StatusCreated, resp)
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -97,34 +44,13 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user domain.User
-	if err := h.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
-		JSONError(w, "invalid email or password", http.StatusUnauthorized)
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		JSONError(w, "invalid email or password", http.StatusUnauthorized)
-		return
-	}
-
-	accessToken, err := h.authService.GenerateAccessToken(user.ID)
+	resp, err := h.authService.Login(req)
 	if err != nil {
-		JSONError(w, "failed to generate access token", http.StatusInternalServerError)
+		JSONError(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	refreshToken, err := h.authService.GenerateRefreshToken(user.ID)
-	if err != nil {
-		JSONError(w, "failed to generate refresh token", http.StatusInternalServerError)
-		return
-	}
-
-	JSONResponse(w, http.StatusOK, domain.LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		User:         user,
-	})
+	JSONResponse(w, http.StatusOK, resp)
 }
 
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
@@ -133,35 +59,20 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := h.authService.ValidateRefreshToken(req.RefreshToken)
+	resp, err := h.authService.Refresh(req.RefreshToken)
 	if err != nil {
-		JSONError(w, "invalid refresh token", http.StatusUnauthorized)
+		JSONError(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	newAccessToken, err := h.authService.GenerateAccessToken(userID)
-	if err != nil {
-		JSONError(w, "failed to generate access token", http.StatusInternalServerError)
-		return
-	}
-
-	newRefreshToken, err := h.authService.GenerateRefreshToken(userID)
-	if err != nil {
-		JSONError(w, "failed to generate refresh token", http.StatusInternalServerError)
-		return
-	}
-
-	JSONResponse(w, http.StatusOK, domain.RefreshResponse{
-		AccessToken:  newAccessToken,
-		RefreshToken: newRefreshToken,
-	})
+	JSONResponse(w, http.StatusOK, resp)
 }
 
 func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("user_id").(uint)
 
-	var user domain.User
-	if err := h.db.First(&user, userID).Error; err != nil {
+	user, err := h.authService.GetUserByID(userID)
+	if err != nil {
 		JSONError(w, "user not found", http.StatusNotFound)
 		return
 	}
@@ -177,27 +88,17 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" || req.Username == "" {
-		JSONError(w, "name and username are required", http.StatusBadRequest)
-		return
-	}
-
-	var existingUser domain.User
-	if err := h.db.Where("username = ? AND id != ?", req.Username, userID).First(&existingUser).Error; err == nil {
-		JSONError(w, "username already taken", http.StatusConflict)
-		return
-	}
-
-	var user domain.User
-	if err := h.db.First(&user, userID).Error; err != nil {
-		JSONError(w, "user not found", http.StatusNotFound)
-		return
-	}
-
-	user.UpdateFromRequest(req)
-
-	if err := h.db.Save(&user).Error; err != nil {
-		JSONError(w, "failed to update profile", http.StatusInternalServerError)
+	user, err := h.authService.UpdateProfile(userID, req)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if err.Error() == "name and username are required" {
+			status = http.StatusBadRequest
+		} else if err.Error() == "username already taken" {
+			status = http.StatusConflict
+		} else if err.Error() == "user not found" {
+			status = http.StatusNotFound
+		}
+		JSONError(w, err.Error(), status)
 		return
 	}
 
@@ -207,8 +108,8 @@ func (h *AuthHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
 
-	var user domain.User
-	if err := h.db.Where("username = ?", username).First(&user).Error; err != nil {
+	user, err := h.authService.GetUserByUsername(username)
+	if err != nil {
 		JSONError(w, "user not found", http.StatusNotFound)
 		return
 	}
@@ -219,8 +120,8 @@ func (h *AuthHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 func (h *AuthHandler) GetUserByUUID(w http.ResponseWriter, r *http.Request) {
 	uuid := chi.URLParam(r, "uuid")
 
-	var user domain.User
-	if err := h.db.Where("uuid = ?", uuid).First(&user).Error; err != nil {
+	user, err := h.authService.GetUserByUUID(uuid)
+	if err != nil {
 		JSONError(w, "user not found", http.StatusNotFound)
 		return
 	}
@@ -242,11 +143,8 @@ func (h *AuthHandler) ListPublicUsers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var users []domain.User
-	if err := h.db.Select("username", "name").
-		Order("created_at desc").
-		Limit(limit).
-		Find(&users).Error; err != nil {
+	users, err := h.authService.ListPublicUsers(limit)
+	if err != nil {
 		JSONError(w, "failed to fetch users", http.StatusInternalServerError)
 		return
 	}

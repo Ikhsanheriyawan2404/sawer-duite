@@ -13,14 +13,14 @@ import (
 	"time"
 
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
+	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/repository"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
 )
 
 type TTSService struct {
-	db          *gorm.DB
+	cacheRepo   *repository.TTSCacheRepository
 	rdb         *redis.Client
 	minioClient *minio.Client
 	config      domain.Config
@@ -39,7 +39,7 @@ type GoogleTTSResponse struct {
 	AudioContent string `json:"audioContent"`
 }
 
-func NewTTSService(db *gorm.DB, rdb *redis.Client, cfg domain.Config) *TTSService {
+func NewTTSService(cacheRepo *repository.TTSCacheRepository, rdb *redis.Client, cfg domain.Config) *TTSService {
 	endpoint := cfg.MinIOEndpoint
 	endpoint = strings.TrimPrefix(endpoint, "http://")
 	endpoint = strings.TrimPrefix(endpoint, "https://")
@@ -53,7 +53,7 @@ func NewTTSService(db *gorm.DB, rdb *redis.Client, cfg domain.Config) *TTSServic
 	}
 
 	return &TTSService{
-		db:          db,
+		cacheRepo:   cacheRepo,
 		rdb:         rdb,
 		minioClient: minioClient,
 		config:      cfg,
@@ -78,11 +78,10 @@ func (s *TTSService) Generate(text string) (string, error) {
 		}
 	}
 
-	// 2. Check Database
-	var cache domain.TTSCache
-	if err := s.db.Where("text_hash = ?", hash).First(&cache).Error; err == nil {
+	// 2. Check Database via Repository
+	cache, err := s.cacheRepo.GetByHash(hash)
+	if err == nil && cache != nil {
 		log.Printf("[TTS] Cache hit (DB): %s", hash)
-		// Update Redis for faster access next time
 		if s.rdb != nil {
 			s.rdb.Set(context.Background(), redisKey, cache.AudioURL, 24*time.Hour)
 		}
@@ -105,13 +104,13 @@ func (s *TTSService) Generate(text string) (string, error) {
 		return "", fmt.Errorf("minio upload error: %v", err)
 	}
 
-	// 5. Save to Database
-	cache = domain.TTSCache{
+	// 5. Save to Database via Repository
+	newCache := domain.TTSCache{
 		TextHash: hash,
 		FileName: fileName,
 		AudioURL: audioURL,
 	}
-	if err := s.db.Create(&cache).Error; err != nil {
+	if err := s.cacheRepo.Create(&newCache); err != nil {
 		log.Printf("[TTS] Error saving to DB: %v", err)
 	}
 
