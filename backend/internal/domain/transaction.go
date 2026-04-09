@@ -11,6 +11,8 @@ type Transaction struct {
 	UUID        string         `gorm:"uniqueIndex;not null" json:"uuid"`
 	TargetID    uint           `gorm:"not null" json:"target_id"`
 	Target      User           `gorm:"foreignKey:TargetID" json:"-"`
+	DonorUserID *uint          `gorm:"index" json:"donor_user_id,omitempty"`
+	SupporterID string         `gorm:"type:varchar(64)" json:"supporter_id,omitempty"`
 	Sender      string         `json:"sender"`
 	Amount      int            `json:"amount"`      // Total to pay with unique code (e.g., 50089)
 	BaseAmount  int            `json:"base_amount"` // Original amount (e.g., 50000)
@@ -33,6 +35,8 @@ type CreateTransactionRequest struct {
 	Note        string `json:"note"`
 	CustomInputJSON map[string]string `json:"custom_input_json"`
 	MediaURL    string `json:"media_url"`
+	SupporterID string `json:"supporter_id"`
+	DonorUserID *uint  `json:"-"`
 }
 
 type CreateTransactionResponse struct {
@@ -63,6 +67,8 @@ type PublicTransaction struct {
 	UUID        string            `json:"uuid"`
 	TargetID    uint              `json:"target_id"`
 	Target      PublicUser `json:"target"`
+	DonorUserID *uint              `json:"donor_user_id,omitempty"`
+	SupporterID string            `json:"supporter_id,omitempty"`
 	Sender      string            `json:"sender"`
 	Amount      int               `json:"amount"`
 	BaseAmount  int               `json:"base_amount"`
@@ -101,6 +107,8 @@ func ToPublicTransaction(tx Transaction) PublicTransaction {
 		UUID:        tx.UUID,
 		TargetID:    tx.TargetID,
 		Target:      tx.Target.ToPublic(),
+		DonorUserID: tx.DonorUserID,
+		SupporterID: tx.SupporterID,
 		Sender:      tx.Sender,
 		Amount:      tx.Amount,
 		BaseAmount:  tx.BaseAmount,

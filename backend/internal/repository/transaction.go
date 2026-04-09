@@ -127,9 +127,18 @@ func (r *TransactionRepository) GetAnalyticsSummary(userID uint, start, end time
 		Select("COALESCE(SUM(base_amount), 0) as total_nominal, COUNT(*) as total_count, COALESCE(CAST(ROUND(AVG(base_amount)) AS BIGINT), 0) as average_value").
 		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "paid", start, end).
 		Scan(&summary).Error
+	if err != nil {
+		return summary, err
+	}
 
-	// Temporarily hardcode supporters as requested
-	summary.TotalSupporters = 100
+	// Unique supporters: prefer donor_user_id, fallback supporter_id
+	err = r.db.Model(&domain.Transaction{}).
+		Select("COUNT(DISTINCT COALESCE(CAST(donor_user_id AS TEXT), NULLIF(supporter_id, ''))) AS total_supporters").
+		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "paid", start, end).
+		Scan(&summary.TotalSupporters).Error
+	if err != nil {
+		return summary, err
+	}
 	return summary, err
 }
 

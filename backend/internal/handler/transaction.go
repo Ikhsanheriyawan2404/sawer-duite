@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
@@ -36,6 +37,14 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	var req domain.CreateTransactionRequest
 	if !BindJSON(w, r, &req) {
 		return
+	}
+	if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+		token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+		if token != "" {
+			if userID, err := h.authService.ValidateAccessToken(token); err == nil {
+				req.DonorUserID = &userID
+			}
+		}
 	}
 
 	resp, err := h.txService.CreateTransaction(req)

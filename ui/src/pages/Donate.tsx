@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { API_URL } from '../lib/api'
+import { API_URL, getTokens } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+
+function getSupporterId() {
+  const key = 'supporter_id'
+  const existing = localStorage.getItem(key)
+  if (existing) return existing
+  const generated = crypto.randomUUID()
+  localStorage.setItem(key, generated)
+  return generated
+}
 
 function Donate() {
   const { username } = useParams()
@@ -21,6 +30,7 @@ function Donate() {
     amount: initialAmount,
     note: initialNote,
   })
+  const [supporterId] = useState(() => getSupporterId())
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({})
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [agreed, setAgreed] = useState(false)
@@ -70,15 +80,20 @@ function Donate() {
     setSubmitError(null)
 
     try {
+      const { accessToken } = getTokens()
       const response = await fetch(`${API_URL}/transactions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+        },
         body: JSON.stringify({
           username: username,
           sender: isAnonymous ? 'Seseorang' : form.name,
           amount: parseInt(form.amount),
           note: form.note,
           custom_input_json: customInputs,
+          supporter_id: supporterId,
         }),
       })
 

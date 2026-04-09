@@ -87,10 +87,15 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 			return nil, err
 		}
 	}
+	if req.DonorUserID == nil && strings.TrimSpace(req.SupporterID) == "" {
+		req.SupporterID = uuid.NewString()
+	}
 
 	tx := domain.Transaction{
 		UUID:        uuid.New().String(),
 		TargetID:    target.ID,
+		DonorUserID: req.DonorUserID,
+		SupporterID: req.SupporterID,
 		Sender:      req.Sender,
 		Amount:      totalAmount,
 		BaseAmount:  req.Amount,
