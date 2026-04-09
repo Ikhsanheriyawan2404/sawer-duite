@@ -26,7 +26,7 @@ function ListOverlayVertical() {
 
   const fetchTransactions = useCallback(async (targetUsername: string) => {
     try {
-      const res = await fetch(`${API_URL}/user/${targetUsername}/queue?status=paid&sort_by=created_at&order=desc`)
+      const res = await fetch(`${API_URL}/user/${targetUsername}/queue?status=PAID&sort_by=created_at&order=desc`)
       if (res.ok) {
         const data = await res.json()
         setTransactions(data || [])

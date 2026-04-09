@@ -67,7 +67,7 @@ function OverlayQueueSettings() {
   async function fetchQueue(username: string) {
     setLoadingQueue(true)
     try {
-      const res = await fetchWithAuth(`/user/${username}/queue?status=paid&order=desc`)
+      const res = await fetchWithAuth(`/user/${username}/queue?status=PAID&order=desc`)
       if (res.ok) {
         const data = await res.json()
         setQueue(data || [])
@@ -298,6 +298,50 @@ function OverlayQueueSettings() {
           </div>
         </article>
 
+
+        <article className="card">
+          <div className="card-header">
+            <h3>Config Queue</h3>
+          </div>
+
+          {configError && <p className="error-text">{configError}</p>}
+
+          <div className="profile-form">
+            {configEditing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Judul Antrean</label>
+                  <input
+                    type="text"
+                    value={configData.queue_title}
+                    onChange={e => setConfigData({ ...configData, queue_title: e.target.value })}
+                    className="input"
+                    placeholder="Contoh: Antrean Request"
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-secondary" onClick={handleConfigCancel}>Batal</button>
+                  <button className="btn btn-primary" onClick={handleConfigSave} disabled={configSaving}>
+                    {configSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="profile-display">
+                <div className="profile-field">
+                  <p className="profile-label">Judul Antrean</p>
+                  <p className="profile-value">{user?.queue_config?.queue_title || 'Antrean Donasi'}</p>
+                </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-secondary" onClick={handleConfigEdit}>Edit</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+
         <article className="card card-wide">
           <div className="card-header">
             <h3>Antrean Donasi</h3>
@@ -369,49 +413,6 @@ function OverlayQueueSettings() {
                   </div>
                 </div>
               ))
-            )}
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="card-header">
-            <h3>Config Queue</h3>
-          </div>
-
-          {configError && <p className="error-text">{configError}</p>}
-
-          <div className="profile-form">
-            {configEditing ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="form-group">
-                  <label>Judul Antrean</label>
-                  <input
-                    type="text"
-                    value={configData.queue_title}
-                    onChange={e => setConfigData({ ...configData, queue_title: e.target.value })}
-                    className="input"
-                    placeholder="Contoh: Antrean Request"
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button className="btn btn-secondary" onClick={handleConfigCancel}>Batal</button>
-                  <button className="btn btn-primary" onClick={handleConfigSave} disabled={configSaving}>
-                    {configSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div className="profile-display">
-                <div className="profile-field">
-                  <p className="profile-label">Judul Antrean</p>
-                  <p className="profile-value">{user?.queue_config?.queue_title || 'Antrean Donasi'}</p>
-                </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button className="btn btn-secondary" onClick={handleConfigEdit}>Edit</button>
-                </div>
-              </div>
             )}
           </div>
         </article>

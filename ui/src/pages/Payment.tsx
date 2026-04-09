@@ -37,9 +37,9 @@ function Payment() {
       const now = new Date().getTime()
       const expiry = new Date(data.expired_at).getTime()
 
-      if (data.status === 'paid') {
+      if (data.status === 'PAID') {
         if (!isPaidRef.current) setIsPaid(true)
-      } else if (data.status === 'expired' || expiry - now <= 0) {
+      } else if (data.status === 'EXPIRED' || expiry - now <= 0) {
         if (!isExpiredRef.current) setIsExpired(true)
       }
 

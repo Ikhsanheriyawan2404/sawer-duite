@@ -75,9 +75,9 @@ function GoalOverlay() {
     <main className="goal-overlay">
       <div className="goal-dialog">
         <div className="goal-heading">
+          <h2 className="goal-title">{goal.title}</h2>
           <span className="goal-percent">{progress.toFixed(0)}%</span>
         </div>
-        <h2 className="goal-title">{goal.title}</h2>
 
         <div className="goal-progress">
           <div className="goal-bar">
@@ -107,50 +107,47 @@ function GoalOverlay() {
           margin-top: 10px;
           background: #ffffff;
           border-radius: 28px;
-          padding: 24px 32px;
+          padding: 20px 28px;
           border: 5px solid #0052ff;
           animation: dialogFadeIn 0.5s ease-out both;
         }
 
         .goal-heading {
           display: flex;
-          align-items: center;
+          align-items: flex-baseline;
           justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 10px;
-        }
-
-        .goal-tag {
-          font-size: 14px;
-          font-weight: 900;
-          color: #0052ff;
-          letter-spacing: 0.22em;
-          text-transform: uppercase;
+          gap: 20px;
+          margin-bottom: 12px;
         }
 
         .goal-percent {
-          font-size: 30px;
+          font-size: 28px;
           font-weight: 900;
           color: #0052ff;
+          flex-shrink: 0;
         }
 
         .goal-title {
-          font-size: 34px;
+          font-size: 30px;
           font-weight: 900;
           color: #0f172a;
           text-transform: uppercase;
-          letter-spacing: -0.04em;
-          margin: 0 0 20px 0;
+          letter-spacing: -0.03em;
+          margin: 0;
+          flex: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .goal-progress {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
         }
 
         .goal-bar {
-          height: 18px;
+          height: 16px;
           background: #e2e8f0;
           border-radius: 999px;
           overflow: hidden;
@@ -165,7 +162,7 @@ function GoalOverlay() {
         .goal-amounts {
           display: flex;
           justify-content: space-between;
-          font-size: 22px;
+          font-size: 20px;
           font-weight: 900;
           color: #0052ff;
         }
@@ -173,7 +170,7 @@ function GoalOverlay() {
         .goal-amounts .muted {
           color: #64748b;
           font-weight: 700;
-          font-size: 18px;
+          font-size: 16px;
         }
 
         @keyframes dialogFadeIn {

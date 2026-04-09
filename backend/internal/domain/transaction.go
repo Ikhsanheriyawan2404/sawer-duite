@@ -20,7 +20,7 @@ type Transaction struct {
 	CustomInputJSON map[string]string `gorm:"type:jsonb;serializer:json" json:"custom_input_json"`
 	MediaURL    string         `gorm:"type:text" json:"media_url"`
 	QRISPayload string         `json:"qris_payload"`
-	Status      string         `gorm:"default:'pending'" json:"status"` // pending, paid, expired
+	Status      string         `gorm:"default:'PENDING'" json:"status"` // PENDING, PAID, EXPIRED
 	IsQueue     bool           `gorm:"default:true" json:"is_queue"`    // true = in queue, false = out of queue
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`

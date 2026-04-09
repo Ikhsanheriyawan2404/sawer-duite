@@ -32,14 +32,6 @@ export function buildMenuItems(): MenuItem[] {
       status: 'live'
     },
     {
-      key: 'donation-packages',
-      label: 'Paket Dukungan',
-      desc: 'Buat pilihan nominal donasi favorit',
-      abbr: 'PD',
-      to: '/settings/donation-packages',
-      status: 'live'
-    },
-    {
       key: 'overlay-alert',
       label: 'Overlay Notifikasi',
       desc: 'Personalisasi alert live stream',
@@ -72,6 +64,14 @@ export function buildMenuItems(): MenuItem[] {
       status: 'live'
     },
     {
+      key: 'goals',
+      label: 'Overlay Goals',
+      desc: 'Visualisasikan progress target donasi',
+      abbr: 'GL',
+      to: '/settings/overlay/goal',
+      status: 'live'
+    },
+    {
       key: 'overlay-media',
       label: 'MediaShare',
       desc: 'Video & audio',
@@ -81,11 +81,11 @@ export function buildMenuItems(): MenuItem[] {
       requiresUser: true
     },
     {
-      key: 'goals',
-      label: 'Goal',
-      desc: 'Visualisasikan progress target donasi',
-      abbr: 'GL',
-      to: '/settings/overlay/goal',
+      key: 'donation-packages',
+      label: 'Paket Dukungan',
+      desc: 'Buat pilihan nominal donasi favorit',
+      abbr: 'PD',
+      to: '/settings/donation-packages',
       status: 'live'
     },
     {

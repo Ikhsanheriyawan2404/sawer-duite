@@ -22,7 +22,7 @@ function QueueOverlay() {
   const fetchQueue = useCallback(async (targetUsername: string) => {
     try {
       const res = await fetch(
-        `${API_URL}/user/${targetUsername}/queue?status=paid&is_queue=true&order=desc`
+        `${API_URL}/user/${targetUsername}/queue?status=PAID&is_queue=true&order=desc`
       )
       if (res.ok) {
         const data = await res.json()

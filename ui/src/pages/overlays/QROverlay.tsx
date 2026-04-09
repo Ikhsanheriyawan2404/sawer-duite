@@ -48,40 +48,45 @@ function QROverlay() {
           display: flex;
           align-items: flex-start;
           justify-content: center;
-          padding: 20px;
+          padding: 10px;
           font-family: var(--font-main);
         }
 
         .qr-card {
-          width: min(420px, 92vw);
+          width: fit-content;
+          max-width: 320px; /* Lebih ringkas */
           background: #ffffff;
-          border-radius: 28px;
-          padding: 20px 24px 18px;
-          border: 5px solid #0052ff;
+          border-radius: 24px;
+          padding: 16px 20px;
+          border: 6px solid #0052ff;
           text-align: center;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.1);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
           animation: qrFadeIn 0.5s ease-out both;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .qr-label {
-          font-size: 14px;
-          font-weight: 800;
-          letter-spacing: 0.18em;
+          font-size: 20px; /* Ukuran teks lebih besar */
+          font-weight: 900;
+          letter-spacing: 0.02em;
           color: #0052ff;
           text-transform: uppercase;
-          margin: 0 0 12px 0;
+          margin: 0 0 10px 0;
+          line-height: 1.1;
         }
 
         .qr-box {
-          width: 240px;
-          height: 240px;
-          margin: 0 auto 14px;
-          background: #f8fafc;
-          border-radius: 16px;
+          width: 220px; /* Disesuaikan agar pas dengan card */
+          height: 220px;
+          margin: 0 auto 10px;
+          background: #ffffff;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 12px;
+          padding: 4px;
         }
 
         .qr-box img {
@@ -93,25 +98,30 @@ function QROverlay() {
         .qr-placeholder {
           width: 100%;
           height: 100%;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #e2e8f0, #f8fafc);
+          border-radius: 10px;
+          background: #f1f5f9;
         }
 
         .qr-link {
-          font-size: 13px;
-          font-weight: 700;
+          font-size: 16px; /* Ukuran teks link lebih besar */
+          font-weight: 800;
           color: #0f172a;
           word-break: break-all;
           margin: 0;
+          line-height: 1.2;
+          background: #f1f5f9;
+          padding: 6px 12px;
+          border-radius: 10px;
+          width: 100%;
         }
 
         @keyframes qrFadeIn {
           from {
-            transform: translateY(16px);
+            transform: scale(0.9) translateY(10px);
             opacity: 0;
           }
           to {
-            transform: translateY(0);
+            transform: scale(1) translateY(0);
             opacity: 1;
           }
         }

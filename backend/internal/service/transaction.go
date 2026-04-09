@@ -103,7 +103,7 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 		CustomInputJSON: req.CustomInputJSON,
 		MediaURL:    req.MediaURL,
 		QRISPayload: qrisPayload,
-		Status:      "pending",
+		Status:      "PENDING",
 		IsQueue:     true,
 		ExpiredAt:   time.Now().Add(5 * time.Minute),
 	}
@@ -145,19 +145,19 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 		return nil // No matching transaction, but not an error to return to client
 	}
 
-	// 3. Update status to paid
-	_ = s.txRepo.UpdateStatus(tx.UUID, "paid")
+	// 3. Update status to PAID
+	_ = s.txRepo.UpdateStatus(tx.UUID, "PAID")
 
 	logEntry.Processed = true
 	logEntry.TransactionID = &tx.ID
 	logEntry.TransactionUUID = tx.UUID
 	_ = s.notifRepo.Update(&logEntry)
 
-	// Broadcast immediate paid status
+	// Broadcast immediate PAID status
 	_ = s.queueManager.PublishAlertMessage(domain.AlertMessage{
 		UserUUID:        user.UUID,
 		TransactionUUID: tx.UUID,
-		Type:            "paid",
+		Type:            "PAID",
 	})
 
 	// Generate TTS audio
@@ -175,7 +175,7 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 	s.queueManager.Enqueue(domain.AlertMessage{
 		UserUUID:        user.UUID,
 		TransactionUUID: tx.UUID,
-		Type:            "alert",
+		Type:            "ALERT",
 		Amount:          tx.BaseAmount,
 		Sender:          tx.Sender,
 		Message:         tx.Note,
@@ -213,7 +213,7 @@ func (s *TransactionService) TestAlert(userID uint, userUUID string) error {
 
 	s.queueManager.Enqueue(domain.AlertMessage{
 		UserUUID: userUUID,
-		Type:     "alert",
+		Type:     "ALERT",
 		Amount:   50000,
 		Sender:   "Tester Ganteng",
 		Message:  "Ini adalah pesan uji coba dari dashboard!",

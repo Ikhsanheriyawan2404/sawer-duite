@@ -91,7 +91,7 @@ function AlertOverlay() {
         // Check if data is flattened or nested (AlertMessage vs { AlertMessage, AlertID })
         const alertData = payload.alert_id ? { ...payload, ...payload.AlertMessage } : payload
         
-        if (alertData.type === 'alert') {
+        if (alertData.type?.toUpperCase() === 'ALERT') {
           processAlert(alertData)
         }
       } catch (err) {

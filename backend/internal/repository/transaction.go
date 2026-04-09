@@ -42,7 +42,7 @@ func (r *TransactionRepository) GetByUUID(uuid string) (*domain.Transaction, err
 func (r *TransactionRepository) GetPendingByAmount(targetID uint, amount int) (*domain.Transaction, error) {
 	var tx domain.Transaction
 	err := r.db.Preload("Target").
-		Where("target_id = ? AND amount = ? AND status = ? AND expired_at > ?", targetID, amount, "pending", time.Now()).
+		Where("target_id = ? AND amount = ? AND status = ? AND expired_at > ?", targetID, amount, "PENDING", time.Now()).
 		First(&tx).Error
 	if err != nil {
 		return nil, err
@@ -57,14 +57,14 @@ func (r *TransactionRepository) GetUserStats(userID uint) (int64, int64, error) 
 	}
 	err := r.db.Model(&domain.Transaction{}).
 		Select("SUM(base_amount) as total_amount, COUNT(DISTINCT sender) as total_donors").
-		Where("target_id = ? AND status = ?", userID, "paid").
+		Where("target_id = ? AND status = ?", userID, "PAID").
 		Scan(&stats).Error
 	return stats.TotalAmount, stats.TotalDonors, err
 }
 
 func (r *TransactionRepository) GetRecent(userID uint, limit int) ([]domain.Transaction, error) {
 	var recent []domain.Transaction
-	err := r.db.Where("target_id = ? AND status = ?", userID, "paid").
+	err := r.db.Where("target_id = ? AND status = ?", userID, "PAID").
 		Order("created_at DESC").
 		Limit(limit).
 		Find(&recent).Error
@@ -81,7 +81,7 @@ func (r *TransactionRepository) GetTopSupporters(userID uint, startTime time.Tim
 	}
 	query := r.db.Model(&domain.Transaction{}).
 		Select("sender, SUM(base_amount) as amount").
-		Where("target_id = ? AND status = ?", userID, "paid").
+		Where("target_id = ? AND status = ?", userID, "PAID").
 		Group("sender").
 		Order("amount DESC").
 		Limit(limit)
@@ -125,7 +125,7 @@ func (r *TransactionRepository) GetAnalyticsSummary(userID uint, start, end time
 	var summary domain.AnalyticsSummary
 	err := r.db.Model(&domain.Transaction{}).
 		Select("COALESCE(SUM(base_amount), 0) as total_nominal, COUNT(*) as total_count, COALESCE(CAST(ROUND(AVG(base_amount)) AS BIGINT), 0) as average_value").
-		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "paid", start, end).
+		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "PAID", start, end).
 		Scan(&summary).Error
 	if err != nil {
 		return summary, err
@@ -134,7 +134,7 @@ func (r *TransactionRepository) GetAnalyticsSummary(userID uint, start, end time
 	// Unique supporters: prefer donor_user_id, fallback supporter_id
 	err = r.db.Model(&domain.Transaction{}).
 		Select("COUNT(DISTINCT COALESCE(CAST(donor_user_id AS TEXT), NULLIF(supporter_id, ''))) AS total_supporters").
-		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "paid", start, end).
+		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "PAID", start, end).
 		Scan(&summary.TotalSupporters).Error
 	if err != nil {
 		return summary, err
@@ -148,7 +148,7 @@ func (r *TransactionRepository) GetAnalyticsTransactions(userID uint, start, end
 	var total int64
 
 	db := r.db.Model(&domain.Transaction{}).
-		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "paid", start, end)
+		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "PAID", start, end)
 
 	if search != "" {
 		searchTerm := "%" + search + "%"
