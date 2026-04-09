@@ -44,10 +44,10 @@ func main() {
 	clientLogRepo := repository.NewClientLogRepository(db)
 	ttsCacheRepo := repository.NewTTSCacheRepository(db)
 
-	// 2. Services
 	authService := service.NewAuthService(cfg, userRepo)
 	qrisService := service.NewQRISService()
 	ttsService := service.NewTTSService(ttsCacheRepo, rdb, cfg)
+	storageService := service.NewStorageService(cfg)
 	txService := service.NewTransactionService(txRepo, userRepo, notifRepo, qrisService, ttsService, hub, queueManager)
 	clientLogService := service.NewClientLogService(clientLogRepo)
 
@@ -59,7 +59,7 @@ func main() {
 	r.Use(middleware.RateLimit(rdb, cfg))
 
 	healthHandler := handler.NewHealthHandler()
-	authHandler := handler.NewAuthHandler(authService)
+	authHandler := handler.NewAuthHandler(authService, storageService)
 	txHandler := handler.NewTransactionHandler(txService, authService, hub, queueManager)
 	clientLogHandler := handler.NewClientLogHandler(authService, clientLogService)
 
@@ -91,7 +91,24 @@ func main() {
 		r.Use(middleware.Auth(authService))
 
 		r.Get("/me", authHandler.Me)
-		r.Post("/me", authHandler.UpdateProfile)
+		r.Post("/me/profile", authHandler.UpdateProfileBasic)
+		r.Post("/me/payment", authHandler.UpdatePaymentSettings)
+		r.Post("/me/config", authHandler.UpdateConfig)
+		r.Post("/me/alert-config", authHandler.UpdateAlertConfig)
+		r.Post("/me/queue-config", authHandler.UpdateQueueConfig)
+		r.Post("/me/list-config", authHandler.UpdateListConfig)
+		r.Post("/me/media-config", authHandler.UpdateMediaConfig)
+		r.Post("/me/qr-config", authHandler.UpdateQRConfig)
+		r.Post("/me/donation-packages", authHandler.UpdateDonationPackages)
+		r.Post("/me/goal", authHandler.UpdateGoal)
+		r.Get("/me/goals", authHandler.ListGoals)
+		r.Post("/me/goals", authHandler.CreateGoal)
+		r.Post("/me/goals/{id}", authHandler.UpdateGoalByID)
+		r.Post("/me/goals/{id}/activate", authHandler.ActivateGoal)
+		r.Delete("/me/goals/{id}", authHandler.DeleteGoal)
+		r.Post("/me/avatar", authHandler.UploadAvatar)
+
+		r.Get("/me/analytics", txHandler.GetAnalytics)
 
 		r.Post("/user/{uuid}/test-alert", txHandler.TestAlert)
 

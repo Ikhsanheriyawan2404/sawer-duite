@@ -16,3 +16,7 @@ func NewNotificationRepository(db *gorm.DB) *NotificationRepository {
 func (r *NotificationRepository) Create(log *domain.NotificationLog) error {
 	return r.db.Create(log).Error
 }
+
+func (r *NotificationRepository) Update(log *domain.NotificationLog) error {
+	return r.db.Save(log).Error
+}

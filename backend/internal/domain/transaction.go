@@ -15,7 +15,8 @@ type Transaction struct {
 	Amount      int            `json:"amount"`      // Total to pay with unique code (e.g., 50089)
 	BaseAmount  int            `json:"base_amount"` // Original amount (e.g., 50000)
 	Note        string         `json:"note"`
-	CustomInput string         `json:"custom_input"` // Nilai custom input (misal: username roblox)
+	CustomInputJSON map[string]string `gorm:"type:jsonb;serializer:json" json:"custom_input_json"`
+	MediaURL    string         `gorm:"type:text" json:"media_url"`
 	QRISPayload string         `json:"qris_payload"`
 	Status      string         `gorm:"default:'pending'" json:"status"` // pending, paid, expired
 	IsQueue     bool           `gorm:"default:true" json:"is_queue"`    // true = in queue, false = out of queue
@@ -30,7 +31,8 @@ type CreateTransactionRequest struct {
 	Sender      string `json:"sender"`
 	Amount      int    `json:"amount"`       // Base amount
 	Note        string `json:"note"`
-	CustomInput string `json:"custom_input"` // Nilai custom input (opsional, tergantung user setting)
+	CustomInputJSON map[string]string `json:"custom_input_json"`
+	MediaURL    string `json:"media_url"`
 }
 
 type CreateTransactionResponse struct {
@@ -65,13 +67,32 @@ type PublicTransaction struct {
 	Amount      int               `json:"amount"`
 	BaseAmount  int               `json:"base_amount"`
 	Note        string            `json:"note"`
-	CustomInput string            `json:"custom_input"`
+	CustomInputJSON map[string]string `json:"custom_input_json,omitempty"`
+	MediaURL    string            `json:"media_url,omitempty"`
 	QRISPayload string            `json:"qris_payload"`
 	Status      string            `json:"status"`
 	IsQueue     bool              `json:"is_queue"`
 	CreatedAt   time.Time         `json:"created_at"`
 	UpdatedAt   time.Time         `json:"updated_at"`
 	ExpiredAt   time.Time         `json:"expired_at"`
+}
+
+type AnalyticsSummary struct {
+	TotalNominal    int64   `json:"total_nominal"`
+	TotalCount      int64   `json:"total_count"`
+	AverageValue    float64 `json:"average_value"`
+	TotalSupporters int64   `json:"total_supporters"`
+}
+
+type AnalyticsResponse struct {
+	Summary      AnalyticsSummary    `json:"summary"`
+	Transactions []PublicTransaction `json:"transactions"`
+	Pagination   struct {
+		CurrentPage int  `json:"current_page"`
+		TotalPages  int  `json:"total_pages"`
+		HasNext     bool `json:"has_next"`
+		HasPrev     bool `json:"has_prev"`
+	} `json:"pagination"`
 }
 
 func ToPublicTransaction(tx Transaction) PublicTransaction {
@@ -84,7 +105,8 @@ func ToPublicTransaction(tx Transaction) PublicTransaction {
 		Amount:      tx.Amount,
 		BaseAmount:  tx.BaseAmount,
 		Note:        tx.Note,
-		CustomInput: tx.CustomInput,
+		CustomInputJSON: tx.CustomInputJSON,
+		MediaURL:    tx.MediaURL,
 		QRISPayload: tx.QRISPayload,
 		Status:      tx.Status,
 		IsQueue:     tx.IsQueue,

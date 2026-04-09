@@ -7,40 +7,78 @@ import (
 	"gorm.io/gorm"
 )
 
+type User struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	UUID      string         `gorm:"type:uuid;uniqueIndex;not null" json:"uuid"`
+	Email     string         `gorm:"uniqueIndex;not null" json:"email"`
+	Username  string         `gorm:"uniqueIndex;not null" json:"username"`
+	Password  string         `gorm:"not null" json:"-"`
+	AppToken  string         `gorm:"uniqueIndex" json:"app_token"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	Profile      CreatorProfile `gorm:"foreignKey:UserID" json:"profile"`
+	Config       DonationConfig `gorm:"foreignKey:UserID" json:"config"`
+	Payment      PaymentAccount `gorm:"foreignKey:UserID" json:"payment"`
+	AlertConfig  AlertConfig    `gorm:"foreignKey:UserID" json:"alert_config"`
+	QueueConfig  QueueConfig    `gorm:"foreignKey:UserID" json:"queue_config"`
+	ListConfig   ListOverlayConfig `gorm:"foreignKey:UserID" json:"list_config"`
+	QRConfig     QRConfig       `gorm:"foreignKey:UserID" json:"qr_config"`
+	MediaConfig  MediaOverlayConfig `gorm:"foreignKey:UserID" json:"media_config"`
+	DonationPackages []DonationPackage `gorm:"foreignKey:UserID" json:"donation_packages"`
+	ActiveGoal   *DonationGoal  `gorm:"-" json:"active_goal,omitempty"` // Virtual field for public info
+}
+
+type CreatorProfile struct {
+	ID          uint   `gorm:"primaryKey" json:"-"`
+	UserID      uint   `gorm:"uniqueIndex;not null" json:"-"`
+	Name        string `json:"name"`
+	Bio         string `gorm:"type:text" json:"bio"`
+	AvatarURL   string `json:"avatar_url"`
+	SocialLinks SocialLinks `gorm:"type:jsonb;serializer:json" json:"social_links"`
+}
+
+type SocialLinks struct {
+	TikTok    string `json:"tiktok,omitempty"`
+	Instagram string `json:"instagram,omitempty"`
+	YouTube   string `json:"youtube,omitempty"`
+	Facebook  string `json:"facebook,omitempty"`
+}
+
 type DonationPackage struct {
+	ID     uint   `gorm:"primaryKey" json:"-"`
+	UserID uint   `gorm:"index;not null" json:"-"`
 	Label  string `json:"label"`
 	Amount int64  `json:"amount"`
 }
 
-type User struct {
-	ID                uint              `gorm:"primaryKey" json:"id"`
-	UUID              string            `gorm:"type:uuid;uniqueIndex;not null" json:"uuid"`
-	Email             string            `gorm:"uniqueIndex;not null" json:"email"`
-	Username          string            `gorm:"uniqueIndex;not null" json:"username"`
-	Password          string            `gorm:"not null" json:"-"`
-	Name              string            `json:"name"`
-	Bio               string            `gorm:"type:text" json:"bio"`
-	TikTok            string            `json:"tiktok"`
-	Instagram         string            `json:"instagram"`
-	YouTube           string            `json:"youtube"`
-	MinDonation       int64             `json:"min_donation"`
-	TargetAmount      int64             `json:"target_amount"`
-	TargetDescription string            `json:"target_description"`
-	QuickAmounts      []int64           `gorm:"type:jsonb;serializer:json" json:"quick_amounts"`
-	DonationPackages  []DonationPackage `gorm:"type:jsonb;serializer:json" json:"donation_packages"`
-	// Custom input field untuk donasi (misal: username roblox, ID game, dll)
-	CustomInputLabel    string `json:"custom_input_label"`    // Label field (contoh: "Username Roblox")
-	CustomInputRequired bool   `json:"custom_input_required"` // Apakah wajib diisi
-	QueueTitle          string `json:"queue_title"`           // Judul antrian di overlay (contoh: "Antrian Donasi")
+type DonationConfig struct {
+	ID                  uint              `gorm:"primaryKey" json:"-"`
+	UserID              uint              `gorm:"uniqueIndex;not null" json:"-"`
+	MinDonation         int64             `json:"min_donation"`
+	QuickAmounts        []int64           `gorm:"type:jsonb;serializer:json" json:"quick_amounts"`
+	CustomInputSchema   []CustomInputField `gorm:"type:jsonb;serializer:json" json:"custom_input_schema"`
+}
 
-	// Payment settings
+type PaymentAccount struct {
+	ID         uint   `gorm:"primaryKey" json:"-"`
+	UserID     uint   `gorm:"uniqueIndex;not null" json:"-"`
 	StaticQRIS string `gorm:"type:text" json:"static_qris"`
 	Provider   string `gorm:"type:varchar(20)" json:"provider"` // GOPAY, DANA
-	AppToken   string `gorm:"uniqueIndex" json:"app_token"`
+}
 
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+type DonationGoal struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	UserID       uint      `gorm:"index;not null" json:"-"`
+	Title        string    `json:"title"`
+	TargetAmount int64     `json:"target_amount"`
+	CurrentAmount int64     `gorm:"-" json:"current_amount"`
+	StartsAt     *time.Time `json:"starts_at,omitempty"`
+	EndsAt       *time.Time `json:"ends_at,omitempty"`
+	IsActive     bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type PublicUser struct {
@@ -48,58 +86,43 @@ type PublicUser struct {
 	Username            string            `json:"username"`
 	Name                string            `json:"name"`
 	Bio                 string            `json:"bio"`
-	TikTok              string            `json:"tiktok"`
-	Instagram           string            `json:"instagram"`
-	YouTube             string            `json:"youtube"`
+	AvatarURL           string            `json:"avatar_url"`
+	SocialLinks         SocialLinks       `json:"social_links"`
 	MinDonation         int64             `json:"min_donation"`
-	TargetAmount        int64             `json:"target_amount"`
-	TargetDescription   string            `json:"target_description"`
 	QuickAmounts        []int64           `json:"quick_amounts"`
 	DonationPackages    []DonationPackage `json:"donation_packages"`
-	CustomInputLabel    string            `json:"custom_input_label"`
-	CustomInputRequired bool              `json:"custom_input_required"`
+	CustomInputSchema   []CustomInputField `json:"custom_input_schema"`
 	QueueTitle          string            `json:"queue_title"`
 	HasQRIS             bool              `json:"has_qris"`
+	ActiveGoal          *DonationGoal     `json:"active_goal"`
+	AlertConfig         AlertConfig        `json:"alert_config,omitempty"`
+	QueueConfig         QueueConfig        `json:"queue_config,omitempty"`
+	ListConfig          ListOverlayConfig  `json:"list_config,omitempty"`
+	QRConfig            QRConfig           `json:"qr_config,omitempty"`
+	MediaConfig         MediaOverlayConfig `json:"media_config,omitempty"`
 }
 
 func (u *User) ToPublic() PublicUser {
 	return PublicUser{
 		ID:                  u.ID,
 		Username:            u.Username,
-		Name:                u.Name,
-		Bio:                 u.Bio,
-		TikTok:              u.TikTok,
-		Instagram:           u.Instagram,
-		YouTube:             u.YouTube,
-		MinDonation:         u.MinDonation,
-		TargetAmount:        u.TargetAmount,
-		TargetDescription:   u.TargetDescription,
-		QuickAmounts:        u.QuickAmounts,
+		Name:                u.Profile.Name,
+		Bio:                 u.Profile.Bio,
+		AvatarURL:           u.Profile.AvatarURL,
+		SocialLinks:         u.Profile.SocialLinks,
+		MinDonation:         u.Config.MinDonation,
+		QuickAmounts:        u.Config.QuickAmounts,
 		DonationPackages:    u.DonationPackages,
-		CustomInputLabel:    u.CustomInputLabel,
-		CustomInputRequired: u.CustomInputRequired,
-		QueueTitle:          u.QueueTitle,
-		HasQRIS:             u.StaticQRIS != "",
+		CustomInputSchema:   u.Config.CustomInputSchema,
+		QueueTitle:          u.QueueConfig.QueueTitle,
+		HasQRIS:             u.Payment.StaticQRIS != "",
+		ActiveGoal:          u.ActiveGoal,
+		AlertConfig:         u.AlertConfig,
+		QueueConfig:         u.QueueConfig,
+		ListConfig:          u.ListConfig,
+		QRConfig:            u.QRConfig,
+		MediaConfig:         u.MediaConfig,
 	}
-}
-
-func (u *User) UpdateFromRequest(req UpdateProfileRequest) {
-	u.Name = req.Name
-	u.Username = req.Username
-	u.Bio = req.Bio
-	u.TikTok = req.TikTok
-	u.Instagram = req.Instagram
-	u.YouTube = req.YouTube
-	u.MinDonation = req.MinDonation
-	u.TargetAmount = req.TargetAmount
-	u.TargetDescription = req.TargetDescription
-	u.QuickAmounts = req.QuickAmounts
-	u.DonationPackages = req.DonationPackages
-	u.CustomInputLabel = req.CustomInputLabel
-	u.CustomInputRequired = req.CustomInputRequired
-	u.QueueTitle = req.QueueTitle
-	u.StaticQRIS = req.StaticQRIS
-	u.Provider = req.Provider
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
@@ -107,33 +130,125 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 		u.UUID = uuid.New().String()
 	}
 	if u.AppToken == "" {
-		u.AppToken = "sd_" + uuid.New().String() // sawerduite_token
+		u.AppToken = "sd_" + uuid.New().String()
 	}
 	return nil
-}
-
-type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 type UpdateProfileRequest struct {
 	Name                string            `json:"name"`
 	Username            string            `json:"username"`
 	Bio                 string            `json:"bio"`
-	TikTok              string            `json:"tiktok"`
-	Instagram           string            `json:"instagram"`
-	YouTube             string            `json:"youtube"`
+	SocialLinks         SocialLinks       `json:"social_links"`
 	MinDonation         int64             `json:"min_donation"`
-	TargetAmount        int64             `json:"target_amount"`
-	TargetDescription   string            `json:"target_description"`
 	QuickAmounts        []int64           `json:"quick_amounts"`
 	DonationPackages    []DonationPackage `json:"donation_packages"`
-	CustomInputLabel    string            `json:"custom_input_label"`
-	CustomInputRequired bool              `json:"custom_input_required"`
+	CustomInputSchema   []CustomInputField `json:"custom_input_schema"`
 	QueueTitle          string            `json:"queue_title"`
 	StaticQRIS          string            `json:"static_qris"`
 	Provider            string            `json:"provider"`
+}
+
+type UpdateProfileBasicRequest struct {
+	Name        string      `json:"name"`
+	Username    string      `json:"username"`
+	Bio         string      `json:"bio"`
+	SocialLinks SocialLinks `json:"social_links"`
+}
+
+type UpdatePaymentRequest struct {
+	StaticQRIS string `json:"static_qris"`
+	Provider   string `json:"provider"`
+}
+
+type UpdateConfigRequest struct {
+	MinDonation         *int64              `json:"min_donation"`
+	QuickAmounts        *[]int64            `json:"quick_amounts"`
+	CustomInputSchema   *[]CustomInputField `json:"custom_input_schema"`
+}
+
+type UpdateAlertConfigRequest struct {
+}
+
+type UpdateQueueConfigRequest struct {
+	QueueTitle *string `json:"queue_title"`
+}
+type UpdateListConfigRequest struct {
+	Title         *string    `json:"title"`
+	StartsAt      *time.Time `json:"starts_at"`
+	EndsAt        *time.Time `json:"ends_at"`
+	ClearStartsAt *bool      `json:"clear_starts_at"`
+	ClearEndsAt   *bool      `json:"clear_ends_at"`
+}
+
+type UpdateQRConfigRequest struct {
+	TopText    *string `json:"top_text"`
+	BottomText *string `json:"bottom_text"`
+}
+
+type UpdateMediaConfigRequest struct {
+	Enabled *bool `json:"enabled"`
+}
+
+type CreateGoalRequest struct {
+	Title        string     `json:"title"`
+	TargetAmount int64      `json:"target_amount"`
+	StartsAt     *time.Time `json:"starts_at"`
+	EndsAt       *time.Time `json:"ends_at"`
+	IsActive     *bool      `json:"is_active"`
+}
+
+type UpdateGoalRequest struct {
+	Title        *string    `json:"title"`
+	TargetAmount *int64     `json:"target_amount"`
+	StartsAt     *time.Time `json:"starts_at"`
+	EndsAt       *time.Time `json:"ends_at"`
+	ClearStartsAt *bool     `json:"clear_starts_at"`
+	ClearEndsAt   *bool     `json:"clear_ends_at"`
+	IsActive     *bool      `json:"is_active"`
+}
+
+type CustomInputField struct {
+	Key      string `json:"key"`
+	Label    string `json:"label"`
+	Required bool   `json:"required"`
+}
+
+type AlertConfig struct {
+	ID        uint  `gorm:"primaryKey" json:"-"`
+	UserID    uint  `gorm:"uniqueIndex;not null" json:"-"`
+}
+
+type QueueConfig struct {
+	ID       uint   `gorm:"primaryKey" json:"-"`
+	UserID   uint   `gorm:"uniqueIndex;not null" json:"-"`
+	QueueTitle string `json:"queue_title"`
+}
+
+type QRConfig struct {
+	ID         uint   `gorm:"primaryKey" json:"-"`
+	UserID     uint   `gorm:"uniqueIndex;not null" json:"-"`
+	TopText    string `json:"top_text"`
+	BottomText string `json:"bottom_text"`
+}
+
+type MediaOverlayConfig struct {
+	ID      uint `gorm:"primaryKey" json:"-"`
+	UserID  uint `gorm:"uniqueIndex;not null" json:"-"`
+	Enabled bool `json:"enabled"`
+}
+
+type ListOverlayConfig struct {
+	ID       uint       `gorm:"primaryKey" json:"-"`
+	UserID   uint       `gorm:"uniqueIndex;not null" json:"-"`
+	Title    string     `json:"title"`
+	StartsAt *time.Time `json:"starts_at,omitempty"`
+	EndsAt   *time.Time `json:"ends_at,omitempty"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type RegisterRequest struct {

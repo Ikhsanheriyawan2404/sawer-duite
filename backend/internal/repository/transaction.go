@@ -120,3 +120,39 @@ func (r *TransactionRepository) List(query domain.QueueListQuery, userID uint) (
 	err := db.Find(&transactions).Error
 	return transactions, err
 }
+
+func (r *TransactionRepository) GetAnalyticsSummary(userID uint, start, end time.Time) (domain.AnalyticsSummary, error) {
+	var summary domain.AnalyticsSummary
+	err := r.db.Model(&domain.Transaction{}).
+		Select("COALESCE(SUM(base_amount), 0) as total_nominal, COUNT(*) as total_count, COALESCE(CAST(ROUND(AVG(base_amount)) AS BIGINT), 0) as average_value").
+		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "paid", start, end).
+		Scan(&summary).Error
+
+	// Temporarily hardcode supporters as requested
+	summary.TotalSupporters = 100
+	return summary, err
+}
+
+
+func (r *TransactionRepository) GetAnalyticsTransactions(userID uint, start, end time.Time, search string, page, limit int) ([]domain.Transaction, int64, error) {
+	var transactions []domain.Transaction
+	var total int64
+
+	db := r.db.Model(&domain.Transaction{}).
+		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "paid", start, end)
+
+	if search != "" {
+		searchTerm := "%" + search + "%"
+		db = db.Where("(sender ILIKE ? OR note ILIKE ? OR CAST(base_amount AS TEXT) LIKE ?)", searchTerm, searchTerm, searchTerm)
+	}
+
+	db.Count(&total)
+
+	offset := (page - 1) * limit
+	err := db.Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&transactions).Error
+
+	return transactions, total, err
+}
