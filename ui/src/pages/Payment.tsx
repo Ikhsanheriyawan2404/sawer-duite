@@ -125,6 +125,7 @@ function Payment() {
   if (!tx) return <main className="page page-center"><h2>Pembayaran tidak ditemukan</h2></main>
 
   const uniqueCodeValue = Math.max(tx.amount - (tx.base_amount ?? tx.amount), 0)
+  const targetUsername = tx?.target?.username
   const uniqueCodeDisplay = uniqueCodeValue.toString().padStart(2, '0')
 
   return (
@@ -221,7 +222,7 @@ function Payment() {
                 Pembayaran kamu telah berhasil diterima. Dukunganmu sangat berarti!
               </p>
               <button
-                onClick={() => navigate(`/${tx.target?.username || ''}`)}
+                onClick={() => navigate(targetUsername ? `/${targetUsername}` : '/')}
                 className="btn btn-primary w-full"
                 style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
               >
@@ -236,7 +237,7 @@ function Payment() {
                 QR Code ini sudah tidak berlaku karena melewati batas waktu 5 menit.
               </p>
               <button
-                onClick={() => navigate(`/${tx.target?.username || ''}`)}
+                onClick={() => navigate(targetUsername ? `/${targetUsername}` : '/')}
                 className="btn btn-primary w-full"
               >
                 Buat Transaksi Baru
@@ -262,6 +263,22 @@ function Payment() {
                 <span className="muted" style={{ fontSize: '13px' }}>Pengirim</span>
                 <span style={{ fontSize: '13px', fontWeight: '600' }}>{tx.sender || 'Seseorang'}</span>
               </div>
+              
+              {/* Custom Input Details */}
+              {tx.custom_input_json && Object.keys(tx.custom_input_json).length > 0 && (
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
+                  {Object.entries(tx.custom_input_json).map(([key, value]) => {
+                    const field = tx.target?.custom_input_schema?.find((f: any) => f.key === key)
+                    const label = field?.label || key
+                    return (
+                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span className="muted" style={{ fontSize: '13px' }}>{label}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '600' }}>{value as string}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <p className="muted" style={{ fontSize: '12px', marginTop: '16px', lineHeight: 1.4 }}>

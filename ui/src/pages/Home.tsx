@@ -1,53 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchWithAuth } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+import { buildMenuItems } from '../lib/menu'
+import { MenuFab } from '../components/MenuFab'
+import { normalizeMeUser } from '../lib/normalizeUser'
+import type { NormalizedUser } from '../lib/normalizeUser'
 
 interface DonationPackage {
   label: string
   amount: number
 }
 
-interface User {
-  id: number
-  uuid: string
-  email: string
-  username: string
-  name: string
-  bio: string
-  tiktok: string
-  instagram: string
-  youtube: string
-  min_donation: number
-  target_amount: number
-  target_description: string
-  quick_amounts: number[]
-  donation_packages: DonationPackage[]
-  custom_input_label: string
-  custom_input_required: boolean
-  queue_title: string
-  static_qris: string
-  provider: string
-  app_token: string
-  created_at: string
-  updated_at: string
-}
-
-interface Transaction {
-  id: number
-  uuid: string
-  sender: string
-  amount: number
-  base_amount: number
-  note: string
-  custom_input: string
-  status: string
-  is_queue: boolean
-  created_at: string
-}
-
 function Home() {
   useDocumentTitle('Dashboard')
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<NormalizedUser | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -57,34 +23,28 @@ function Home() {
     instagram: '',
     youtube: '',
     min_donation: 0,
-    target_amount: 0,
-    target_description: '',
+    active_goal: null as any,
     quick_amounts: [] as number[],
     donation_packages: [] as DonationPackage[],
-    custom_input_label: '',
-    custom_input_required: false,
     queue_title: '',
     static_qris: '',
     provider: 'DANA'
   })
-  const [newQuickAmount, setNewQuickAmount] = useState('')
-  const [newPackage, setNewPackage] = useState({ label: '', amount: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [queue, setQueue] = useState<Transaction[]>([])
-  const [loadingQueue, setLoadingQueue] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
   const toastTimerRef = useRef<number | null>(null)
-
-  const [filter, setFilter] = useState<'all' | 'queue' | 'done'>('all')
-  const [search, setSearch] = useState('')
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [profileLoaded, setProfileLoaded] = useState(false)
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user')
     if (savedUser) {
-      const parsed = JSON.parse(savedUser)
+      const parsed = normalizeMeUser(JSON.parse(savedUser))
       setUser(parsed)
+      setProfileLoaded(true)
       setFormData({
         name: parsed.name || '',
         username: parsed.username || '',
@@ -93,12 +53,9 @@ function Home() {
         instagram: parsed.instagram || '',
         youtube: parsed.youtube || '',
         min_donation: parsed.min_donation || 0,
-        target_amount: parsed.target_amount || 0,
-        target_description: parsed.target_description || '',
+        active_goal: parsed.active_goal || null,
         quick_amounts: parsed.quick_amounts || [],
         donation_packages: parsed.donation_packages || [],
-        custom_input_label: parsed.custom_input_label || '',
-        custom_input_required: parsed.custom_input_required || false,
         queue_title: parsed.queue_title || '',
         static_qris: parsed.static_qris || '',
         provider: parsed.provider || 'DANA'
@@ -108,27 +65,25 @@ function Home() {
     fetchWithAuth('/me')
       .then(res => res.json())
       .then(data => {
-        setUser(data)
+        const normalized = normalizeMeUser(data)
+        setUser(normalized)
+        setProfileLoaded(true)
         setFormData({
-          name: data.name || '',
-          username: data.username || '',
-          bio: data.bio || '',
-          tiktok: data.tiktok || '',
-          instagram: data.instagram || '',
-          youtube: data.youtube || '',
-          min_donation: data.min_donation || 0,
-          target_amount: data.target_amount || 0,
-          target_description: data.target_description || '',
-          quick_amounts: data.quick_amounts || [],
-          donation_packages: data.donation_packages || [],
-          custom_input_label: data.custom_input_label || '',
-          custom_input_required: data.custom_input_required || false,
-          queue_title: data.queue_title || '',
-          static_qris: data.static_qris || '',
-          provider: data.provider || 'DANA'
+          name: normalized.name || '',
+          username: normalized.username || '',
+          bio: normalized.bio || '',
+          tiktok: normalized.tiktok || '',
+          instagram: normalized.instagram || '',
+          youtube: normalized.youtube || '',
+          min_donation: normalized.min_donation || 0,
+          active_goal: normalized.active_goal || null,
+          quick_amounts: normalized.quick_amounts || [],
+          donation_packages: normalized.donation_packages || [],
+          queue_title: normalized.queue_title || '',
+          static_qris: normalized.static_qris || '',
+          provider: normalized.provider || 'DANA'
         })
-        localStorage.setItem('user', JSON.stringify(data))
-        fetchQueue(data.username)
+        localStorage.setItem('user', JSON.stringify(normalized))
       })
       .catch(err => console.error('Failed to fetch profile', err))
   }, [])
@@ -144,128 +99,87 @@ function Home() {
     }, 2200)
   }
 
-  async function fetchQueue(username: string) {
-    setLoadingQueue(true)
+  async function handleAvatarChange(file?: File | null) {
+    if (!file) return
+    const maxSize = 2 * 1024 * 1024
+    if (!file.type.startsWith('image/')) {
+      showToast('File harus berupa gambar')
+      return
+    }
+    if (file.size > maxSize) {
+      showToast('Ukuran maksimal 2MB')
+      return
+    }
+
+    const formDataUpload = new FormData()
+    formDataUpload.append('avatar', file)
+
+    setAvatarUploading(true)
     try {
-      const res = await fetchWithAuth(`/user/${username}/queue?status=paid&sort_by=base_amount&order=desc`)
-      if (res.ok) {
-        const data = await res.json()
-        setQueue(data || [])
+      const res = await fetchWithAuth('/me/avatar', {
+        method: 'POST',
+        body: formDataUpload
+      })
+      if (!res.ok) {
+        const text = await res.text()
+        showToast(text || 'Gagal upload avatar')
+        return
       }
-    } catch (err) {
-      console.error('Failed to fetch queue', err)
+      const updatedUser = normalizeMeUser(await res.json())
+      setUser(updatedUser)
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      showToast('Avatar diperbarui')
+    } catch {
+      showToast('Gagal upload avatar')
     } finally {
-      setLoadingQueue(false)
+      setAvatarUploading(false)
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
     }
   }
 
-  async function toggleGroupQueue(uuids: string[], currentIsQueue: boolean) {
+  async function handleSave() {
+    if (!formData.name.trim() || !formData.username.trim()) {
+      setError('Nama dan username tidak boleh kosong')
+      return
+    }
+
+    setSaving(true)
+    setError('')
+
     try {
-      const endpoint = currentIsQueue
-        ? '/queue/remove'
-        : '/queue/add'
+      const res = await fetchWithAuth('/me/profile', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: formData.name,
+          username: formData.username,
+          bio: formData.bio,
+          social_links: {
+            tiktok: formData.tiktok,
+            instagram: formData.instagram,
+            youtube: formData.youtube
+          }
+        }),
+      })
 
-      const promises = uuids.map(uuid =>
-        fetchWithAuth(`/transactions/${uuid}${endpoint}`, { method: 'POST' })
-      )
-
-      await Promise.all(promises)
-
-      if (user) {
-        setQueue(prev => prev.map(item =>
-          uuids.includes(item.uuid) ? { ...item, is_queue: !currentIsQueue } : item
-        ))
-      }
-    } catch (err) {
-      console.error('Failed to toggle queue group', err)
-    }
-  }
-
-  async function handleBulkAction(action: 'clear' | 'reset') {
-    if (!user) return
-    const confirmMsg = action === 'clear'
-      ? 'Kosongkan semua antrean saat ini?'
-      : 'Masukkan semua donasi ke antrean?'
-
-    if (!window.confirm(confirmMsg)) return
-
-    setLoadingQueue(true)
-    try {
-      const promises = queue
-        .filter(tx => action === 'clear' ? tx.is_queue : !tx.is_queue)
-        .map(tx => {
-          const endpoint = action === 'clear'
-            ? `/transactions/${tx.uuid}/queue/remove`
-            : `/transactions/${tx.uuid}/queue/add`
-          return fetchWithAuth(endpoint, { method: 'POST' })
-        })
-
-      await Promise.all(promises)
-      fetchQueue(user.username)
-    } catch (err) {
-      console.error('Bulk action failed', err)
-    } finally {
-      setLoadingQueue(false)
-    }
-  }
-
-  const filteredQueue = queue.filter(tx => {
-    const matchesSearch = (tx.sender?.toLowerCase() || '').includes(search.toLowerCase()) ||
-                          (tx.note?.toLowerCase() || '').includes(search.toLowerCase()) ||
-                          (tx.custom_input?.toLowerCase() || '').includes(search.toLowerCase())
-    if (!matchesSearch) return false
-
-    if (filter === 'queue') return tx.is_queue
-    if (filter === 'done') return !tx.is_queue
-    return true
-  })
-
-  // Grouping logic for accumulated donations
-  const aggregatedQueue = (() => {
-    const groups: Record<string, {
-      sender: string,
-      custom_input: string,
-      total_base_amount: number,
-      notes: string[],
-      is_queue: boolean,
-      uuids: string[],
-      latest_date: string
-    }> = {}
-
-    filteredQueue.forEach(tx => {
-      // Kunci grouping: utamakan custom_input (roblox username), fallback ke uuid jika kosong agar tetap individu
-      const key = tx.custom_input ? `roblox_${tx.custom_input.toLowerCase()}` : `single_${tx.uuid}`
-
-      if (!groups[key]) {
-        groups[key] = {
-          sender: tx.sender,
-          custom_input: tx.custom_input,
-          total_base_amount: 0,
-          notes: [],
-          is_queue: false,
-          uuids: [],
-          latest_date: tx.created_at
+      if (!res.ok) {
+        const text = await res.text()
+        if (res.status === 409) {
+          setError('Username sudah digunakan')
+        } else {
+          setError(text || 'Gagal menyimpan')
         }
+        return
       }
 
-      groups[key].total_base_amount += tx.base_amount
-      groups[key].uuids.push(tx.uuid)
-      if (tx.note && !groups[key].notes.includes(tx.note)) {
-        groups[key].notes.push(tx.note)
-      }
-      // Jika salah satu tx dalam grup masuk queue, maka grup dianggap masuk queue
-      if (tx.is_queue) groups[key].is_queue = true
-    })
-
-    return Object.values(groups).sort((a, b) => b.total_base_amount - a.total_base_amount)
-  })()
-
-  function formatCurrency(amount: number) {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount)
+      const updatedUser = normalizeMeUser(await res.json())
+      setUser(updatedUser)
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+      setIsEditing(false)
+    } catch {
+      setError('Terjadi kesalahan')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleEdit() {
@@ -285,89 +199,14 @@ function Home() {
         instagram: user.instagram || '',
         youtube: user.youtube || '',
         min_donation: user.min_donation || 0,
-        target_amount: user.target_amount || 0,
-        target_description: user.target_description || '',
+        active_goal: user.active_goal || null,
         quick_amounts: user.quick_amounts || [],
         donation_packages: user.donation_packages || [],
-        custom_input_label: user.custom_input_label || '',
-        custom_input_required: user.custom_input_required || false,
         queue_title: user.queue_title || '',
         static_qris: user.static_qris || '',
         provider: user.provider || 'DANA'
       })
     }
-  }
-
-  async function handleSave() {
-    if (!formData.name.trim() || !formData.username.trim()) {
-      setError('Nama dan username tidak boleh kosong')
-      return
-    }
-
-    setSaving(true)
-    setError('')
-
-    try {
-      const res = await fetchWithAuth('/me', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          min_donation: Number(formData.min_donation),
-          target_amount: Number(formData.target_amount),
-          quick_amounts: formData.quick_amounts.map(Number),
-          donation_packages: formData.donation_packages.map(p => ({ ...p, amount: Number(p.amount) }))
-        }),
-      })
-
-      if (!res.ok) {
-        const text = await res.text()
-        if (res.status === 409) {
-          setError('Username sudah digunakan')
-        } else {
-          setError(text || 'Gagal menyimpan')
-        }
-        return
-      }
-
-      const updatedUser = await res.json()
-      setUser(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-      setIsEditing(false)
-    } catch {
-      setError('Terjadi kesalahan')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const addQuickAmount = () => {
-    const amt = parseInt(newQuickAmount)
-    if (amt > 0 && !formData.quick_amounts.includes(amt)) {
-      setFormData({ ...formData, quick_amounts: [...formData.quick_amounts, amt].sort((a,b) => a-b) })
-      setNewQuickAmount('')
-    }
-  }
-
-  const removeQuickAmount = (amt: number) => {
-    setFormData({ ...formData, quick_amounts: formData.quick_amounts.filter(a => a !== amt) })
-  }
-
-  const addPackage = () => {
-    const amt = parseInt(newPackage.amount)
-    if (newPackage.label && amt > 0) {
-      setFormData({
-        ...formData,
-        donation_packages: [...formData.donation_packages, { label: newPackage.label, amount: amt }]
-      })
-      setNewPackage({ label: '', amount: '' })
-    }
-  }
-
-  const removePackage = (index: number) => {
-    setFormData({
-      ...formData,
-      donation_packages: formData.donation_packages.filter((_, i) => i !== index)
-    })
   }
 
   return (
@@ -378,30 +217,63 @@ function Home() {
       <section className="dashboard-header">
         <div>
           <h2>Halo, {user?.name || '...'}</h2>
-          <p className="lead">Kelola overlay streaming dan pantau dukungan secara real-time.</p>
+          <p className="lead">Kelola overlay dan pantau dukungan fans secara real-time. 100% cuan, 0% potongan!</p>
         </div>
         <div className="form-actions">
-          <a href={`/${user?.username}`} target="_blank" rel="noreferrer" className="btn btn-secondary">
+          <a href={`/${user?.username}`} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
             Buka Bio Profile
           </a>
         </div>
       </section>
+
+      <MenuFab items={buildMenuItems()} />
 
       <section className="dashboard-grid">
         {/* Profile & Account Card */}
         <article className="card">
           <div className="card-header">
             <h3>Profil & Akun</h3>
-            {!isEditing && (
-              <button className="btn btn-secondary btn-sm" onClick={handleEdit}>
-                Edit
-              </button>
-            )}
           </div>
 
           {error && <p className="error-text">{error}</p>}
 
           <div className="profile-form">
+            <div className="profile-avatar-block">
+              <div className={`avatar-preview ${!profileLoaded ? 'avatar-skeleton' : ''}`}>
+                {profileLoaded ? (
+                  <img
+                    src={user?.avatar_url || '/profile.jpg'}
+                    alt="Avatar"
+                  />
+                ) : (
+                  <span className="avatar-skeleton-inner" aria-hidden="true" />
+                )}
+              </div>
+              <div className="avatar-meta">
+                <p style={{ margin: 0, fontWeight: 700 }}>Foto Profil</p>
+                <p className="muted" style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                  Maks 2MB. Format JPG, PNG, atau WebP.
+                </p>
+              </div>
+              <div className="avatar-actions">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => handleAvatarChange(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarUploading}
+                >
+                  {avatarUploading ? 'Mengunggah...' : 'Ganti Foto'}
+                </button>
+              </div>
+            </div>
+
             {isEditing ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -468,6 +340,14 @@ function Home() {
                     />
                   </div>
                 </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                  <button className="btn btn-secondary" onClick={handleCancel}>
+                    Batal
+                  </button>
+                  <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -500,430 +380,68 @@ function Home() {
                     <p className="profile-meta-value">@{user?.username || '-'}</p>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </article>
-
-        {/* Donation Preferences Card */}
-        <article className="card">
-          <div className="card-header">
-            <h3>Preferensi Dukungan</h3>
-            {isEditing && (
-              <span className="badge badge-active">Sedang Diedit</span>
-            )}
-          </div>
-
-          <div className="profile-form">
-            {isEditing ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Target & Batasan</h4>
-                  <div className="form-group">
-                    <label>Minimal Donasi (IDR)</label>
-                    <input
-                      type="number"
-                      value={formData.min_donation}
-                      onChange={e => setFormData({ ...formData, min_donation: Number(e.target.value) })}
-                      className="input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Target Dana (IDR)</label>
-                    <input
-                      type="number"
-                      value={formData.target_amount}
-                      onChange={e => setFormData({ ...formData, target_amount: Number(e.target.value) })}
-                      className="input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Keterangan Target</label>
-                    <input
-                      type="text"
-                      value={formData.target_description}
-                      onChange={e => setFormData({ ...formData, target_description: e.target.value })}
-                      className="input"
-                      placeholder="Contoh: Untuk beli laptop baru"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>List Harga Cepat</h4>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="number"
-                      value={newQuickAmount}
-                      onChange={e => setNewQuickAmount(e.target.value)}
-                      placeholder="15000"
-                      className="input"
-                    />
-                    <button type="button" className="btn btn-secondary" onClick={addQuickAmount}>+</button>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {formData.quick_amounts.map(amt => (
-                      <span key={amt} className="badge badge-active" style={{ cursor: 'pointer' }} onClick={() => removeQuickAmount(amt)}>
-                        {amt/1000}rb ✕
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Paket Dukungan</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <input
-                      type="text"
-                      value={newPackage.label}
-                      onChange={e => setNewPackage({ ...newPackage, label: e.target.value })}
-                      placeholder="Label: REVIEW AKUN"
-                      className="input"
-                    />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input
-                        type="number"
-                        value={newPackage.amount}
-                        onChange={e => setNewPackage({ ...newPackage, amount: e.target.value })}
-                        placeholder="Harga: 50000"
-                        className="input"
-                      />
-                      <button type="button" className="btn btn-secondary" onClick={addPackage}>Tambah</button>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {formData.donation_packages.map((p, i) => (
-                      <div key={i} className="widget-row" style={{ padding: '8px 12px', background: 'var(--muted)', borderRadius: '10px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 600 }}>{p.label} - {formatCurrency(p.amount)}</span>
-                        <button type="button" className="btn btn-ghost btn-sm" style={{ color: '#dc2626' }} onClick={() => removePackage(i)}>✕</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Kolom Input Tambahan (Wajib)</h4>
-                  <div className="form-group">
-                    <label>Label Kolom (Kosongkan jika tidak perlu)</label>
-                    <input
-                      type="text"
-                      value={formData.custom_input_label}
-                      onChange={e => setFormData({ ...formData, custom_input_label: e.target.value })}
-                      placeholder="Contoh: Username Roblox"
-                      className="input"
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      id="custom_required"
-                      checked={formData.custom_input_required}
-                      onChange={e => setFormData({ ...formData, custom_input_required: e.target.checked })}
-                      style={{ width: 'auto' }}
-                    />
-                    <label htmlFor="custom_required" style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Aktifkan & Wajib diisi</label>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ margin: '0 0 8px 0', color: 'var(--accent)' }}>Kustomisasi Overlay</h4>
-                  <div className="form-group">
-                    <label>Judul Antrian Donasi</label>
-                    <input
-                      type="text"
-                      value={formData.queue_title}
-                      onChange={e => setFormData({ ...formData, queue_title: e.target.value })}
-                      placeholder="Contoh: Antrian Request"
-                      className="input"
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div className="profile-display">
-                  <div className="profile-field">
-                    <p className="profile-label">Minimal Donasi</p>
-                    <p className="profile-value" style={{ color: 'var(--accent)' }}>{formatCurrency(user?.min_donation || 0)}</p>
-                  </div>
-                  <div className="profile-field">
-                    <p className="profile-label">Target Dana</p>
-                    <p className="profile-value">{formatCurrency(user?.target_amount || 0)}</p>
-                    {user?.target_description && <p style={{ fontSize: '11px', marginTop: '4px', opacity: 0.7 }}>{user.target_description}</p>}
-                  </div>
-                </div>
-
-                <div className="profile-display">
-                  <div className="profile-field">
-                    <p className="profile-label">List Harga Cepat</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-                      {user?.quick_amounts?.map(amt => (
-                        <span key={amt} className="badge" style={{ background: 'var(--muted)', color: 'var(--foreground)', fontSize: '10px' }}>{amt/1000}rb</span>
-                      )) || '-'}
-                    </div>
-                  </div>
-                  <div className="profile-field">
-                    <p className="profile-label">Paket Dukungan</p>
-                    <p className="profile-value" style={{ fontSize: '14px' }}>{user?.donation_packages?.length || 0} Paket Terdaftar</p>
-                  </div>
-                </div>
-
-                <div className="profile-display">
-                  <div className="profile-field">
-                    <p className="profile-label">Kolom Input Tambahan</p>
-                    <p className="profile-value" style={{ fontSize: '14px' }}>
-                      {user?.custom_input_label ? `${user.custom_input_label} (${user.custom_input_required ? 'Wajib' : 'Opsional'})` : 'Tidak Aktif'}
-                    </p>
-                  </div>
-                  <div className="profile-field">
-                    <p className="profile-label">Judul Antrian</p>
-                    <p className="profile-value" style={{ fontSize: '14px' }}>{user?.queue_title || 'Antrian Donasi'}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </article>
-
-        {/* Payment Settings Card */}
-        <article className="card">
-          <div className="card-header">
-            <h3>Pengaturan Pembayaran</h3>
-            {isEditing && <span className="badge badge-active">Sedang Diedit</span>}
-          </div>
-          <div className="profile-form">
-            {isEditing ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="form-group">
-                  <label>Provider Merchant</label>
-                  <select
-                    value={formData.provider}
-                    onChange={e => setFormData({ ...formData, provider: e.target.value })}
-                    className="input"
-                    style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
-                  >
-                    <option value="DANA">DANA Business</option>
-                    <option value="GOPAY">GoPay Merchant</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Kode QRIS Statis</label>
-                  <textarea
-                    value={formData.static_qris}
-                    onChange={e => setFormData({ ...formData, static_qris: e.target.value })}
-                    className="input"
-                    placeholder="Paste kode QRIS dari aplikasi (000201010211...)"
-                    style={{ minHeight: '100px', resize: 'vertical', fontFamily: 'monospace', fontSize: '12px' }}
-                  />
-                  <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginTop: '4px' }}>
-                    Pastikan Anda menyalin kode string QRIS dengan benar (bukan gambar).
-                  </p>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button className="btn btn-secondary" onClick={handleCancel} disabled={saving}>
-                    Batal
-                  </button>
-                  <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-secondary" onClick={handleEdit}>
+                    Edit
                   </button>
                 </div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div className="profile-display">
-                  <div className="profile-field">
-                    <p className="profile-label">Provider Merchant</p>
-                    <p className="profile-value">
-                      {user?.provider === 'GOPAY' ? 'GoPay Merchant' : user?.provider === 'DANA' ? 'DANA Business' : (user?.provider || '-')}
-                    </p>
-                  </div>
-                  <div className="profile-field">
-                    <p className="profile-label">Status QRIS</p>
-                    <p className="profile-value" style={{ fontSize: '14px' }}>
-                      {user?.static_qris ? (
-                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Terkonfigurasi ✓</span>
-                      ) : (
-                        <span style={{ color: '#dc2626' }}>Belum disetel</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="profile-display" style={{ marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-                  <div className="profile-field" style={{ width: '100%' }}>
-                    <p className="profile-label">App Token (Untuk Aplikasi Android Listener)</p>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap' }}>
-                      <input
-                        type="text"
-                        readOnly
-                        value={user?.app_token || 'Token belum tersedia'}
-                        className="input"
-                        style={{ flex: '1 1 200px', fontFamily: 'monospace', fontSize: '12px', background: 'var(--muted)', minWidth: 0 }}
-                      />
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        style={{ flex: '0 0 auto' }}
-                        onClick={() => {
-                          if (user?.app_token) {
-                            navigator.clipboard.writeText(user.app_token);
-                            showToast('Token disalin')
-                          }
-                        }}
-                      >
-                        Salin
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
             )}
           </div>
         </article>
 
-        {/* Overlay Links Card */}
-        <article className="card">
-          <div className="card-header">
-            <h3>Overlay Widgets</h3>
-            <span className="badge badge-active">Streaming</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {[
-              { label: 'Alert Overlay', path: `/overlays/alert/${user?.uuid}`, status: 'active' },
-              { label: 'Queue Overlay', path: `/overlays/queue/${user?.uuid}`, status: 'active' },
-              { label: 'MediaShare Overlay', path: `/overlays/media/${user?.uuid}`, status: 'soon' },
-            ].map((overlay) => (
-              <div key={overlay.path} className="widget-row">
-                <div className="widget-info">
-                  <div className="widget-header">
-                    <p>{overlay.label}</p>
-                    <span className={`badge ${overlay.status === 'soon' ? 'badge-soon' : 'badge-active'}`}>
-                      {overlay.status === 'soon' ? 'SOON' : 'LIVE'}
-                    </span>
-                  </div>
-                  <input
-                    readOnly
-                    value={overlay.status === 'soon' ? 'Fitur akan segera hadir' : `${window.location.origin}${overlay.path}`}
-                    className="input"
-                    disabled={overlay.status === 'soon'}
-                    style={{ fontSize: '11px' }}
-                  />
-                </div>
-                <div className="form-actions">
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    disabled={overlay.status === 'soon'}
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}${overlay.path}`)
-                      showToast('Link disalin')
-                    }}
-                  >
-                    Salin
-                  </button>
-                  {overlay.status !== 'soon' && (
-                    <>
-                      <a href={overlay.path} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">
-                        Buka
-                      </a>
-                      {overlay.label === 'Alert Overlay' && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => {
-                            if (!user) return
-                            fetchWithAuth(`/user/${user.uuid}/test-alert`, { method: 'POST' })
-                              .then(() => showToast('Test alert dikirim'))
-                              .catch(() => showToast('Gagal mengirim test alert'))
-                          }}
-                        >
-                          Test
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        {/* Queue Management Card */}
-        <article className="card card-wide">
-          <div className="card-header">
-            <h3>Antrian Donasi</h3>
-            <div className="form-actions">
-              <button className="btn btn-ghost btn-sm" onClick={() => handleBulkAction('reset')} disabled={loadingQueue} style={{ color: 'var(--accent)' }}>Reset</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => handleBulkAction('clear')} disabled={loadingQueue} style={{ color: '#dc2626' }}>Clear</button>
-              <button className="btn btn-secondary btn-sm" onClick={() => user && fetchQueue(user.username)} disabled={loadingQueue}>Refresh</button>
-            </div>
-          </div>
-
-          <div className="stack-resp">
-            <div className="tab-group flex-1">
-              {(['all', 'queue', 'done'] as const).map(t => (
-                <button
-                  key={t}
-                  className={`btn btn-sm ${filter === t ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setFilter(t)}
-                  style={{ flex: 1, padding: '6px' }}
-                >
-                  {t === 'all' ? 'Semua' : t === 'queue' ? 'Antrian' : 'Selesai'}
-                </button>
-              ))}
-            </div>
-            <input
-              type="text"
-              placeholder="Cari donatur..."
-              className="input"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ flex: 1.5 }}
-            />
-          </div>
-
-          <div className="feed">
-            {aggregatedQueue.length === 0 ? (
-              <p className="muted text-center" style={{ padding: '40px' }}>
-                {loadingQueue ? 'Memuat...' : 'Tidak ada data'}
-              </p>
-            ) : (
-              aggregatedQueue.map((group) => (
-                <div key={group.uuids[0]} className="feed-row" style={{ minWidth: 0 }}>
-                  <div className="feed-user-info" style={{ minWidth: 0, flex: 1 }}>
-                    <div className="feed-avatar" style={{ background: group.is_queue ? 'var(--accent)' : '#e2e8f0', flexShrink: 0 }}>
-                      {group.sender[0]?.toUpperCase() || '?'}
-                    </div>
-                    <div className="feed-text" style={{ minWidth: 0, flex: 1 }}>
-                      <p className="feed-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>{group.sender}</p>
-                      {group.custom_input && (
-                        <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0', overflowWrap: 'anywhere' }}>
-                          {user?.custom_input_label || 'Info'}: {group.custom_input}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="feed-meta" style={{ flexShrink: 0, textAlign: 'right' }}>
-                    <p className="feed-amount">{formatCurrency(group.total_base_amount)}</p>
-                    {group.uuids.length > 1 && (
-                      <span className="badge badge-active" style={{ fontSize: '9px', padding: '2px 6px', marginTop: '2px' }}>
-                        {group.uuids.length}x Donasi
-                      </span>
-                    )}
-                    <button
-                      className={`btn btn-sm ${group.is_queue ? 'btn-ghost' : 'btn-primary'}`}
-                      onClick={() => toggleGroupQueue(group.uuids, group.is_queue)}
-                      style={{ padding: '4px 8px', height: '28px', marginTop: '4px' }}
-                    >
-                      {group.is_queue ? '✕' : '↩'}
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </article>
       </section>
       <style>{`
+        .profile-avatar-block {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          gap: 12px;
+          align-items: center;
+          padding: 12px;
+          border: 1px dashed var(--border);
+          border-radius: 16px;
+          background: var(--muted);
+        }
+        .avatar-preview {
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 2px solid rgba(0, 82, 255, 0.2);
+          background: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .avatar-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .avatar-skeleton {
+          background: linear-gradient(110deg, #e5e7eb 8%, #f3f4f6 18%, #e5e7eb 33%);
+          background-size: 200% 100%;
+          animation: skeletonShimmer 1.4s ease-in-out infinite;
+        }
+        .avatar-skeleton-inner {
+          width: 70%;
+          height: 70%;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.55);
+        }
+        .avatar-actions { display: flex; justify-content: flex-end; }
+        @media (max-width: 520px) {
+          .profile-avatar-block {
+            grid-template-columns: auto 1fr;
+            grid-template-areas:
+              "avatar meta"
+              "actions actions";
+          }
+          .avatar-preview { grid-area: avatar; }
+          .avatar-meta { grid-area: meta; }
+          .avatar-actions { grid-area: actions; justify-content: flex-start; }
+        }
+
         .toast-container {
           position: fixed;
           top: calc(12px + env(safe-area-inset-top));
@@ -950,6 +468,10 @@ function Home() {
         .toast-show .toast {
           opacity: 1;
           transform: translateY(0);
+        }
+        @keyframes skeletonShimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
         }
         @media (min-width: 640px) {
           .toast {
