@@ -80,8 +80,9 @@ function Payment() {
 
   useEffect(() => {
     if (tx?.qris_payload && canvasRef.current && !isExpired && !isPaid && !loading) {
+      // Gunakan ukuran yang lebih masuk akal (300px) agar tidak memicu overflow pada container grid
       QRCode.toCanvas(canvasRef.current, tx.qris_payload, {
-        width: 280,
+        width: 300, 
         margin: 2,
         color: {
           dark: '#000000',
@@ -183,7 +184,7 @@ function Payment() {
               <span className="payment-summary-value payment-summary-value--muted">{formatCurrency(0)}</span>
             </div>
             <div className="payment-summary-row">
-              <span className="payment-summary-label">Unique Code</span>
+              <span className="payment-summary-label">Dukungan Ekstra</span>
               <span className="payment-summary-value">{uniqueCodeDisplay}</span>
             </div>
           </div>
@@ -245,9 +246,35 @@ function Payment() {
             </div>
           ) : (
             <>
-              <img src="/qris.svg" alt="QRIS" style={{ height: '24px', marginBottom: '16px' }} />
-              <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto' }} />
-              <p style={{ marginTop: '16px', fontWeight: '700', letterSpacing: '4px', fontSize: '14px', color: '#333' }}>QRIS GPN</p>
+              <img src="/qris2.svg" alt="QRIS" style={{ height: '24px', marginBottom: '16px' }} />
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: '260px',
+                  aspectRatio: '1 / 1',
+                  margin: '0 auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  background: '#fff',
+                  borderRadius: '12px'
+                }}
+              >
+                <canvas 
+                  ref={canvasRef} 
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '100%',
+                    height: 'auto', 
+                    display: 'block'
+                  }} 
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '16px' }}>
+                <img src="/qris.svg" alt="QRIS" style={{ height: '20px' }} />
+                <img src="/gpn.svg" alt="GPN" style={{ height: '20px' }} />
+              </div>
             </>
           )}
         </div>
@@ -263,7 +290,7 @@ function Payment() {
                 <span className="muted" style={{ fontSize: '13px' }}>Pengirim</span>
                 <span style={{ fontSize: '13px', fontWeight: '600' }}>{tx.sender || 'Seseorang'}</span>
               </div>
-              
+
               {/* Custom Input Details */}
               {tx.custom_input_json && Object.keys(tx.custom_input_json).length > 0 && (
                 <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
@@ -282,7 +309,7 @@ function Payment() {
             </div>
 
             <p className="muted" style={{ fontSize: '12px', marginTop: '16px', lineHeight: 1.4 }}>
-              Silakan scan QR di atas menggunakan aplikasi mobile banking atau e-wallet kamu.
+              QR ini sudah siap dibayar. Scan dengan m-banking, e-wallet, atau alat pembayaran favorit kamu.
             </p>
           </>
         )}
