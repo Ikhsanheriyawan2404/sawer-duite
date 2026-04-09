@@ -30,8 +30,18 @@ function Analytics() {
     return d.toISOString().split('T')[0]
   })
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [searchTerm, setSearchTerm] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchTerm)
+      setPage(1)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true)
@@ -79,37 +89,37 @@ function Analytics() {
 
       <section className="dashboard-grid">
         {/* Filters */}
-        <article className="card card-wide">
+        <article className="card card-wide" style={{ minWidth: 0 }}>
           <div className="card-header">
             <h3>Filter Data</h3>
           </div>
           <div className="stack-resp" style={{ gap: '16px' }}>
             <div className="form-group flex-1">
               <label>Mulai Tanggal</label>
-              <input 
-                type="date" 
-                className="input" 
-                value={startDate} 
-                onChange={e => { setStartDate(e.target.value); setPage(1); }} 
+              <input
+                type="date"
+                className="input"
+                value={startDate}
+                onChange={e => { setStartDate(e.target.value); setPage(1); }}
               />
             </div>
             <div className="form-group flex-1">
               <label>Sampai Tanggal</label>
-              <input 
-                type="date" 
-                className="input" 
-                value={endDate} 
-                onChange={e => { setEndDate(e.target.value); setPage(1); }} 
+              <input
+                type="date"
+                className="input"
+                value={endDate}
+                onChange={e => { setEndDate(e.target.value); setPage(1); }}
               />
             </div>
             <div className="form-group" style={{ flex: 2 }}>
               <label>Cari (Sender, Nominal, Note)</label>
-              <input 
-                type="text" 
-                className="input" 
-                placeholder="Ketik untuk mencari..." 
-                value={search} 
-                onChange={e => { setSearch(e.target.value); setPage(1); }} 
+              <input
+                type="text"
+                className="input"
+                placeholder="Ketik untuk mencari..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
@@ -117,26 +127,26 @@ function Analytics() {
 
         {/* Summary Cards */}
         <div className="analytics-summary-grid">
-          <article className="card analytics-card">
+          <article className="card analytics-card" style={{ minWidth: 0 }}>
             <p className="muted">Total Nominal</p>
             <h3>{data ? formatCurrency(data.summary.total_nominal) : '...'}</h3>
           </article>
-          <article className="card analytics-card">
+          <article className="card analytics-card" style={{ minWidth: 0 }}>
             <p className="muted">Total Transaksi</p>
             <h3>{data ? data.summary.total_count : '...'}</h3>
           </article>
-          <article className="card analytics-card">
+          <article className="card analytics-card" style={{ minWidth: 0 }}>
             <p className="muted">Rata-rata (AVG)</p>
             <h3>{data ? formatCurrency(data.summary.average_value) : '...'}</h3>
           </article>
-          <article className="card analytics-card">
+          <article className="card analytics-card" style={{ minWidth: 0 }}>
             <p className="muted">Pendukung</p>
             <h3>{data ? data.summary.total_supporters : '100'}</h3>
           </article>
         </div>
 
         {/* Transactions Table */}
-        <article className="card card-wide">
+        <article className="card card-wide" style={{ minWidth: 0 }}>
           <div className="card-header">
             <h3>Daftar Transaksi</h3>
           </div>
@@ -169,20 +179,20 @@ function Analytics() {
             </table>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-            <p className="muted" style={{ fontSize: '13px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', gap: '16px' }}>
+            <p className="muted" style={{ fontSize: '13px', margin: 0 }}>
               Halaman {data?.pagination.current_page || 1} dari {data?.pagination.total_pages || 1}
             </p>
-            <div className="form-actions">
-              <button 
-                className="btn btn-secondary btn-sm" 
+            <div className="form-actions" style={{ marginTop: 0 }}>
+              <button
+                className="btn btn-secondary btn-sm"
                 disabled={!data?.pagination.has_prev || loading}
                 onClick={() => setPage(p => p - 1)}
               >
                 Sebelumnya
               </button>
-              <button 
-                className="btn btn-secondary btn-sm" 
+              <button
+                className="btn btn-secondary btn-sm"
                 disabled={!data?.pagination.has_next || loading}
                 onClick={() => setPage(p => p + 1)}
               >
@@ -196,42 +206,70 @@ function Analytics() {
       <style>{`
         .analytics-summary-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 12px;
           grid-column: 1 / -1;
         }
+        @media (min-width: 768px) {
+          .analytics-summary-grid {
+            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          }
+        }
         .analytics-card {
-          padding: 24px;
+          padding: 20px 16px;
           text-align: center;
+        }
+        @media (min-width: 768px) {
+          .analytics-card { padding: 24px; }
         }
         .analytics-card h3 {
           margin: 8px 0 0 0;
-          font-size: 1.5rem;
+          font-size: 1.25rem;
           color: var(--accent);
+        }
+        @media (min-width: 768px) {
+          .analytics-card h3 { font-size: 1.5rem; }
         }
         .table-responsive {
           width: 100%;
           overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
           margin-top: 12px;
+          border-radius: 12px;
         }
         .table {
           width: 100%;
           border-collapse: collapse;
           text-align: left;
+          min-width: 600px; /* Force scroll on small screens */
         }
         .table th {
-          padding: 12px;
+          padding: 12px 16px;
           border-bottom: 2px solid var(--border);
           font-size: 12px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           color: var(--muted-foreground);
+          white-space: nowrap;
         }
         .table td {
-          padding: 12px;
+          padding: 16px;
           border-bottom: 1px solid var(--border);
+          white-space: nowrap;
+          font-size: 14px;
+        }
+        .table td:last-child {
+          white-space: normal;
+          min-width: 200px;
         }
         .accent { color: var(--accent); }
+
+        /* Fix grid item overflow */
+        .card-wide {
+          min-width: 0;
+          overflow: hidden;
+        }
       `}</style>
     </main>
   )

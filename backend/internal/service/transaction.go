@@ -227,6 +227,11 @@ func (s *TransactionService) GetUserStats(username string) (map[string]any, erro
 	totalAmount, totalDonors, _ := s.txRepo.GetUserStats(user.ID)
 	recent, _ := s.txRepo.GetRecent(user.ID, 10)
 
+	publicRecent := make([]domain.PublicTransaction, len(recent))
+	for i, tx := range recent {
+		publicRecent[i] = domain.ToPublicTransaction(tx)
+	}
+
 	topSupporters := make(map[string]any)
 	periods := map[string]time.Time{
 		"all":   {},
@@ -243,7 +248,7 @@ func (s *TransactionService) GetUserStats(username string) (map[string]any, erro
 	return map[string]any{
 		"total_amount":   totalAmount,
 		"total_donors":   totalDonors,
-		"recent":         recent,
+		"recent":         publicRecent,
 		"top_supporters": topSupporters,
 	}, nil
 }
@@ -271,13 +276,23 @@ func (s *TransactionService) UpdateQueue(userID uint, txUUID string, isQueue boo
 	return tx, nil
 }
 
-func (s *TransactionService) GetQueueList(username string, query domain.QueueListQuery) ([]domain.Transaction, error) {
+func (s *TransactionService) GetQueueList(username string, query domain.QueueListQuery) ([]domain.PublicTransaction, error) {
 	user, err := s.userRepo.GetByUsername(username)
 	if err != nil {
 		return nil, errors.New("user not found")
 	}
 
-	return s.txRepo.List(query, user.ID)
+	transactions, err := s.txRepo.List(query, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	publicTransactions := make([]domain.PublicTransaction, len(transactions))
+	for i, tx := range transactions {
+		publicTransactions[i] = domain.ToPublicTransaction(tx)
+	}
+
+	return publicTransactions, nil
 }
 
 func (s *TransactionService) GetAnalytics(userID uint, start, end time.Time, search string, page, limit int) (*domain.AnalyticsResponse, error) {

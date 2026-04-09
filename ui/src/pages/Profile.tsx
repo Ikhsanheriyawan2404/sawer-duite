@@ -301,14 +301,14 @@ function Profile() {
 
         {/* BARIS 2: TOTAL SUPPORTER */}
         <article className="card" style={{ padding: '24px' }}>
-          <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', marginBottom: '4px' }}>Supporters</p>
+          <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', marginBottom: '4px' }}>Pendukung</p>
           <h3 style={{ fontSize: '32px' }}>{stats?.total_donors || 0} <span style={{ fontSize: '16px', color: 'var(--muted-foreground)', fontWeight: 500 }}>Orang</span></h3>
         </article>
 
         {/* BARIS 3: TOP SUPPORTERS */}
         <article className="card">
           <div className="card-header" style={{ marginBottom: '16px' }}>
-            <h3>Top Supporters</h3>
+            <h3>Pendukung Utama</h3>
             <select
               value={topFilter}
               onChange={(e) => setTopFilter(e.target.value as any)}
@@ -351,7 +351,7 @@ function Profile() {
         {/* BARIS 4: RECENT DONATIONS */}
         <article className="card">
           <div className="card-header" style={{ marginBottom: '16px' }}>
-            <h3>Recent Donations</h3>
+            <h3>Donasi Terbaru</h3>
           </div>
           <div className="feed">
             {stats?.recent?.length ? (
