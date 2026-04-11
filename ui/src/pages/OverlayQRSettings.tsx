@@ -31,7 +31,7 @@ function OverlayQRSettings() {
         top_text: parsed.qr_config?.top_text || 'Dukung Saya',
         bottom_text: parsed.qr_config?.bottom_text || 'Scan QR untuk donasi'
       })
-      
+
       const url = `${window.location.origin}/${parsed.username}`
       QRCode.toDataURL(url, { margin: 0, width: 240 }).then(setQrDataUrl)
     }
@@ -104,18 +104,18 @@ function OverlayQRSettings() {
     }
   }
 
+  const overlayPath = user?.uuid ? `/overlays/qr/${user.uuid}` : ''
+  const overlayUrl = overlayPath ? `${window.location.origin}${overlayPath}` : ''
+
   function maskLink(value: string) {
     if (!value) return 'Memuat...'
     try {
       const url = new URL(value)
-      return `${url.origin}/••••••`
+      return `${url.origin}/••••••••••••••••••••`
     } catch {
       return '••••••'
     }
   }
-
-  const overlayPath = user?.uuid ? `/overlays/qr/${user.uuid}` : ''
-  const overlayUrl = overlayPath ? `${window.location.origin}${overlayPath}` : ''
 
   return (
     <main className="page">
@@ -133,135 +133,137 @@ function OverlayQRSettings() {
       <MenuFab items={buildMenuItems()} />
 
       <section className="dashboard-grid">
-        <article className="card">
-          <div className="card-header">
-            <h3>Link Overlay</h3>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <article className="card">
+            <div className="card-header">
+              <h3>Link Overlay</h3>
+            </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <input
-              readOnly
-              value={maskLink(overlayUrl)}
-              className="input"
-              style={{ fontSize: '12px' }}
-            />
-            <div className="form-actions">
-              <button
-                className="btn btn-secondary btn-sm"
-                disabled={!overlayUrl}
-                onClick={() => {
-                  if (!overlayUrl) return
-                  navigator.clipboard.writeText(overlayUrl)
-                  showToast('Link disalin')
-                }}
-              >
-                Salin
-              </button>
-              {overlayPath && (
-                <a href={overlayPath} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>
-                  Buka
+            <p style={{ fontSize: '14px', color: 'var(--muted-foreground)', margin: '0 0 4px 0' }}>
+              Gunakan link ini pada OBS Browser Source Anda.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="password-wrapper">
+                <input
+                  readOnly
+                  value={maskLink(overlayUrl)}
+                  type="text"
+                  className="input"
+                  style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', paddingRight: '100px' }}
+                />
+                <button
+                  className="password-toggle"
+                  style={{ color: 'var(--accent)', right: '16px' }}
+                  onClick={() => {
+                    if (!overlayUrl) return
+                    navigator.clipboard.writeText(overlayUrl)
+                    showToast('Link disalin')
+                  }}
+                >
+                  SALIN
+                </button>
+              </div>
+
+              <div className="form-actions">
+                <a
+                  href={overlayPath}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  style={{ textDecoration: 'none', flex: 1 }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                  Preview Window
                 </a>
+              </div>
+            </div>
+          </article>
+
+          <article className="card">
+            <div className="card-header">
+              <h3>Konfigurasi Teks</h3>
+              <button
+                className={`btn btn-sm ${isEditing ? 'btn-ghost' : 'btn-secondary'}`}
+                onClick={isEditing ? handleCancel : handleEdit}
+              >
+                {isEditing ? 'Batal' : 'Edit Teks'}
+              </button>
+            </div>
+
+            {error && <p className="error-text">{error}</p>}
+
+            <div className="profile-form">
+              <div className="form-group">
+                <label>Teks Atas (Headline)</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.top_text}
+                    onChange={e => setFormData({ ...formData, top_text: e.target.value })}
+                    className="input"
+                    placeholder="Contoh: Dukung Saya"
+                  />
+                ) : (
+                  <div className="profile-field" style={{ padding: '12px 16px' }}>
+                    <p className="profile-value" style={{ fontSize: '15px' }}>{user?.qr_config?.top_text || 'Dukung Saya'}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Teks Bawah (Sub-headline)</label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.bottom_text}
+                    onChange={e => setFormData({ ...formData, bottom_text: e.target.value })}
+                    className="input"
+                    placeholder="Contoh: Scan untuk donasi"
+                  />
+                ) : (
+                  <div className="profile-field" style={{ padding: '12px 16px' }}>
+                    <p className="profile-value" style={{ fontSize: '15px' }}>{user?.qr_config?.bottom_text || 'Scan untuk donasi'}</p>
+                  </div>
+                )}
+              </div>
+
+              {isEditing && (
+                <button
+                  className="btn btn-primary w-full"
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{ marginTop: '8px' }}
+                >
+                  {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
               )}
             </div>
-          </div>
-        </article>
+          </article>
+        </div>
 
-        <article className="card card-wide">
+        <article className="card" style={{ background: 'var(--muted)', border: '1px dashed var(--border)' }}>
           <div className="card-header">
-            <h3>Konfigurasi Tampilan</h3>
+            <h3>Live Preview</h3>
           </div>
 
-          {error && <p className="error-text">{error}</p>}
-
-          <div className="profile-form">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div className="form-group">
-                  <label>Teks Atas</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={formData.top_text}
-                      onChange={e => setFormData({ ...formData, top_text: e.target.value })}
-                      className="input"
-                      placeholder="Contoh: Dukung Saya"
-                    />
-                  ) : (
-                    <p className="profile-value">{user?.qr_config?.top_text || '-'}</p>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label>Teks Bawah</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={formData.bottom_text}
-                      onChange={e => setFormData({ ...formData, bottom_text: e.target.value })}
-                      className="input"
-                      placeholder="Contoh: Scan untuk donasi"
-                    />
-                  ) : (
-                    <p className="profile-value">{user?.qr_config?.bottom_text || '-'}</p>
-                  )}
-                </div>
+          <div className="preview-container">
+            <div className="qr-preview-card">
+              <p className="qr-preview-label">{formData.top_text || 'TOP TEXT'}</p>
+              <div className="qr-preview-box">
+                {qrDataUrl ? (
+                  <img src={qrDataUrl} alt="QR Preview" />
+                ) : (
+                  <div className="qr-preview-placeholder" />
+                )}
               </div>
-
-              {/* Preview Box */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <label>Preview Sederhana</label>
-                <div style={{ 
-                  background: '#f8fafc', 
-                  border: '2px solid var(--border)', 
-                  borderRadius: '16px', 
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '12px'
-                }}>
-                  <div style={{ fontWeight: 800, fontSize: '18px', color: 'var(--accent)', textTransform: 'uppercase' }}>
-                    {formData.top_text || 'TOP TEXT'}
-                  </div>
-                  <div style={{ 
-                    width: '120px', 
-                    height: '120px', 
-                    background: '#fff', 
-                    border: '1px solid #ddd',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    color: '#999',
-                    overflow: 'hidden'
-                  }}>
-                    {qrDataUrl ? (
-                      <img src={qrDataUrl} alt="QR Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      'QR CODE'
-                    )}
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: '14px' }}>
-                    {formData.bottom_text || 'BOTTOM TEXT'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '32px', borderTop: '1px solid var(--border)', paddingTop: '24px' }}>
-              {isEditing ? (
-                <>
-                  <button className="btn btn-secondary" onClick={handleCancel}>Batal</button>
-                  <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                  </button>
-                </>
-              ) : (
-                <button className="btn btn-secondary" onClick={handleEdit}>Edit Konfigurasi</button>
-              )}
+              <p className="qr-preview-link">{formData.bottom_text || 'BOTTOM TEXT'}</p>
             </div>
           </div>
+
+          <p style={{ fontSize: '12px', color: 'var(--muted-foreground)', textAlign: 'center', marginTop: '12px' }}>
+            Pratinjau ini menunjukkan bagaimana overlay akan muncul di streaming Anda.
+          </p>
         </article>
       </section>
 
@@ -292,6 +294,78 @@ function OverlayQRSettings() {
         .toast-show .toast {
           opacity: 1;
           transform: translateY(0);
+        }
+
+        .preview-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 20px;
+          background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uInGs0Ak8PhneGfJlE0M6mRD8n797MIsInSgl6eGFTY6K7kSgMAfSstSAn76IkAAAAASUVORK5CYII=');
+          border-radius: 16px;
+          min-height: 400px;
+        }
+
+        .qr-preview-card {
+          width: fit-content;
+          max-width: 280px;
+          background: #ffffff;
+          border-radius: 24px;
+          padding: 16px 20px;
+          border: 6px solid #0052ff;
+          text-align: center;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .qr-preview-label {
+          font-size: 18px;
+          font-weight: 900;
+          letter-spacing: 0.02em;
+          color: #0052ff;
+          text-transform: uppercase;
+          margin: 0 0 10px 0;
+          line-height: 1.1;
+        }
+
+        .qr-preview-box {
+          width: 180px;
+          height: 180px;
+          margin: 0 auto 10px;
+          background: #ffffff;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px;
+        }
+
+        .qr-preview-box img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+
+        .qr-preview-placeholder {
+          width: 100%;
+          height: 100%;
+          border-radius: 10px;
+          background: #f1f5f9;
+        }
+
+        .qr-preview-link {
+          font-size: 14px;
+          font-weight: 800;
+          color: #0f172a;
+          word-break: break-all;
+          margin: 0;
+          line-height: 1.2;
+          background: #f1f5f9;
+          padding: 6px 12px;
+          border-radius: 10px;
+          width: 100%;
         }
       `}</style>
     </main>

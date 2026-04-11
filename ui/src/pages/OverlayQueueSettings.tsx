@@ -270,28 +270,42 @@ function OverlayQueueSettings() {
             <h3>Link Overlay</h3>
           </div>
 
+          <p style={{ fontSize: '14px', color: 'var(--muted-foreground)', margin: '0 0 4px 0' }}>
+            Gunakan link ini pada OBS Browser Source Anda.
+          </p>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <input
-              readOnly
-              value={maskLink(overlayUrl)}
-              className="input"
-              style={{ fontSize: '12px' }}
-            />
-            <div className="form-actions">
+            <div className="password-wrapper">
+              <input
+                readOnly
+                value={maskLink(overlayUrl)}
+                className="input"
+                style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', paddingRight: '100px' }}
+              />
               <button
-                className="btn btn-secondary btn-sm"
-                disabled={!overlayUrl}
+                className="password-toggle"
+                style={{ color: 'var(--accent)', right: '16px' }}
                 onClick={() => {
                   if (!overlayUrl) return
                   navigator.clipboard.writeText(overlayUrl)
                   showToast('Link disalin')
                 }}
               >
-                Salin
+                SALIN
               </button>
+            </div>
+
+            <div className="form-actions">
               {overlayPath && (
-                <a href={overlayPath} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>
-                  Buka
+                <a 
+                  href={overlayPath} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="btn btn-secondary btn-sm" 
+                  style={{ textDecoration: 'none', flex: 1 }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                  Preview Window
                 </a>
               )}
             </div>

@@ -147,21 +147,43 @@ function DonationPackagesSettings() {
 
         <article className="card card-wide">
           <div className="card-header">
-            <h3>Daftar Paket</h3>
-            {saving && <span className="muted" style={{ fontSize: '12px' }}>Menyimpan...</span>}
+            <div>
+              <h3>Daftar Paket</h3>
+              <p className="muted" style={{ fontSize: '13px' }}>Klik tombol hapus untuk mengeluarkan paket dari daftar.</p>
+            </div>
+            {saving && <span className="chip chip-soft" style={{ fontSize: '11px' }}>Menyimpan...</span>}
           </div>
 
           {packages.length === 0 ? (
-            <p className="muted" style={{ padding: '20px 0' }}>Belum ada paket.</p>
+            <div className="empty-state">
+              <p className="muted">Belum ada paket donasi yang dibuat.</p>
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="package-grid">
               {packages.map((p, i) => (
-                <div key={`${p.label}-${i}`} className="widget-row" style={{ padding: '10px 12px', background: 'var(--muted)', borderRadius: '12px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontWeight: 700 }}>{p.label}</span>
-                    <span className="muted" style={{ fontSize: '12px' }}>{formatCurrency(p.amount)}</span>
+                <div key={`${p.label}-${i}`} className="package-item">
+                  <div className="package-content">
+                    <div className="package-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="6" width="20" height="12" rx="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <path d="M6 12h.01M18 12h.01" />
+                      </svg>
+                    </div>
+                    <div className="package-info">
+                      <span className="package-label">{p.label}</span>
+                      <span className="package-amount">{formatCurrency(p.amount)}</span>
+                    </div>
                   </div>
-                  <button className="btn btn-ghost btn-sm" style={{ color: '#dc2626' }} onClick={() => removePackage(i)}>Hapus</button>
+                  <button 
+                    className="package-delete" 
+                    onClick={() => removePackage(i)}
+                    title="Hapus paket"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               ))}
             </div>
@@ -196,6 +218,103 @@ function DonationPackagesSettings() {
         .toast-show .toast {
           opacity: 1;
           transform: translateY(0);
+        }
+        .chip {
+          display: inline-flex;
+          align-items: center;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 600;
+          background: #f1f5f9;
+        }
+        .chip-soft {
+          background: #e2e8f0;
+          color: #475569;
+        }
+        .empty-state {
+          padding: 40px 20px;
+          text-align: center;
+          background: #f8fafc;
+          border-radius: 16px;
+          border: 2px dashed #e2e8f0;
+        }
+        .package-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 12px;
+          margin-top: 12px;
+        }
+        @media (min-width: 640px) {
+          .package-grid {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          }
+        }
+        .package-item {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px;
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          transition: all 0.2s ease;
+        }
+        .package-item:hover {
+          border-color: var(--accent);
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+          transform: translateY(-1px);
+        }
+        .package-content {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+        .package-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          background: #f1f5f9;
+          color: #64748b;
+          border-radius: 12px;
+        }
+        .package-item:hover .package-icon {
+          background: rgba(79, 70, 229, 0.1);
+          color: var(--accent);
+        }
+        .package-info {
+          display: flex;
+          flex-direction: column;
+        }
+        .package-label {
+          font-weight: 700;
+          font-size: 14px;
+          color: #0f172a;
+        }
+        .package-amount {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--accent);
+        }
+        .package-delete {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: #94a3b8;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .package-delete:hover {
+          background: #fee2e2;
+          color: #ef4444;
         }
       `}</style>
     </main>

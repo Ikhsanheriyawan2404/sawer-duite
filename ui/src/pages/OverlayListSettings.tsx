@@ -149,45 +149,83 @@ function OverlayListSettings() {
             <h3>Link Overlay</h3>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div className="input" style={{ fontSize: '12px' }}>{maskLink(verticalUrl)}</div>
-            <div className="form-actions">
-              <button
-                className="btn btn-secondary btn-sm"
-                disabled={!verticalUrl}
-                onClick={() => {
-                  if (!verticalUrl) return
-                  navigator.clipboard.writeText(verticalUrl)
-                  showToast('Link vertikal disalin')
-                }}
-              >
-                Salin (Vertical)
-              </button>
-              {verticalPath && (
-                <a href={verticalPath} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>
-                  Buka
-                </a>
-              )}
+          <p style={{ fontSize: '14px', color: 'var(--muted-foreground)', margin: '0 0 4px 0' }}>
+            Gunakan link ini pada OBS Browser Source Anda.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>VERTICAL LIST</p>
+              <div className="password-wrapper">
+                <input
+                  readOnly
+                  value={maskLink(verticalUrl)}
+                  className="input"
+                  style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', paddingRight: '100px' }}
+                />
+                <button
+                  className="password-toggle"
+                  style={{ color: 'var(--accent)', right: '16px' }}
+                  onClick={() => {
+                    if (!verticalUrl) return
+                    navigator.clipboard.writeText(verticalUrl)
+                    showToast('Link vertikal disalin')
+                  }}
+                >
+                  SALIN
+                </button>
+              </div>
+              <div className="form-actions">
+                {verticalPath && (
+                  <a 
+                    href={verticalPath} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="btn btn-secondary btn-sm" 
+                    style={{ textDecoration: 'none', flex: 1 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    Preview Vertical
+                  </a>
+                )}
+              </div>
             </div>
 
-            <div className="input" style={{ fontSize: '12px' }}>{maskLink(horizontalUrl)}</div>
-            <div className="form-actions">
-              <button
-                className="btn btn-secondary btn-sm"
-                disabled={!horizontalUrl}
-                onClick={() => {
-                  if (!horizontalUrl) return
-                  navigator.clipboard.writeText(horizontalUrl)
-                  showToast('Link horizontal disalin')
-                }}
-              >
-                Salin (Horizontal)
-              </button>
-              {horizontalPath && (
-                <a href={horizontalPath} target="_blank" rel="noreferrer" className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>
-                  Buka
-                </a>
-              )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>HORIZONTAL LIST</p>
+              <div className="password-wrapper">
+                <input
+                  readOnly
+                  value={maskLink(horizontalUrl)}
+                  className="input"
+                  style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', paddingRight: '100px' }}
+                />
+                <button
+                  className="password-toggle"
+                  style={{ color: 'var(--accent)', right: '16px' }}
+                  onClick={() => {
+                    if (!horizontalUrl) return
+                    navigator.clipboard.writeText(horizontalUrl)
+                    showToast('Link horizontal disalin')
+                  }}
+                >
+                  SALIN
+                </button>
+              </div>
+              <div className="form-actions">
+                {horizontalPath && (
+                  <a 
+                    href={horizontalPath} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="btn btn-secondary btn-sm" 
+                    style={{ textDecoration: 'none', flex: 1 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    Preview Horizontal
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </article>
