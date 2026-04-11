@@ -285,8 +285,8 @@ function OverlayGoalSettings() {
 
       <section className="dashboard-header">
         <div>
-          <h2>Donation Goal</h2>
-          <p className="lead">Kelola wishlist, milestone, dan goal berdasarkan rentang tanggal.</p>
+          <h2>Target Donasi</h2>
+          <p className="lead">Pantau pencapaian Anda. Sistem otomatis menentukan kategori (Wishlist, Goal, atau Milestone) berdasarkan pengaturan waktu.</p>
         </div>
       </section>
 
@@ -325,11 +325,11 @@ function OverlayGoalSettings() {
 
             <div className="form-actions">
               {overlayPath && (
-                <a 
-                  href={overlayPath} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="btn btn-secondary btn-sm" 
+                <a
+                  href={overlayPath}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secondary btn-sm"
                   style={{ textDecoration: 'none', flex: 1 }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
@@ -342,13 +342,13 @@ function OverlayGoalSettings() {
 
         <article className="card">
           <div className="card-header">
-            <h3>Status Goal Aktif</h3>
+            <h3>Target Aktif</h3>
           </div>
 
           {activeGoal ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <p className="profile-label" style={{ marginBottom: '4px' }}>Judul</p>
+                <p className="profile-label" style={{ marginBottom: '4px' }}>Judul Target</p>
                 <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>{activeGoal.title}</p>
                 <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
                   <span className="chip">{getGoalType(activeGoal as Goal)}</span>
@@ -358,7 +358,7 @@ function OverlayGoalSettings() {
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
-                  <span className="muted">Progress</span>
+                  <span className="muted">Progres</span>
                   <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{progress.toFixed(1)}%</span>
                 </div>
                 <div style={{ height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
@@ -378,24 +378,24 @@ function OverlayGoalSettings() {
               </div>
             </div>
           ) : (
-            <p className="muted text-center" style={{ padding: '20px' }}>Belum ada goal aktif</p>
+            <p className="muted text-center" style={{ padding: '20px' }}>Belum ada target yang sedang berjalan.</p>
           )}
         </article>
 
         <article className="card">
           <div className="card-header" style={{ alignItems: 'flex-start' }}>
             <div>
-              <h3>Daftar Goals</h3>
-              <p className="muted" style={{ fontSize: '13px' }}>Satu goal aktif, lainnya tersimpan sebagai wishlist atau milestone.</p>
+              <h3>Koleksi Target</h3>
+              <p className="muted" style={{ fontSize: '13px' }}>Hanya satu target yang tampil di overlay (Aktif). Target lainnya tetap tersimpan dan progresnya tetap dihitung.</p>
             </div>
           </div>
 
           {listError && <p className="error-text">{listError}</p>}
 
           {loadingGoals ? (
-            <p className="muted">Memuat goals...</p>
+            <p className="muted">Memuat data...</p>
           ) : goals.length === 0 ? (
-            <p className="muted" style={{ textAlign: 'center', padding: '16px' }}>Belum ada goal. Tambahkan goal baru.</p>
+            <p className="muted" style={{ textAlign: 'center', padding: '16px' }}>Belum ada target. Mulai buat target pertama Anda.</p>
           ) : (
             <div className="goal-list">
               {goals.map(goal => {
@@ -422,18 +422,18 @@ function OverlayGoalSettings() {
                           <span className="muted">Target {formatCurrency(goal.target_amount)}</span>
                         </div>
                         <div className="goal-current">
-                          <span className="muted">Terkumpul</span>
+                          <span className="muted">Total Terkumpul</span>
                           <span>{formatCurrency(goal.current_amount)}</span>
                         </div>
                       </div>
                       <div className="goal-item-actions">
                         {!goal.is_active && (
                           <button className="btn btn-secondary btn-sm" onClick={() => handleActivate(goal.id)}>
-                            Jadikan Aktif
+                            Aktifkan di Overlay
                           </button>
                         )}
                         <button className="btn btn-secondary btn-sm" onClick={() => handleEdit(goal)}>
-                          Edit
+                          Ubah
                         </button>
                         <button className="btn btn-secondary btn-sm" onClick={() => handleDelete(goal.id)}>
                           Hapus
@@ -449,7 +449,7 @@ function OverlayGoalSettings() {
 
         <article className="card">
           <div className="card-header">
-            <h3>{isEditing ? 'Edit Goal' : 'Pengaturan Goal'}</h3>
+            <h3>{isEditing ? 'Ubah Rincian Target' : 'Konfigurasi Target'}</h3>
           </div>
 
           {error && <p className="error-text">{error}</p>}
@@ -458,17 +458,17 @@ function OverlayGoalSettings() {
             {isEditing ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className="form-group">
-                  <label>Judul Goal</label>
+                  <label>Judul Target</label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                     className="input"
-                    placeholder="Contoh: Beli Microphone Baru"
+                    placeholder="Contoh: Upgrade Kamera Streaming"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Target Amount (Rp)</label>
+                  <label>Jumlah Target (Rp)</label>
                   <input
                     type="number"
                     value={formData.target_amount}
@@ -477,8 +477,8 @@ function OverlayGoalSettings() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Rentang Tanggal (Opsional)</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <label>Rentang Waktu (Opsional)</label>
+                  <div className="date-grid">
                     <input
                       type="date"
                       value={formData.starts_at}
@@ -492,9 +492,11 @@ function OverlayGoalSettings() {
                       className="input"
                     />
                   </div>
-                  <p className="muted" style={{ fontSize: '12px', marginTop: '6px' }}>
-                    Tanpa tanggal = Wishlist. Isi tanggal akhir = Goal. Isi awal + akhir = Milestone.
-                  </p>
+                  <div className="muted" style={{ fontSize: '12px', marginTop: '8px', lineHeight: '1.5' }}>
+                    <strong>Wishlist:</strong> Kosongkan tanggal (untuk target jangka panjang).<br/>
+                    <strong>Goal:</strong> Isi tanggal akhir (untuk target dengan tenggat waktu).<br/>
+                    <strong>Milestone:</strong> Isi awal & akhir (untuk event periode tertentu).
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
@@ -505,7 +507,7 @@ function OverlayGoalSettings() {
                     style={{ width: 'auto' }}
                   />
                   <label htmlFor="goal_active" style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>
-                    Jadikan goal aktif
+                    Langsung tampilkan di overlay
                   </label>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
@@ -513,7 +515,7 @@ function OverlayGoalSettings() {
                     Batal
                   </button>
                   <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Menyimpan...' : 'Simpan Goal'}
+                    {saving ? 'Menyimpan...' : 'Simpan Target'}
                   </button>
                 </div>
               </div>
@@ -521,17 +523,17 @@ function OverlayGoalSettings() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className="profile-display">
                   <div className="profile-field">
-                    <p className="profile-label">Goal Aktif</p>
+                    <p className="profile-label">Target Berjalan</p>
                     <p className="profile-value">{activeGoal ? activeGoal.title : '-'}</p>
                   </div>
                   <div className="profile-field">
-                    <p className="profile-label">Target</p>
+                    <p className="profile-label">Nominal Target</p>
                     <p className="profile-value">{activeGoal ? formatCurrency(activeGoal.target_amount) : '-'}</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button className="btn btn-secondary" onClick={handleCreate}>
-                    Buat Goal Baru
+                    Buat Target Baru
                   </button>
                 </div>
               </div>
@@ -590,6 +592,16 @@ function OverlayGoalSettings() {
         .chip-accent {
           background: var(--accent);
           color: #fff;
+        }
+        .date-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        @media (max-width: 500px) {
+          .date-grid {
+            grid-template-columns: 1fr;
+          }
         }
         .goal-list {
           display: flex;

@@ -304,14 +304,24 @@ func (s *AuthService) UpdateQueueConfig(userID uint, req domain.UpdateQueueConfi
 	}
 	return user, nil
 }
+
 func (s *AuthService) UpdateListConfig(userID uint, req domain.UpdateListConfigRequest) (*domain.User, error) {
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
-		return nil, errors.New("user not found")
+		return nil, err
 	}
 
 	if req.Title != nil {
 		user.ListConfig.Title = *req.Title
+	}
+	if req.SortBy != nil {
+		user.ListConfig.SortBy = *req.SortBy
+	}
+	if req.Limit != nil {
+		user.ListConfig.Limit = *req.Limit
+	}
+	if req.AggrType != nil {
+		user.ListConfig.AggrType = *req.AggrType
 	}
 	if req.StartsAt != nil {
 		user.ListConfig.StartsAt = req.StartsAt
@@ -327,9 +337,8 @@ func (s *AuthService) UpdateListConfig(userID uint, req domain.UpdateListConfigR
 	}
 
 	if err := s.userRepo.Update(user); err != nil {
-		return nil, errors.New("failed to update list config")
+		return nil, err
 	}
-
 	return user, nil
 }
 
@@ -404,7 +413,7 @@ func (s *AuthService) GenerateRefreshToken(userID uint) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"exp":     time.Now().Add(s.config.RefreshTokenTTL).Unix(),
-		"type":    "refresh",
+		"type":    "REFRESH",
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -71,6 +71,7 @@ func main() {
 	r.Post("/refresh", authHandler.Refresh)
 	r.Get("/user/{username}", authHandler.GetUserByUsername)
 	r.Get("/user/uuid/{uuid}", authHandler.GetUserByUUID)
+	r.Get("/user/uuid/{uuid}/overlay-list", txHandler.GetOverlayList)
 	r.Get("/users", authHandler.ListPublicUsers)
 
 	// Public Transaction Routes

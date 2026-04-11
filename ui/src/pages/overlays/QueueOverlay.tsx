@@ -37,10 +37,10 @@ function QueueOverlay() {
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
 
-    socket.onmessage = (event) => {
+    socket.onmessage = (e) => {
       try {
-        const payload = JSON.parse(event.data)
-        if (payload.type === 'alert' || payload.type === 'refresh') {
+        const payload = JSON.parse(e.data)
+        if (payload.type === 'ALERT' || payload.type === 'REFRESH') {
           fetchQueue(username)
         }
       } catch (err) {}

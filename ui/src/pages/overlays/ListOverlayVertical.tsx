@@ -1,43 +1,45 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { API_URL, WS_URL } from '../../lib/api'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 interface Transaction {
-  uuid: string
   sender: string
-  base_amount: number
-  created_at: string
+  amount: number
 }
 
 interface ListConfig {
   title?: string
-  starts_at?: string | null
-  ends_at?: string | null
 }
 
 function ListOverlayVertical() {
   useDocumentTitle('List Overlay Vertical')
   const { uuid } = useParams()
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [username, setUsername] = useState<string | null>(null)
   const [config, setConfig] = useState<ListConfig>({ title: 'Daftar Donatur' })
   const socketRef = useRef<WebSocket | null>(null)
 
-  const fetchTransactions = useCallback(async (targetUsername: string) => {
+  const fetchData = useCallback(async () => {
+    if (!uuid) return
     try {
-      const res = await fetch(`${API_URL}/user/${targetUsername}/queue?status=PAID&sort_by=created_at&order=desc`)
+      const res = await fetch(`${API_URL}/user/uuid/${uuid}/overlay-list`)
       if (res.ok) {
         const data = await res.json()
         setTransactions(data || [])
       }
+
+      const userRes = await fetch(`${API_URL}/user/uuid/${uuid}`)
+      if (userRes.ok) {
+        const user = await userRes.json()
+        setConfig(user.list_config || { title: 'Daftar Donatur' })
+      }
     } catch {
       // ignore
     }
-  }, [])
+  }, [uuid])
 
   const connectWS = useCallback(() => {
-    if (!uuid || !username) return
+    if (!uuid) return
     const wsUrl = `${WS_URL}/ws/${uuid}`
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
@@ -45,8 +47,8 @@ function ListOverlayVertical() {
     socket.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data)
-        if (payload.type === 'alert' || payload.type === 'refresh') {
-          fetchTransactions(username)
+        if (payload.type === 'ALERT' || payload.type === 'REFRESH') {
+          fetchData()
         }
       } catch {
         // ignore
@@ -54,62 +56,41 @@ function ListOverlayVertical() {
     }
 
     socket.onclose = () => setTimeout(() => connectWS(), 5000)
-  }, [uuid, username, fetchTransactions])
+  }, [uuid, fetchData])
 
   useEffect(() => {
-    if (!uuid) return
-    fetch(`${API_URL}/user/uuid/${uuid}`)
-      .then(res => res.json())
-      .then(user => {
-        setUsername(user.username)
-        setConfig(user.list_config || { title: 'Daftar Donatur' })
-        fetchTransactions(user.username)
-      })
-      .catch(() => {})
-  }, [uuid, fetchTransactions])
+    fetchData()
+  }, [fetchData])
 
   useEffect(() => {
-    if (username) {
+    if (uuid) {
       connectWS()
       return () => socketRef.current?.close()
     }
-  }, [username, connectWS])
-
-  const filteredTransactions = useMemo(() => {
-    const start = config.starts_at ? new Date(config.starts_at) : null
-    const end = config.ends_at ? new Date(config.ends_at) : null
-
-    return transactions.filter(tx => {
-      const created = new Date(tx.created_at)
-      if (start && created < start) return false
-      if (end && created > end) return false
-      return true
-    })
-  }, [transactions, config.starts_at, config.ends_at])
+  }, [uuid, connectWS])
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0
-    }).format(amount)
+    }).format(amount).replace(/\s/g, '')
   }
 
   return (
     <main className="list-overlay-vertical">
       <div className="list-dialog">
-        <div className="list-header">
-          <h2 className="list-title">{config.title || 'Daftar Donatur'}</h2>
-        </div>
-        <div className="list-body">
-          {filteredTransactions.length === 0 ? (
+        <h2 className="list-title">{config.title || 'Daftar Donatur'}</h2>
+        
+        <div className="list-content">
+          {transactions.length === 0 ? (
             <div className="list-empty">Belum ada donatur</div>
           ) : (
-            filteredTransactions.slice(0, 20).map((tx, index) => (
-              <div key={tx.uuid} className="list-row">
+            transactions.map((tx, index) => (
+              <div key={`${tx.sender}-${index}`} className="list-row">
                 <span className="list-rank">{index + 1}</span>
                 <span className="list-name">{tx.sender}</span>
-                <span className="list-amount">{formatAmount(tx.base_amount)}</span>
+                <span className="list-amount">{formatAmount(tx.amount)}</span>
               </div>
             ))
           )}
@@ -133,16 +114,10 @@ function ListOverlayVertical() {
           margin-top: 10px;
           background: #ffffff;
           border-radius: 28px;
-          padding: 20px 28px 24px;
-          border: 5px solid #0052ff;
+          padding: 24px 28px;
+          border: 6px solid #0052ff;
           animation: dialogFadeIn 0.5s ease-out both;
-        }
-
-        .list-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 18px;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
         .list-title {
@@ -151,46 +126,44 @@ function ListOverlayVertical() {
           color: #0052ff;
           letter-spacing: -0.04em;
           text-transform: uppercase;
-          margin: 0;
+          margin: 0 0 20px 0;
+          text-align: center;
+          border-bottom: 3px solid #f1f5f9;
+          padding-bottom: 12px;
         }
 
-        .list-body {
+        .list-content {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-        }
-
-        .list-empty {
-          text-align: center;
-          color: #94a3b8;
-          font-weight: 600;
-          padding: 24px 0;
+          gap: 10px;
         }
 
         .list-row {
-          display: grid;
-          grid-template-columns: 52px 1fr auto;
+          display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 10px 18px;
-          background: #f1f5f9;
+          gap: 16px;
+          padding: 12px 16px;
+          background: #f8fafc;
           border-radius: 16px;
+          animation: rowSlideIn 0.4s ease-out both;
         }
 
         .list-rank {
-          width: 40px;
-          height: 40px;
+          width: 32px;
+          height: 32px;
+          background: #0052ff;
+          color: #fff;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 999px;
-          background: #0052ff;
-          color: #ffffff;
           font-weight: 900;
+          font-size: 14px;
         }
 
         .list-name {
-          font-size: 22px;
+          flex: 1;
+          font-size: 20px;
           font-weight: 800;
           color: #0f172a;
           white-space: nowrap;
@@ -199,10 +172,17 @@ function ListOverlayVertical() {
         }
 
         .list-amount {
-          font-size: 22px;
+          font-size: 20px;
           font-weight: 900;
           color: #0052ff;
-          white-space: nowrap;
+        }
+
+        .list-empty {
+          text-align: center;
+          padding: 30px;
+          color: #94a3b8;
+          font-weight: 700;
+          font-size: 18px;
         }
 
         @keyframes dialogFadeIn {
@@ -212,6 +192,17 @@ function ListOverlayVertical() {
           }
           to {
             transform: scale(1) translateY(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes rowSlideIn {
+          from {
+            transform: translateX(-10px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
             opacity: 1;
           }
         }

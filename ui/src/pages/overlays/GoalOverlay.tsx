@@ -43,7 +43,7 @@ function GoalOverlay() {
       try {
         const payload = JSON.parse(e.data)
         // If there's a new transaction, refresh goal progress
-        if (payload.type === 'alert') {
+        if (payload.type === 'ALERT') {
           fetchGoal()
         }
       } catch (err) {

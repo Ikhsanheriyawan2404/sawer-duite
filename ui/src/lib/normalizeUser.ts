@@ -66,6 +66,9 @@ export interface NormalizedUser {
   }
   list_config: {
     title: string
+    sort_by?: string
+    limit?: number
+    aggregation_type?: string
     starts_at?: string | null
     ends_at?: string | null
   }
@@ -106,6 +109,9 @@ const emptyUser: NormalizedUser = {
   },
   list_config: {
     title: 'Daftar Donatur',
+    sort_by: 'created_at_desc',
+    limit: 10,
+    aggregation_type: 'transaction',
     starts_at: null,
     ends_at: null
   },

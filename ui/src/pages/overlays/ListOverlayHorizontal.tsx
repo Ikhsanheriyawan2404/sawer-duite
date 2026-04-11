@@ -1,43 +1,45 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { API_URL, WS_URL } from '../../lib/api'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 interface Transaction {
-  uuid: string
   sender: string
-  base_amount: number
-  created_at: string
+  amount: number
 }
 
 interface ListConfig {
   title?: string
-  starts_at?: string | null
-  ends_at?: string | null
 }
 
 function ListOverlayHorizontal() {
   useDocumentTitle('List Overlay Horizontal')
   const { uuid } = useParams()
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [username, setUsername] = useState<string | null>(null)
   const [config, setConfig] = useState<ListConfig>({ title: 'Daftar Donatur' })
   const socketRef = useRef<WebSocket | null>(null)
 
-  const fetchTransactions = useCallback(async (targetUsername: string) => {
+  const fetchData = useCallback(async () => {
+    if (!uuid) return
     try {
-      const res = await fetch(`${API_URL}/user/${targetUsername}/queue?status=PAID&sort_by=created_at&order=desc`)
+      const res = await fetch(`${API_URL}/user/uuid/${uuid}/overlay-list`)
       if (res.ok) {
         const data = await res.json()
         setTransactions(data || [])
       }
+
+      const userRes = await fetch(`${API_URL}/user/uuid/${uuid}`)
+      if (userRes.ok) {
+        const user = await userRes.json()
+        setConfig(user.list_config || { title: 'Daftar Donatur' })
+      }
     } catch {
       // ignore
     }
-  }, [])
+  }, [uuid])
 
   const connectWS = useCallback(() => {
-    if (!uuid || !username) return
+    if (!uuid) return
     const wsUrl = `${WS_URL}/ws/${uuid}`
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
@@ -45,8 +47,8 @@ function ListOverlayHorizontal() {
     socket.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data)
-        if (payload.type === 'alert' || payload.type === 'refresh') {
-          fetchTransactions(username)
+        if (payload.type === 'ALERT' || payload.type === 'REFRESH') {
+          fetchData()
         }
       } catch {
         // ignore
@@ -54,61 +56,45 @@ function ListOverlayHorizontal() {
     }
 
     socket.onclose = () => setTimeout(() => connectWS(), 5000)
-  }, [uuid, username, fetchTransactions])
+  }, [uuid, fetchData])
 
   useEffect(() => {
-    if (!uuid) return
-    fetch(`${API_URL}/user/uuid/${uuid}`)
-      .then(res => res.json())
-      .then(user => {
-        setUsername(user.username)
-        setConfig(user.list_config || { title: 'Daftar Donatur' })
-        fetchTransactions(user.username)
-      })
-      .catch(() => {})
-  }, [uuid, fetchTransactions])
+    fetchData()
+  }, [fetchData])
 
   useEffect(() => {
-    if (username) {
+    if (uuid) {
       connectWS()
       return () => socketRef.current?.close()
     }
-  }, [username, connectWS])
-
-  const filteredTransactions = useMemo(() => {
-    const start = config.starts_at ? new Date(config.starts_at) : null
-    const end = config.ends_at ? new Date(config.ends_at) : null
-
-    return transactions.filter(tx => {
-      const created = new Date(tx.created_at)
-      if (start && created < start) return false
-      if (end && created > end) return false
-      return true
-    })
-  }, [transactions, config.starts_at, config.ends_at])
+  }, [uuid, connectWS])
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0
-    }).format(amount)
+    }).format(amount).replace(/\s/g, '')
   }
-
-  const marqueeItems = useMemo(() => {
-    const items = filteredTransactions.map(tx => `${tx.sender} - ${formatAmount(tx.base_amount)}`)
-    return items.length > 0 ? [...items, ...items] : []
-  }, [filteredTransactions])
 
   return (
     <main className="list-overlay-horizontal">
-      <div className="marquee">
-        <div className="marquee-track">
-          {[...(config.title ? [`${config.title} •`] : ['Daftar Donatur •']), ...marqueeItems].map((item, index) => (
-            <span key={`${item}-${index}`} className="marquee-item">
-              {item}
-            </span>
-          ))}
+      <div className="list-container">
+        <div className="list-header">
+          <h2 className="list-title">{config.title || 'Daftar Donatur'}</h2>
+        </div>
+        
+        <div className="list-content">
+          {transactions.length === 0 ? (
+            <div className="list-empty">Belum ada donatur</div>
+          ) : (
+            transactions.map((tx, index) => (
+              <div key={`${tx.sender}-${index}`} className="list-item">
+                <span className="item-name">{tx.sender}</span>
+                <span className="item-amount">{formatAmount(tx.amount)}</span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -119,44 +105,88 @@ function ListOverlayHorizontal() {
           background: transparent;
           display: flex;
           align-items: flex-start;
-          justify-content: center;
-          padding: 0;
+          justify-content: flex-start;
+          padding: 10px;
           font-family: var(--font-main);
-        }
-
-        .marquee {
-          width: 100%;
-          background: #ffffff;
-          border-bottom: 5px solid #0052ff;
-          display: flex;
-          align-items: center;
-          gap: 24px;
-          padding: 14px 24px;
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
           overflow: hidden;
         }
 
-        .marquee-track {
-          display: inline-flex;
-          gap: 28px;
-          white-space: nowrap;
-          animation: marqueeMove 20s linear infinite;
+        .list-container {
+          display: flex;
+          align-items: center;
+          background: #ffffff;
+          border-radius: 20px;
+          padding: 8px 20px;
+          border: 4px solid #0052ff;
+          animation: slideIn 0.5s ease-out both;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+          max-width: 98vw;
         }
 
-        .marquee-item {
+        .list-header {
+          padding-right: 20px;
+          margin-right: 20px;
+          border-right: 2px solid #f1f5f9;
+          white-space: nowrap;
+        }
+
+        .list-title {
+          font-size: 20px;
+          font-weight: 900;
+          color: #0052ff;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          margin: 0;
+        }
+
+        .list-content {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .list-content::-webkit-scrollbar {
+          display: none;
+        }
+
+        .list-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          white-space: nowrap;
+          animation: itemFadeIn 0.4s ease-out both;
+        }
+
+        .item-name {
           font-size: 18px;
           font-weight: 800;
           color: #0f172a;
-          white-space: nowrap;
         }
 
-        @keyframes marqueeMove {
-          from {
-            transform: translateX(0);
-          }
-          to {
-            transform: translateX(-50%);
-          }
+        .item-amount {
+          font-size: 18px;
+          font-weight: 900;
+          color: #0052ff;
+          background: rgba(0, 82, 255, 0.08);
+          padding: 2px 10px;
+          border-radius: 8px;
+        }
+
+        .list-empty {
+          color: #94a3b8;
+          font-weight: 700;
+          font-size: 16px;
+        }
+
+        @keyframes slideIn {
+          from { transform: translateY(-20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes itemFadeIn {
+          from { transform: translateX(10px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
       `}</style>
     </main>

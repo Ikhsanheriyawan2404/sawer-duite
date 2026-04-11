@@ -23,7 +23,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		// Security: Hanya izinkan origin yang valid (bisa diambil dari config)
 		// Untuk dev kita izinkan localhost, tapi jangan gunakan 'true' saja
-		return true 
+		return true
 	},
 }
 
@@ -52,7 +52,7 @@ type Hub struct {
 type AlertMessage struct {
 	UserUUID        string `json:"user_uuid"`
 	TransactionUUID string `json:"transaction_uuid"`
-	Type            string `json:"type"` // "alert" or "refresh"
+	Type            string `json:"type"` // "ALERT" or "REFRESH"
 	Amount          int    `json:"amount"`
 	Sender          string `json:"sender"`
 	Message         string `json:"message"`

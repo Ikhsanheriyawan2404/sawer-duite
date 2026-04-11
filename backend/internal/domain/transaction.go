@@ -83,6 +83,11 @@ type PublicTransaction struct {
 	ExpiredAt   time.Time         `json:"expired_at"`
 }
 
+type OverlayListItem struct {
+	Sender string `json:"sender"`
+	Amount int    `json:"amount"`
+}
+
 type AnalyticsSummary struct {
 	TotalNominal    int64   `json:"total_nominal"`
 	TotalCount      int64   `json:"total_count"`

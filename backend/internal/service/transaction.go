@@ -274,7 +274,7 @@ func (s *TransactionService) UpdateQueue(userID uint, txUUID string, isQueue boo
 
 	s.queueManager.PublishAlertMessage(domain.AlertMessage{
 		UserUUID: tx.Target.UUID,
-		Type:     "refresh",
+		Type:     "REFRESH",
 	})
 
 	tx.IsQueue = isQueue
@@ -298,6 +298,20 @@ func (s *TransactionService) GetQueueList(username string, query domain.QueueLis
 	}
 
 	return publicTransactions, nil
+}
+
+func (s *TransactionService) GetOverlayList(userUUID string) ([]domain.OverlayListItem, error) {
+	user, err := s.userRepo.GetByUUID(userUUID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	items, err := s.txRepo.GetOverlayList(user.ID, user.ListConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
 }
 
 func (s *TransactionService) GetAnalytics(userID uint, start, end time.Time, search string, page, limit int) (*domain.AnalyticsResponse, error) {

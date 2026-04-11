@@ -121,6 +121,48 @@ func (r *TransactionRepository) List(query domain.QueueListQuery, userID uint) (
 	return transactions, err
 }
 
+func (r *TransactionRepository) GetOverlayList(userID uint, config domain.ListOverlayConfig) ([]domain.OverlayListItem, error) {
+	var items []domain.OverlayListItem
+	db := r.db.Model(&domain.Transaction{}).Where("target_id = ? AND status = ?", userID, "PAID")
+
+	if config.StartsAt != nil {
+		db = db.Where("created_at >= ?", *config.StartsAt)
+	}
+	if config.EndsAt != nil {
+		db = db.Where("created_at <= ?", *config.EndsAt)
+	}
+
+	if config.AggrType == "supporter" {
+		// Aggregate by supporter identity (donor_user_id or supporter_id)
+		// We use COALESCE to group by either user id or the unique supporter id string
+		// and pick the LATEST sender name for display
+		query := db.Select("MAX(sender) as sender, SUM(base_amount) as amount").
+			Group("COALESCE(CAST(donor_user_id AS TEXT), NULLIF(supporter_id, ''))")
+
+		if config.SortBy == "amount_desc" {
+			query = query.Order("amount DESC")
+		} else {
+			// for "recent" with aggregation, we sort by the latest donation in the group
+			query = query.Order("MAX(created_at) DESC")
+		}
+
+		err := query.Limit(config.Limit).Scan(&items).Error
+		return items, err
+	}
+
+	// Default: aggregation by transaction (each row is separate)
+	query := db.Select("sender, base_amount as amount")
+
+	if config.SortBy == "amount_desc" {
+		query = query.Order("base_amount DESC")
+	} else {
+		query = query.Order("created_at DESC")
+	}
+
+	err := query.Limit(config.Limit).Scan(&items).Error
+	return items, err
+}
+
 func (r *TransactionRepository) GetAnalyticsSummary(userID uint, start, end time.Time) (domain.AnalyticsSummary, error) {
 	var summary domain.AnalyticsSummary
 	err := r.db.Model(&domain.Transaction{}).

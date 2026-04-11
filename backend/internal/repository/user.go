@@ -303,7 +303,7 @@ func (r *UserRepository) DeleteGoal(userID uint, goalID uint) error {
 
 func (r *UserRepository) computeGoalCurrentAmount(goal domain.DonationGoal) (int64, error) {
 	query := r.db.Model(&domain.Transaction{}).
-		Where("target_id = ? AND status = ?", goal.UserID, "paid")
+		Where("target_id = ? AND status = ?", goal.UserID, "PAID")
 
 	if goal.StartsAt != nil {
 		query = query.Where("created_at >= ?", *goal.StartsAt)

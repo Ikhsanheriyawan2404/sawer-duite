@@ -175,6 +175,9 @@ type UpdateQueueConfigRequest struct {
 }
 type UpdateListConfigRequest struct {
 	Title         *string    `json:"title"`
+	SortBy        *string    `json:"sort_by"`
+	Limit         *int       `json:"limit"`
+	AggrType      *string    `json:"aggregation_type"`
 	StartsAt      *time.Time `json:"starts_at"`
 	EndsAt        *time.Time `json:"ends_at"`
 	ClearStartsAt *bool      `json:"clear_starts_at"`
@@ -242,6 +245,9 @@ type ListOverlayConfig struct {
 	ID       uint       `gorm:"primaryKey" json:"-"`
 	UserID   uint       `gorm:"uniqueIndex;not null" json:"-"`
 	Title    string     `json:"title"`
+	SortBy   string     `gorm:"default:created_at_desc" json:"sort_by"`       // "amount_desc" or "created_at_desc"
+	Limit    int        `gorm:"default:10" json:"limit"`                     // 5, 10, 20, etc
+	AggrType string     `gorm:"default:transaction" json:"aggregation_type"` // "transaction" or "supporter"
 	StartsAt *time.Time `json:"starts_at,omitempty"`
 	EndsAt   *time.Time `json:"ends_at,omitempty"`
 }

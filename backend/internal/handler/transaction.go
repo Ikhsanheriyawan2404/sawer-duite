@@ -111,6 +111,18 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(*tx))
 }
 
+func (h *TransactionHandler) GetOverlayList(w http.ResponseWriter, r *http.Request) {
+	userUUID := chi.URLParam(r, "uuid")
+
+	items, err := h.txService.GetOverlayList(userUUID)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, items)
+}
+
 func (h *TransactionHandler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	userUUID := chi.URLParam(r, "uuid")
 
