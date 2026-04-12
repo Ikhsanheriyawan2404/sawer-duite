@@ -149,6 +149,29 @@
             android:textAllCaps="false"
             android:textColor="#6C757D" />
 
+        <!-- Optimization Section -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/batteryButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:text="Pengaturan Battery Optimization"
+            android:textAllCaps="false"
+            app:cornerRadius="12dp"
+            app:strokeColor="#6C757D" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/appSettingsButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="8dp"
+            android:text="Pengaturan Aplikasi (Auto-Start)"
+            android:textAllCaps="false"
+            app:cornerRadius="12dp"
+            app:strokeColor="#6C757D" />
+
         <!-- Footer -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -169,7 +192,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="Versi 1.1.5"
+                android:text="Versi 2"
                 android:textColor="#DEE2E6"
                 android:textSize="10sp" />
         </LinearLayout>
