@@ -448,7 +448,7 @@ func (s *AuthService) ValidateRefreshToken(tokenString string) (uint, error) {
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || claims["type"] != "refresh" {
+	if !ok || claims["type"] != "REFRESH" {
 		return 0, errors.New("invalid claims")
 	}
 
