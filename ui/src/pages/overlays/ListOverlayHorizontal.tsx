@@ -83,17 +83,20 @@ function ListOverlayHorizontal() {
         <div className="list-header">
           <h2 className="list-title">{config.title || 'Daftar Donatur'}</h2>
         </div>
-        
+
         <div className="list-content">
           {transactions.length === 0 ? (
             <div className="list-empty">Belum ada donatur</div>
           ) : (
-            transactions.map((tx, index) => (
-              <div key={`${tx.sender}-${index}`} className="list-item">
-                <span className="item-name">{tx.sender}</span>
-                <span className="item-amount">{formatAmount(tx.amount)}</span>
-              </div>
-            ))
+            <div className="marquee-track">
+              {/* Render dua kali untuk looping yang mulus */}
+              {[...transactions, ...transactions].map((tx, index) => (
+                <div key={`${tx.sender}-${index}`} className="list-item">
+                  <span className="item-name">{tx.sender}</span>
+                  <span className="item-amount">{formatAmount(tx.amount)}</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -116,18 +119,21 @@ function ListOverlayHorizontal() {
           align-items: center;
           background: #ffffff;
           border-radius: 20px;
-          padding: 8px 20px;
+          padding: 8px 24px;
           border: 4px solid #0052ff;
           animation: slideIn 0.5s ease-out both;
           box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
           max-width: 98vw;
+          overflow: hidden; /* Penting untuk marquee */
         }
 
         .list-header {
           padding-right: 20px;
           margin-right: 20px;
-          border-right: 2px solid #f1f5f9;
+          border-right: 3px solid #f1f5f9;
           white-space: nowrap;
+          z-index: 2;
+          background: #fff;
         }
 
         .list-title {
@@ -140,22 +146,29 @@ function ListOverlayHorizontal() {
         }
 
         .list-content {
+          flex: 1;
           display: flex;
           align-items: center;
-          gap: 24px;
-          overflow-x: auto;
-          scrollbar-width: none;
+          overflow: hidden;
         }
-        .list-content::-webkit-scrollbar {
-          display: none;
+
+        .marquee-track {
+          display: flex;
+          align-items: center;
+          gap: 40px; /* Jarak antar donatur */
+          white-space: nowrap;
+          animation: marqueeMove 30s linear infinite; /* Kecepatan jalan */
+        }
+
+        .marquee-track:hover {
+          animation-play-state: paused; /* Opsional: berhenti saat kursor di atasnya */
         }
 
         .list-item {
           display: flex;
           align-items: center;
           gap: 10px;
-          white-space: nowrap;
-          animation: itemFadeIn 0.4s ease-out both;
+          flex-shrink: 0;
         }
 
         .item-name {
@@ -177,16 +190,17 @@ function ListOverlayHorizontal() {
           color: #94a3b8;
           font-weight: 700;
           font-size: 16px;
+          padding: 4px 20px;
+        }
+
+        @keyframes marqueeMove {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); } /* Bergeser setengahnya untuk loop sempurna */
         }
 
         @keyframes slideIn {
           from { transform: translateY(-20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes itemFadeIn {
-          from { transform: translateX(10px); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
         }
       `}</style>
     </main>
