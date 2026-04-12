@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { API_URL } from '../lib/api'
+import { API_URL, getTokens } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
+
+function getSupporterId() {
+  const key = 'supporter_id'
+  const existing = localStorage.getItem(key)
+  if (existing) return existing
+  const generated = crypto.randomUUID()
+  localStorage.setItem(key, generated)
+  return generated
+}
 
 function Donate() {
   const { username } = useParams()
@@ -20,8 +29,9 @@ function Donate() {
     name: '',
     amount: initialAmount,
     note: initialNote,
-    customInput: ''
   })
+  const [supporterId] = useState(() => getSupporterId())
+  const [customInputs, setCustomInputs] = useState<Record<string, string>>({})
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [agreed, setAgreed] = useState(false)
 
@@ -59,7 +69,9 @@ function Donate() {
   }
 
   const isMinDonationMet = !user?.min_donation || parseInt(form.amount) >= user.min_donation
-  const isCustomInputMet = !user?.custom_input_required || !user?.custom_input_label || form.customInput.trim() !== ''
+  const isCustomInputMet = !user?.custom_input_schema || user.custom_input_schema.every((field: any) => 
+    !field.required || (customInputs[field.key] && customInputs[field.key].trim() !== '')
+  )
   const hasQRIS = user?.has_qris !== false
 
   async function handleSubmit(e: React.FormEvent) {
@@ -68,15 +80,20 @@ function Donate() {
     setSubmitError(null)
 
     try {
+      const { accessToken } = getTokens()
       const response = await fetch(`${API_URL}/transactions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+        },
         body: JSON.stringify({
           username: username,
           sender: isAnonymous ? 'Seseorang' : form.name,
           amount: parseInt(form.amount),
           note: form.note,
-          custom_input: form.customInput,
+          custom_input_json: customInputs,
+          supporter_id: supporterId,
         }),
       })
 
@@ -167,29 +184,29 @@ function Donate() {
             </div>
           </label>
 
-          {/* Custom Input Field (e.g. Roblox Username) */}
-          {user?.custom_input_label && (
-            <div className="form-group">
+          {/* Custom Input Fields from Schema */}
+          {user?.custom_input_schema?.map((field: any) => (
+            <div className="form-group" key={field.key}>
               <div style={{ fontSize: '14px', fontWeight: 600 }}>
-                {user.custom_input_label} {user.custom_input_required && <span style={{ color: '#dc2626' }}>*</span>}
+                {field.label} {field.required && <span style={{ color: '#dc2626' }}>*</span>}
               </div>
               <input
                 type="text"
-                placeholder={`Masukkan ${user.custom_input_label}`}
-                value={form.customInput}
-                onChange={e => setForm({...form, customInput: e.target.value})}
-                required={user.custom_input_required}
+                placeholder={`Masukkan ${field.label}`}
+                value={customInputs[field.key] || ''}
+                onChange={e => setCustomInputs({...customInputs, [field.key]: e.target.value})}
+                required={field.required}
                 style={{
-                  borderColor: (user.custom_input_required && !form.customInput.trim()) ? '#dc2626' : undefined
+                  borderColor: (field.required && (!customInputs[field.key] || !customInputs[field.key].trim())) ? '#dc2626' : undefined
                 }}
               />
-              {user.custom_input_required && !form.customInput.trim() && (
+              {field.required && (!customInputs[field.key] || !customInputs[field.key].trim()) && (
                 <p style={{ color: '#dc2626', fontSize: '11px', fontWeight: 600, margin: 0 }}>
                   Wajib diisi
                 </p>
               )}
             </div>
-          )}
+          ))}
 
           <label>
             Nominal Dukungan (IDR)

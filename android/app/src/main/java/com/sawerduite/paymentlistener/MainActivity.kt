@@ -2,6 +2,7 @@ package com.sawerduite.paymentlistener
 
 import android.content.ComponentName
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -26,6 +27,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var saveButton: Button
     private lateinit var enableButton: Button
     private lateinit var testButton: Button
+    private lateinit var batteryButton: Button
+    private lateinit var appSettingsButton: Button
     private lateinit var settings: SettingsManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,6 +43,8 @@ class MainActivity : AppCompatActivity() {
         saveButton = findViewById(R.id.saveButton)
         enableButton = findViewById(R.id.enableButton)
         testButton = findViewById(R.id.testButton)
+        batteryButton = findViewById(R.id.batteryButton)
+        appSettingsButton = findViewById(R.id.appSettingsButton)
 
         // Load saved settings
         urlEditText.setText(settings.backendUrl)
@@ -65,6 +70,12 @@ class MainActivity : AppCompatActivity() {
 
         testButton.setOnClickListener {
             testBackendConnection()
+        }
+        batteryButton.setOnClickListener {
+            openBatteryOptimizationSettings()
+        }
+        appSettingsButton.setOnClickListener {
+            openAppSettings()
         }
 
         // Start foreground service to keep app alive
@@ -114,7 +125,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
             Toast.makeText(
                 this,
-                "Cari 'Sawer Om Listener' dan aktifkan",
+                "Cari 'Sawer Duite Listener' dan aktifkan",
                 Toast.LENGTH_LONG
             ).show()
         } catch (e: Exception) {
@@ -131,6 +142,39 @@ class MainActivity : AppCompatActivity() {
             startService(serviceIntent)
         }
         Log.d(TAG, "KeepAliveService started")
+    }
+
+    private fun openBatteryOptimizationSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+            startActivity(intent)
+            Toast.makeText(
+                this,
+                "Cari aplikasi ini dan set ke 'Unrestricted' atau 'Don't optimize'",
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error opening battery optimization settings", e)
+            Toast.makeText(this, "Tidak dapat membuka pengaturan baterai", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun openAppSettings() {
+        try {
+            val intent = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
+            Toast.makeText(
+                this,
+                "Aktifkan Auto-start jika tersedia di perangkat Anda",
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error opening app settings", e)
+            Toast.makeText(this, "Tidak dapat membuka pengaturan aplikasi", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun testBackendConnection() {

@@ -97,7 +97,7 @@ func (s *TTSService) Generate(text string) (string, error) {
 	}
 
 	// 4. Upload to MinIO
-	fileName := hash + ".mp3"
+	fileName := "audio/" + hash + ".mp3"
 	audioURL, err := s.uploadToMinIO(fileName, audioData)
 	if err != nil {
 		log.Printf("[TTS] MinIO Upload Error: %v", err)

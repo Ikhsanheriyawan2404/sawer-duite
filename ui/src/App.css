@@ -51,6 +51,84 @@
 .page-center { align-items: center; justify-content: center; min-height: calc(100svh - 120px); }
 .overlay-page { min-height: calc(100svh - 48px); justify-content: center; }
 
+/* Floating Menu */
+.menu-fab-layer { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); right: 16px; z-index: 80; }
+.menu-fab {
+  width: 52px; height: 52px; display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 18px; background: var(--gradient); color: #fff;
+  border: none; box-shadow: var(--shadow-accent);
+  position: relative;
+}
+.menu-fab-ping {
+  position: absolute; inset: -6px; border-radius: 22px;
+  border: 1px solid rgba(0, 82, 255, 0.25);
+  box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.2);
+  animation: menuPing 2.6s ease-out infinite;
+  pointer-events: none;
+}
+.menu-fab.open .menu-fab-ping { opacity: 0.3; animation: none; }
+.menu-fab-icon {
+  width: 22px; height: 16px; display: inline-flex; flex-direction: column; justify-content: space-between;
+  transition: transform 0.2s ease;
+}
+.menu-fab-icon span {
+  height: 2px; border-radius: 999px; background: #fff; opacity: 0.9;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.menu-fab.open .menu-fab-icon { transform: rotate(45deg); }
+.menu-fab.open .menu-fab-icon span:nth-child(2) { opacity: 0; }
+.menu-fab.open .menu-fab-icon span:nth-child(1) { transform: translateY(7px); }
+.menu-fab.open .menu-fab-icon span:nth-child(3) { transform: translateY(-7px) rotate(90deg); }
+.menu-scrim {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(2px); z-index: 70;
+}
+.menu-panel {
+  position: fixed; bottom: calc(90px + env(safe-area-inset-bottom)); right: 16px;
+  width: min(92vw, 360px); max-height: min(70vh, 520px);
+  background: #fff; border-radius: 20px; border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg); display: flex; flex-direction: column;
+  opacity: 0; transform: translateY(16px) scale(0.98);
+  pointer-events: none; transition: all 0.2s ease; z-index: 85;
+}
+.menu-panel.open {
+  opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+}
+.menu-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 16px; border-bottom: 1px solid var(--border);
+}
+.menu-panel-title { margin: 0; font-weight: 800; font-size: 16px; }
+.menu-panel-subtitle { margin: 2px 0 0 0; font-size: 12px; color: var(--muted-foreground); }
+.menu-panel-list { padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
+.menu-row-link { text-decoration: none; color: inherit; }
+.menu-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; border-radius: 16px; border: 1px solid var(--border);
+  background: #fff;
+}
+.menu-row:hover { background: var(--muted); }
+.menu-row.disabled { background: var(--muted); color: var(--muted-foreground); border-color: transparent; }
+.menu-row-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.menu-abbr {
+  width: 26px; height: 26px; border-radius: 9px; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 10px;
+  font-weight: 800; color: #fff; background: var(--accent);
+  letter-spacing: 0.04em;
+}
+.menu-abbr.lg { width: 36px; height: 36px; border-radius: 12px; font-size: 12px; }
+.menu-title { font-weight: 700; margin: 0 0 2px 0; font-size: 13px; }
+.menu-desc { margin: 0; font-size: 11px; color: var(--muted-foreground); }
+@keyframes menuPing {
+  0% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0.25); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 82, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 82, 255, 0); }
+}
+@media (min-width: 768px) {
+  .menu-fab-layer { right: 24px; bottom: 28px; }
+  .menu-panel { right: 24px; }
+}
+
 /* Cards */
 .card {
   padding: 20px; border-radius: 24px; border: 1px solid var(--border);
@@ -222,7 +300,7 @@
 .merchant-track {
   display: flex; align-items: center; gap: 32px;
   width: max-content; padding: 6px 24px;
-  animation: merchant-marquee 18s linear infinite;
+  animation: merchant-marquee 10s linear infinite;
 }
 .merchant-logo {
   height: 32px; width: auto; opacity: 0.9; filter: grayscale(0.1);
@@ -240,7 +318,7 @@
 .user-track {
   display: flex; align-items: center; gap: 16px;
   width: max-content; padding: 6px 18px;
-  animation: merchant-marquee 22s linear infinite;
+  animation: merchant-marquee 10s linear infinite;
 }
 .user-pill {
   display: flex; align-items: center; gap: 10px;

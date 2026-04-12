@@ -37,9 +37,9 @@ function Payment() {
       const now = new Date().getTime()
       const expiry = new Date(data.expired_at).getTime()
 
-      if (data.status === 'paid') {
+      if (data.status === 'PAID') {
         if (!isPaidRef.current) setIsPaid(true)
-      } else if (data.status === 'expired' || expiry - now <= 0) {
+      } else if (data.status === 'EXPIRED' || expiry - now <= 0) {
         if (!isExpiredRef.current) setIsExpired(true)
       }
 
@@ -80,8 +80,9 @@ function Payment() {
 
   useEffect(() => {
     if (tx?.qris_payload && canvasRef.current && !isExpired && !isPaid && !loading) {
+      // Gunakan ukuran yang lebih masuk akal (300px) agar tidak memicu overflow pada container grid
       QRCode.toCanvas(canvasRef.current, tx.qris_payload, {
-        width: 280,
+        width: 300, 
         margin: 2,
         color: {
           dark: '#000000',
@@ -125,6 +126,7 @@ function Payment() {
   if (!tx) return <main className="page page-center"><h2>Pembayaran tidak ditemukan</h2></main>
 
   const uniqueCodeValue = Math.max(tx.amount - (tx.base_amount ?? tx.amount), 0)
+  const targetUsername = tx?.target?.username
   const uniqueCodeDisplay = uniqueCodeValue.toString().padStart(2, '0')
 
   return (
@@ -182,7 +184,7 @@ function Payment() {
               <span className="payment-summary-value payment-summary-value--muted">{formatCurrency(0)}</span>
             </div>
             <div className="payment-summary-row">
-              <span className="payment-summary-label">Unique Code</span>
+              <span className="payment-summary-label">Dukungan Ekstra</span>
               <span className="payment-summary-value">{uniqueCodeDisplay}</span>
             </div>
           </div>
@@ -221,7 +223,7 @@ function Payment() {
                 Pembayaran kamu telah berhasil diterima. Dukunganmu sangat berarti!
               </p>
               <button
-                onClick={() => navigate(`/${tx.target?.username || ''}`)}
+                onClick={() => navigate(targetUsername ? `/${targetUsername}` : '/')}
                 className="btn btn-primary w-full"
                 style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
               >
@@ -236,7 +238,7 @@ function Payment() {
                 QR Code ini sudah tidak berlaku karena melewati batas waktu 5 menit.
               </p>
               <button
-                onClick={() => navigate(`/${tx.target?.username || ''}`)}
+                onClick={() => navigate(targetUsername ? `/${targetUsername}` : '/')}
                 className="btn btn-primary w-full"
               >
                 Buat Transaksi Baru
@@ -244,9 +246,35 @@ function Payment() {
             </div>
           ) : (
             <>
-              <img src="/qris.svg" alt="QRIS" style={{ height: '24px', marginBottom: '16px' }} />
-              <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto' }} />
-              <p style={{ marginTop: '16px', fontWeight: '700', letterSpacing: '4px', fontSize: '14px', color: '#333' }}>QRIS GPN</p>
+              <img src="/qris2.svg" alt="QRIS" style={{ height: '24px', marginBottom: '16px' }} />
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: '260px',
+                  aspectRatio: '1 / 1',
+                  margin: '0 auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  background: '#fff',
+                  borderRadius: '12px'
+                }}
+              >
+                <canvas 
+                  ref={canvasRef} 
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '100%',
+                    height: 'auto', 
+                    display: 'block'
+                  }} 
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '16px' }}>
+                <img src="/qris.svg" alt="QRIS" style={{ height: '20px' }} />
+                <img src="/gpn.svg" alt="GPN" style={{ height: '20px' }} />
+              </div>
             </>
           )}
         </div>
@@ -262,10 +290,26 @@ function Payment() {
                 <span className="muted" style={{ fontSize: '13px' }}>Pengirim</span>
                 <span style={{ fontSize: '13px', fontWeight: '600' }}>{tx.sender || 'Seseorang'}</span>
               </div>
+
+              {/* Custom Input Details */}
+              {tx.custom_input_json && Object.keys(tx.custom_input_json).length > 0 && (
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
+                  {Object.entries(tx.custom_input_json).map(([key, value]) => {
+                    const field = tx.target?.custom_input_schema?.find((f: any) => f.key === key)
+                    const label = field?.label || key
+                    return (
+                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span className="muted" style={{ fontSize: '13px' }}>{label}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '600' }}>{value as string}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <p className="muted" style={{ fontSize: '12px', marginTop: '16px', lineHeight: 1.4 }}>
-              Silakan scan QR di atas menggunakan aplikasi mobile banking atau e-wallet kamu.
+              QR ini sudah siap dibayar. Scan dengan m-banking, e-wallet, atau alat pembayaran favorit kamu.
             </p>
           </>
         )}

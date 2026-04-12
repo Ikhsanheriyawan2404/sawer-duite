@@ -56,8 +56,9 @@ export async function refreshTokens() {
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const { accessToken } = getTokens()
   
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   const getHeaders = (token: string | null) => ({
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
   })

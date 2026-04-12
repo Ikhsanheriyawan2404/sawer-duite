@@ -71,6 +71,24 @@ class NotificationListener : NotificationListenerService() {
             event = "LISTENER_DISCONNECTED",
             message = "Notification listener disconnected"
         )
+
+        try {
+            NotificationListenerServiceCompat.requestRebind(this)
+            ClientLogger.log(
+                this,
+                level = "info",
+                event = "LISTENER_REBIND_REQUESTED",
+                message = "Requested listener rebind after disconnect"
+            )
+        } catch (e: Exception) {
+            ClientLogger.log(
+                this,
+                level = "error",
+                event = "LISTENER_REBIND_FAILED",
+                message = "Failed to request listener rebind",
+                error = e
+            )
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -176,6 +194,23 @@ class NotificationListener : NotificationListenerService() {
             Log.d(TAG, "Parsed Amount: ${parsedData.amount}")
             Log.d(TAG, "Parsed Bank: ${parsedData.bank}")
 
+            if (parsedData.amount <= 0L) {
+                ClientLogger.log(
+                    this,
+                    level = "warn",
+                    event = "NOTIF_INVALID_AMOUNT",
+                    message = "Parsed amount is invalid, skipping send",
+                    data = mapOf(
+                        "provider" to parsedData.provider,
+                        "amount" to parsedData.amount,
+                        "bank" to parsedData.bank,
+                        "title" to title,
+                        "text" to text
+                    )
+                )
+                return
+            }
+
             ClientLogger.log(
                 this,
                 level = "info",
@@ -227,22 +262,30 @@ class NotificationListener : NotificationListenerService() {
 
     private fun isPaymentNotification(title: String, text: String): Boolean {
         // Cek apakah title atau text mengindikasikan pembayaran masuk
+        val lowerTitle = title.lowercase()
+        val lowerText = text.lowercase()
+        val combined = (title + " " + text).lowercase()
+
         val paymentKeywords = listOf(
             "pembayaran masuk",
+            "pembayaran diterima",
             "payment received",
             "berhasil diterima",
             "telah diterima",
             "dana masuk",
             "transfer masuk",
-            "pembayaran qris"
+            "pembayaran qris",
+            "qris"
         )
 
-        val lowerTitle = title.lowercase()
-        val lowerText = text.lowercase()
-
-        return paymentKeywords.any { keyword ->
-            lowerTitle.contains(keyword) || lowerText.contains(keyword)
+        if (paymentKeywords.any { combined.contains(it) }) {
+            return true
         }
+
+        // Fallback: jika mengandung nominal + kata diterima/masuk
+        val hasAmount = Regex("""\brp\.?\s?[\d.,]+""", RegexOption.IGNORE_CASE).containsMatchIn(combined)
+        val hasAccepted = combined.contains("diterima") || combined.contains("masuk")
+        return hasAmount && hasAccepted
     }
 
     private fun generateHash(packageName: String, title: String, text: String, postTime: Long): String {

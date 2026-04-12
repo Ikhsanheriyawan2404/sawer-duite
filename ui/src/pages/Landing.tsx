@@ -33,7 +33,7 @@ function Landing() {
   return (
     <main className="page overlay-page" style={{ gap: '32px' }}>
       <div className="hero-copy text-center" style={{ alignItems: 'center', maxWidth: '600px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: 'clamp(3rem, 10vw, 5rem)', marginBottom: '16px' }}>Sawer Om.</h1>
+        <h1 style={{ fontSize: 'clamp(3rem, 10vw, 5rem)', marginBottom: '16px' }}>Sawer Duite.</h1>
         <p className="lead" style={{ marginBottom: '32px' }}>
           Terima dukungan fans secara utuh: 100% milikmu, instan lewat QRIS, tanpa biaya potongan sepeser pun
         </p>

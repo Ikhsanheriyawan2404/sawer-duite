@@ -8,7 +8,7 @@ interface Transaction {
   sender: string
   base_amount: number
   note: string
-  custom_input: string
+  custom_input_json: Record<string, string>
 }
 
 function QueueOverlay() {
@@ -16,13 +16,13 @@ function QueueOverlay() {
   const { uuid } = useParams()
   const [donors, setDonors] = useState<Transaction[]>([])
   const [username, setUsername] = useState<string | null>(null)
-  const [queueTitle, setQueueTitle] = useState<string>('Antrian Donasi')
+  const [queueTitle, setQueueTitle] = useState<string>('Antrean Donasi')
   const socketRef = useRef<WebSocket | null>(null)
 
   const fetchQueue = useCallback(async (targetUsername: string) => {
     try {
       const res = await fetch(
-        `${API_URL}/user/${targetUsername}/queue?status=paid&is_queue=true&sort_by=base_amount&order=desc`
+        `${API_URL}/user/${targetUsername}/queue?status=PAID&is_queue=true&order=desc`
       )
       if (res.ok) {
         const data = await res.json()
@@ -37,10 +37,10 @@ function QueueOverlay() {
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
 
-    socket.onmessage = (event) => {
+    socket.onmessage = (e) => {
       try {
-        const payload = JSON.parse(event.data)
-        if (payload.type === 'alert' || payload.type === 'refresh') {
+        const payload = JSON.parse(e.data)
+        if (payload.type === 'ALERT' || payload.type === 'REFRESH') {
           fetchQueue(username)
         }
       } catch (err) {}
@@ -54,7 +54,7 @@ function QueueOverlay() {
       .then(res => res.json())
       .then(user => {
         setUsername(user.username)
-        setQueueTitle(user.queue_title || 'Antrian Donasi')
+        setQueueTitle(user.queue_title || 'Antrean Donasi')
         fetchQueue(user.username)
       }).catch(() => {})
   }, [uuid, fetchQueue])
@@ -75,14 +75,16 @@ function QueueOverlay() {
   }
 
   const aggregatedDonors = (() => {
-    const groups: Record<string, { sender: string, custom_input: string, total_amount: number, key: string }> = {}
-    
+    const groups: Record<string, { sender: string, custom_input_display: string, total_amount: number, key: string }> = {}
+
     donors.forEach(donor => {
-      const key = donor.custom_input ? `roblox_${donor.custom_input.toLowerCase()}` : `single_${donor.uuid}`
+      const customValues = donor.custom_input_json ? Object.values(donor.custom_input_json).filter(Boolean).join(', ') : ''
+      const key = customValues ? `custom_${customValues.toLowerCase()}` : `single_${donor.uuid}`
+
       if (!groups[key]) {
         groups[key] = {
           sender: donor.sender,
-          custom_input: donor.custom_input,
+          custom_input_display: customValues,
           total_amount: 0,
           key: key
         }
@@ -99,7 +101,7 @@ function QueueOverlay() {
         <h2 className="queue-title">{queueTitle}</h2>
         <div className="queue-list">
           {aggregatedDonors.length === 0 ? (
-            <div className="queue-empty">Belum ada antrian</div>
+            <div className="queue-empty">Belum ada antrean</div>
           ) : (
             aggregatedDonors.slice(0, 15).map((donor, index) => (
               <div key={donor.key} className="queue-item">
@@ -107,8 +109,8 @@ function QueueOverlay() {
                 <div className="queue-info">
                   <span className="queue-name">
                     {donor.sender}
-                    {donor.custom_input && (
-                      <span className="queue-custom"> ({donor.custom_input})</span>
+                    {donor.custom_input_display && (
+                      <span className="queue-custom"> ({donor.custom_input_display})</span>
                     )}
                   </span>
                 </div>

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
@@ -48,18 +50,29 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 		return nil, errors.New("recipient not found")
 	}
 
-	if target.MinDonation > 0 && int64(req.Amount) < target.MinDonation {
+	if target.Config.MinDonation > 0 && int64(req.Amount) < target.Config.MinDonation {
 		return nil, errors.New("nominal donasi di bawah batas minimal")
 	}
 
-	if target.CustomInputRequired && target.CustomInputLabel != "" && req.CustomInput == "" {
-		return nil, errors.New(target.CustomInputLabel + " wajib diisi")
+	// Validate custom inputs (schema-based)
+	if len(target.Config.CustomInputSchema) > 0 {
+		for _, field := range target.Config.CustomInputSchema {
+			if field.Required {
+				if req.CustomInputJSON == nil || req.CustomInputJSON[field.Key] == "" {
+					label := field.Label
+					if label == "" {
+						label = field.Key
+					}
+					return nil, errors.New(label + " wajib diisi")
+				}
+			}
+		}
 	}
 
 	uniqueCode := rand.Intn(90) + 10
 	totalAmount := req.Amount + uniqueCode
 
-	qrisBase := target.StaticQRIS
+	qrisBase := target.Payment.StaticQRIS
 	if qrisBase == "" {
 		return nil, errors.New("penerima belum menyetel QRIS")
 	}
@@ -69,16 +82,28 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 		return nil, errors.New("failed to generate QRIS")
 	}
 
+	if req.MediaURL != "" {
+		if err := validateMediaURL(req.MediaURL); err != nil {
+			return nil, err
+		}
+	}
+	if req.DonorUserID == nil && strings.TrimSpace(req.SupporterID) == "" {
+		req.SupporterID = uuid.NewString()
+	}
+
 	tx := domain.Transaction{
 		UUID:        uuid.New().String(),
 		TargetID:    target.ID,
+		DonorUserID: req.DonorUserID,
+		SupporterID: req.SupporterID,
 		Sender:      req.Sender,
 		Amount:      totalAmount,
 		BaseAmount:  req.Amount,
 		Note:        req.Note,
-		CustomInput: req.CustomInput,
+		CustomInputJSON: req.CustomInputJSON,
+		MediaURL:    req.MediaURL,
 		QRISPayload: qrisPayload,
-		Status:      "pending",
+		Status:      "PENDING",
 		IsQueue:     true,
 		ExpiredAt:   time.Now().Add(5 * time.Minute),
 	}
@@ -105,9 +130,11 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 }) error {
 	// 1. Log notification
 	logEntry := domain.NotificationLog{
+		UserID:  user.ID,
 		Message: req.Message,
 		Amount:  int64(req.Amount),
 		Bank:    req.Bank,
+		Source:  req.Source,
 	}
 	logEntry.GenerateHash()
 	_ = s.notifRepo.Create(&logEntry)
@@ -118,14 +145,19 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 		return nil // No matching transaction, but not an error to return to client
 	}
 
-	// 3. Update status to paid
-	_ = s.txRepo.UpdateStatus(tx.UUID, "paid")
+	// 3. Update status to PAID
+	_ = s.txRepo.UpdateStatus(tx.UUID, "PAID")
 
-	// Broadcast immediate paid status
+	logEntry.Processed = true
+	logEntry.TransactionID = &tx.ID
+	logEntry.TransactionUUID = tx.UUID
+	_ = s.notifRepo.Update(&logEntry)
+
+	// Broadcast immediate PAID status
 	_ = s.queueManager.PublishAlertMessage(domain.AlertMessage{
 		UserUUID:        user.UUID,
 		TransactionUUID: tx.UUID,
-		Type:            "paid",
+		Type:            "PAID",
 	})
 
 	// Generate TTS audio
@@ -143,14 +175,27 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 	s.queueManager.Enqueue(domain.AlertMessage{
 		UserUUID:        user.UUID,
 		TransactionUUID: tx.UUID,
-		Type:            "alert",
+		Type:            "ALERT",
 		Amount:          tx.BaseAmount,
 		Sender:          tx.Sender,
 		Message:         tx.Note,
 		AudioURL:        audioURL,
+		MediaURL:        tx.MediaURL,
 	})
 
 	return nil
+}
+
+func validateMediaURL(value string) error {
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Host == "" {
+		return errors.New("link media tidak valid")
+	}
+	host := strings.ToLower(parsed.Host)
+	if strings.Contains(host, "youtube.com") || strings.Contains(host, "youtu.be") || strings.Contains(host, "tiktok.com") || strings.Contains(host, "instagram.com") {
+		return nil
+	}
+	return errors.New("hanya link YouTube, TikTok, atau Instagram yang diizinkan")
 }
 
 func (s *TransactionService) GetTransaction(uuid string) (*domain.Transaction, error) {
@@ -168,7 +213,7 @@ func (s *TransactionService) TestAlert(userID uint, userUUID string) error {
 
 	s.queueManager.Enqueue(domain.AlertMessage{
 		UserUUID: userUUID,
-		Type:     "alert",
+		Type:     "ALERT",
 		Amount:   50000,
 		Sender:   "Tester Ganteng",
 		Message:  "Ini adalah pesan uji coba dari dashboard!",
@@ -187,6 +232,11 @@ func (s *TransactionService) GetUserStats(username string) (map[string]any, erro
 	totalAmount, totalDonors, _ := s.txRepo.GetUserStats(user.ID)
 	recent, _ := s.txRepo.GetRecent(user.ID, 10)
 
+	publicRecent := make([]domain.PublicTransaction, len(recent))
+	for i, tx := range recent {
+		publicRecent[i] = domain.ToPublicTransaction(tx)
+	}
+
 	topSupporters := make(map[string]any)
 	periods := map[string]time.Time{
 		"all":   {},
@@ -203,7 +253,7 @@ func (s *TransactionService) GetUserStats(username string) (map[string]any, erro
 	return map[string]any{
 		"total_amount":   totalAmount,
 		"total_donors":   totalDonors,
-		"recent":         recent,
+		"recent":         publicRecent,
 		"top_supporters": topSupporters,
 	}, nil
 }
@@ -224,18 +274,72 @@ func (s *TransactionService) UpdateQueue(userID uint, txUUID string, isQueue boo
 
 	s.queueManager.PublishAlertMessage(domain.AlertMessage{
 		UserUUID: tx.Target.UUID,
-		Type:     "refresh",
+		Type:     "REFRESH",
 	})
 
 	tx.IsQueue = isQueue
 	return tx, nil
 }
 
-func (s *TransactionService) GetQueueList(username string, query domain.QueueListQuery) ([]domain.Transaction, error) {
+func (s *TransactionService) GetQueueList(username string, query domain.QueueListQuery) ([]domain.PublicTransaction, error) {
 	user, err := s.userRepo.GetByUsername(username)
 	if err != nil {
 		return nil, errors.New("user not found")
 	}
 
-	return s.txRepo.List(query, user.ID)
+	transactions, err := s.txRepo.List(query, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	publicTransactions := make([]domain.PublicTransaction, len(transactions))
+	for i, tx := range transactions {
+		publicTransactions[i] = domain.ToPublicTransaction(tx)
+	}
+
+	return publicTransactions, nil
+}
+
+func (s *TransactionService) GetOverlayList(userUUID string) ([]domain.OverlayListItem, error) {
+	user, err := s.userRepo.GetByUUID(userUUID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	items, err := s.txRepo.GetOverlayList(user.ID, user.ListConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+func (s *TransactionService) GetAnalytics(userID uint, start, end time.Time, search string, page, limit int) (*domain.AnalyticsResponse, error) {
+	summary, err := s.txRepo.GetAnalyticsSummary(userID, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	transactions, total, err := s.txRepo.GetAnalyticsTransactions(userID, start, end, search, page, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	publicTransactions := make([]domain.PublicTransaction, len(transactions))
+	for i, tx := range transactions {
+		publicTransactions[i] = domain.ToPublicTransaction(tx)
+	}
+
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+
+	resp := &domain.AnalyticsResponse{
+		Summary:      summary,
+		Transactions: publicTransactions,
+	}
+	resp.Pagination.CurrentPage = page
+	resp.Pagination.TotalPages = totalPages
+	resp.Pagination.HasNext = page < totalPages
+	resp.Pagination.HasPrev = page > 1
+
+	return resp, nil
 }

@@ -23,7 +23,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		// Security: Hanya izinkan origin yang valid (bisa diambil dari config)
 		// Untuk dev kita izinkan localhost, tapi jangan gunakan 'true' saja
-		return true 
+		return true
 	},
 }
 
@@ -52,11 +52,12 @@ type Hub struct {
 type AlertMessage struct {
 	UserUUID        string `json:"user_uuid"`
 	TransactionUUID string `json:"transaction_uuid"`
-	Type            string `json:"type"` // "alert" or "refresh"
+	Type            string `json:"type"` // "ALERT" or "REFRESH"
 	Amount          int    `json:"amount"`
 	Sender          string `json:"sender"`
 	Message         string `json:"message"`
 	AudioURL        string `json:"audio_url"`
+	MediaURL        string `json:"media_url"`
 }
 
 func NewHub() *Hub {
@@ -149,12 +150,17 @@ func (c *Client) ReadPump() {
 			break
 		}
 
-		// Handle ACK messages from client
+		// Handle messages from client
 		var clientMsg ClientMessage
 		if err := json.Unmarshal(message, &clientMsg); err == nil {
-			if clientMsg.Type == "ack" && clientMsg.AlertID != "" && c.QueueManager != nil {
-				log.Printf("[WS] Received ACK from client for alert %s", clientMsg.AlertID)
-				c.QueueManager.HandleACK(c.UserUUID, clientMsg.AlertID)
+			if clientMsg.Type == "FINISHED" && clientMsg.AlertID != "" && c.QueueManager != nil {
+				log.Printf("[WS] Received FINISHED from client for alert %s", clientMsg.AlertID)
+				c.QueueManager.HandleFinished(c.UserUUID, clientMsg.AlertID)
+			} else if clientMsg.Type == "LISTENER_READY" && c.QueueManager != nil {
+				// Signal that an AlertOverlay is open and ready
+				c.QueueManager.SetListenerActive(c.UserUUID)
+				// Immediately trigger next check in case items are pending
+				go c.QueueManager.SendNext(c.UserUUID)
 			}
 		}
 	}

@@ -16,68 +16,85 @@ interface AlertData {
 function AlertOverlay() {
   useDocumentTitle('Alert Overlay')
   const { uuid } = useParams()
-  const [visible, setVisible] = useState(false)
   const [currentAlert, setCurrentAlert] = useState<AlertData | null>(null)
 
-  const isProcessingRef = useRef(false)
   const soundFxRef = useRef<HTMLAudioElement | null>(null)
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null)
+  const timeoutRef = useRef<number | null>(null)
   const socketRef = useRef<WebSocket | null>(null)
 
-  // Load sound effect
-  useEffect(() => {
-    const audio = new Audio('/money-soundfx.mp3')
-    audio.load()
-    soundFxRef.current = audio
-  }, [])
-
-  const delay = (ms: number) => new Promise(r => setTimeout(r, ms))
-
-  // Send ACK to server
-  const sendACK = useCallback((alertId: string) => {
+  const sendFinished = useCallback((alertId: string) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: 'ack', alert_id: alertId }))
-      console.log('[WS] ACK sent:', alertId)
+      socketRef.current.send(JSON.stringify({ type: 'FINISHED', alert_id: alertId }))
+      console.log('[WS] FINISHED sent:', alertId)
     }
   }, [])
 
-  // Process alert
-  const processAlert = useCallback(async (data: AlertData) => {
-    if (isProcessingRef.current) return
-    isProcessingRef.current = true
+  const sendReady = useCallback(() => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: 'LISTENER_READY' }))
+    }
+  }, [])
 
-    setCurrentAlert(data)
-    setVisible(true)
+  // Heartbeat to keep backend queue active
+  useEffect(() => {
+    const interval = window.setInterval(sendReady, 15000)
+    return () => window.clearInterval(interval)
+  }, [sendReady])
 
-    try {
-      // 1. Play sound effect (3s)
-      if (soundFxRef.current) {
-        soundFxRef.current.currentTime = 0
-        await soundFxRef.current.play().catch(() => {})
-      }
-      await delay(2500)
+  // Process alert lifecycle driven by React effect
+  useEffect(() => {
+    if (!currentAlert) return
 
-      // 2. Play Google TTS from Backend/MinIO
-      if (data.audio_url) {
-        const ttsAudio = new Audio(data.audio_url)
-        await ttsAudio.play().catch(() => {})
+    let isCancelled = false
 
-        // Wait for TTS to finish or a timeout
-        await new Promise((resolve) => {
-          ttsAudio.onended = resolve
-          setTimeout(resolve, 10000) // Max 10s fallback
+    const runAlert = async () => {
+      try {
+        const sfx = new Audio('/money-soundfx.mp3')
+        soundFxRef.current = sfx
+        await sfx.play().catch(() => {})
+
+        await new Promise(r => {
+          timeoutRef.current = window.setTimeout(r, 2500)
         })
+
+        if (isCancelled) return
+
+        if (currentAlert.audio_url) {
+          const tts = new Audio(currentAlert.audio_url)
+          ttsAudioRef.current = tts
+          await tts.play().catch(() => {})
+          
+          await new Promise(r => {
+            tts.onended = () => r(null)
+            timeoutRef.current = window.setTimeout(r, 10000) // Fallback max 10s
+          })
+        }
+      } catch (err) {
+        console.error('[Alert] Error playing media:', err)
       }
-    } catch (err) {
-      console.error('[Alert] Error:', err)
+
+      if (isCancelled) return
+
+      await new Promise(r => {
+        timeoutRef.current = window.setTimeout(r, 3000)
+      })
+
+      if (isCancelled) return
+
+      setCurrentAlert(null)
+      sendFinished(currentAlert.alert_id)
     }
 
-    await delay(3000)
-    setVisible(false)
-    await delay(500)
+    runAlert()
 
-    sendACK(data.alert_id)
-    isProcessingRef.current = false
-  }, [sendACK])
+    return () => {
+      isCancelled = true
+      if (soundFxRef.current) soundFxRef.current.pause()
+      if (ttsAudioRef.current) ttsAudioRef.current.pause()
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [currentAlert, sendFinished])
 
   // WebSocket connection
   const connectWS = useCallback(() => {
@@ -85,14 +102,21 @@ function AlertOverlay() {
     const socket = new WebSocket(`${WS_URL}/ws/${uuid}`)
     socketRef.current = socket
 
+    socket.onopen = () => {
+      console.log('[WS] Connected to Alert Channel')
+      sendReady()
+    }
+
     socket.onmessage = (e) => {
       try {
         const payload = JSON.parse(e.data)
-        // Check if data is flattened or nested (AlertMessage vs { AlertMessage, AlertID })
         const alertData = payload.alert_id ? { ...payload, ...payload.AlertMessage } : payload
         
-        if (alertData.type === 'alert') {
-          processAlert(alertData)
+        if (alertData.type?.toUpperCase() === 'ALERT') {
+          // If a new alert comes, it will overwrite the current one and restart the effect
+          setCurrentAlert(alertData)
+        } else if (alertData.type?.toUpperCase() === 'STOP_CURRENT') {
+          setCurrentAlert(null)
         }
       } catch (err) {
         console.error('[WS] Message Error:', err)
@@ -100,14 +124,14 @@ function AlertOverlay() {
     }
 
     socket.onclose = () => setTimeout(connectWS, 5000)
-  }, [uuid, processAlert])
+  }, [uuid])
 
   useEffect(() => {
     connectWS()
     return () => socketRef.current?.close()
   }, [connectWS])
 
-  if (!visible || !currentAlert) return <main className="overlay-container" />
+  if (!currentAlert) return <main className="overlay-container" />
 
   const formattedAmount = new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -117,7 +141,8 @@ function AlertOverlay() {
 
   return (
     <main className="overlay-container">
-      <div className="alert-wrapper animate-alert">
+      {/* Key ensures the DOM node is recreated, re-triggering the CSS animation on overwrite */}
+      <div key={currentAlert.alert_id} className="alert-wrapper animate-alert">
         <img src="/alert.gif" alt="thanks" className="alert-gif" />
 
         <div className="alert-content">
@@ -153,15 +178,15 @@ function AlertOverlay() {
         .alert-content {
           background: var(--accent);
           padding: 28px 44px;
-          border-radius: 28px; /* Border radius dikurangi agar tidak terlalu bulat */
+          border-radius: 28px;
           color: #ffffff;
           display: flex; flex-direction: column; gap: 8px;
           max-width: 850px;
-          border: 3px solid rgba(255, 255, 255, 0.1); /* Border tipis untuk kesan premium */
+          border: 3px solid rgba(255, 255, 255, 0.1);
         }
 
         .alert-main-text {
-          font-size: 3.2rem; /* Baris pertama lebih besar & menonjol */
+          font-size: 3.2rem;
           font-weight: 900;
           line-height: 1.1;
           letter-spacing: -0.03em;
@@ -169,7 +194,7 @@ function AlertOverlay() {
         }
 
         .alert-message-text {
-          font-size: 2.2rem; /* Ukuran pesan lebih kecil dari baris pertama */
+          font-size: 2.2rem;
           font-weight: 700;
           line-height: 1.3;
           opacity: 0.9;

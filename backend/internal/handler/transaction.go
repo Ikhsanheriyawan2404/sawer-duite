@@ -2,7 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/domain"
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/service"
@@ -35,13 +38,25 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	if !BindJSON(w, r, &req) {
 		return
 	}
+	if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+		token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+		if token != "" {
+			if userID, err := h.authService.ValidateAccessToken(token); err == nil {
+				req.DonorUserID = &userID
+			}
+		}
+	}
 
 	resp, err := h.txService.CreateTransaction(req)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err.Error() == "recipient not found" {
 			status = http.StatusNotFound
-		} else if err.Error() == "nominal donasi di bawah batas minimal" || err.Error() == "penerima belum menyetel QRIS" || (err.Error() != "" && err.Error()[len(err.Error())-12:] == " wajib diisi") {
+		} else if err.Error() == "nominal donasi di bawah batas minimal" ||
+			err.Error() == "penerima belum menyetel QRIS" ||
+			err.Error() == "link media tidak valid" ||
+			err.Error() == "hanya link YouTube, TikTok, atau Instagram yang diizinkan" ||
+			(err.Error() != "" && err.Error()[len(err.Error())-12:] == " wajib diisi") {
 			status = http.StatusBadRequest
 		}
 		JSONError(w, err.Error(), status)
@@ -94,6 +109,18 @@ func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Reque
 	}
 
 	JSONResponse(w, http.StatusOK, domain.ToPublicTransaction(*tx))
+}
+
+func (h *TransactionHandler) GetOverlayList(w http.ResponseWriter, r *http.Request) {
+	userUUID := chi.URLParam(r, "uuid")
+
+	items, err := h.txService.GetOverlayList(userUUID)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, items)
 }
 
 func (h *TransactionHandler) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -219,4 +246,45 @@ func (h *TransactionHandler) GetQueueList(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(transactions)
+}
+
+func (h *TransactionHandler) GetAnalytics(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(uint)
+
+	startStr := r.URL.Query().Get("start_date")
+	endStr := r.URL.Query().Get("end_date")
+	search := r.URL.Query().Get("search")
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	if pageStr != "" {
+		fmt.Sscanf(pageStr, "%d", &page)
+	}
+	limit := 10
+	if limitStr != "" {
+		fmt.Sscanf(limitStr, "%d", &limit)
+	}
+
+	start := time.Now().AddDate(0, -1, 0) // Default to last 30 days
+	if startStr != "" {
+		if t, err := time.Parse("2006-01-02", startStr); err == nil {
+			start = t
+		}
+	}
+	end := time.Now()
+	if endStr != "" {
+		if t, err := time.Parse("2006-01-02", endStr); err == nil {
+			// Set to end of day
+			end = t.Add(23*time.Hour + 59*time.Minute + 59*time.Second)
+		}
+	}
+
+	resp, err := h.txService.GetAnalytics(userID, start, end, search, page, limit)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, resp)
 }

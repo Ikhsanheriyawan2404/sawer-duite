@@ -10,6 +10,7 @@ import (
 	"github.com/Ikhsanheriyawan2404/sawer-duite/backend/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type AuthService struct {
@@ -66,12 +67,22 @@ func (s *AuthService) Register(req domain.RegisterRequest) (*domain.LoginRespons
 		Email:    req.Email,
 		Username: username,
 		Password: string(hashedPassword),
-		Name:     username,
 	}
 
 	if err := s.userRepo.Create(&user); err != nil {
 		return nil, errors.New("failed to create user")
 	}
+
+	_ = s.userRepo.CreateProfile(&domain.CreatorProfile{UserID: user.ID, Name: username})
+	_ = s.userRepo.CreateConfig(&domain.DonationConfig{UserID: user.ID})
+	_ = s.userRepo.CreatePayment(&domain.PaymentAccount{UserID: user.ID})
+	_ = s.userRepo.CreateAlertConfig(&domain.AlertConfig{UserID: user.ID})
+	_ = s.userRepo.CreateQueueConfig(&domain.QueueConfig{UserID: user.ID, QueueTitle: "Antrean Donasi"})
+	_ = s.userRepo.CreateListConfig(&domain.ListOverlayConfig{UserID: user.ID, Title: "Daftar Donatur"})
+	_ = s.userRepo.CreateMediaConfig(&domain.MediaOverlayConfig{UserID: user.ID, Enabled: true})
+	_ = s.userRepo.CreateQRConfig(&domain.QRConfig{UserID: user.ID, TopText: "Dukung Saya", BottomText: "Scan QR untuk donasi"})
+
+	fullUser, _ := s.userRepo.GetByID(user.ID)
 
 	accessToken, _ := s.GenerateAccessToken(user.ID)
 	refreshToken, _ := s.GenerateRefreshToken(user.ID)
@@ -79,7 +90,7 @@ func (s *AuthService) Register(req domain.RegisterRequest) (*domain.LoginRespons
 	return &domain.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		User:         user,
+		User:         *fullUser,
 	}, nil
 }
 
@@ -153,9 +164,48 @@ func (s *AuthService) UpdateProfile(userID uint, req domain.UpdateProfileRequest
 		return nil, errors.New("name and username are required")
 	}
 
-	existingUser, _ := s.userRepo.GetByUsername(req.Username)
-	if existingUser != nil && existingUser.ID != userID {
-		return nil, errors.New("username already taken")
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if req.Username != user.Username {
+		existing, _ := s.userRepo.GetByUsername(req.Username)
+		if existing != nil {
+			return nil, errors.New("username already taken")
+		}
+	}
+
+	user.Username = req.Username
+
+	user.Profile.Name = req.Name
+	user.Profile.Bio = req.Bio
+	user.Profile.SocialLinks = req.SocialLinks
+
+	user.Config.MinDonation = req.MinDonation
+	user.Config.QuickAmounts = req.QuickAmounts
+	user.Config.CustomInputSchema = req.CustomInputSchema
+	if req.QueueTitle != "" {
+		user.QueueConfig.QueueTitle = req.QueueTitle
+	}
+
+	user.Payment.StaticQRIS = req.StaticQRIS
+	user.Payment.Provider = req.Provider
+
+	if len(req.DonationPackages) > 0 {
+		_ = s.userRepo.ReplaceDonationPackages(user.ID, req.DonationPackages)
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("failed to update profile")
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) UpdateProfileBasic(userID uint, req domain.UpdateProfileBasicRequest) (*domain.User, error) {
+	if req.Name == "" || req.Username == "" {
+		return nil, errors.New("name and username are required")
 	}
 
 	user, err := s.userRepo.GetByID(userID)
@@ -163,10 +213,182 @@ func (s *AuthService) UpdateProfile(userID uint, req domain.UpdateProfileRequest
 		return nil, errors.New("user not found")
 	}
 
-	user.UpdateFromRequest(req)
+	if req.Username != user.Username {
+		existing, _ := s.userRepo.GetByUsername(req.Username)
+		if existing != nil {
+			return nil, errors.New("username already taken")
+		}
+	}
+
+	user.Username = req.Username
+	user.Profile.Name = req.Name
+	user.Profile.Bio = req.Bio
+	user.Profile.SocialLinks = req.SocialLinks
 
 	if err := s.userRepo.Update(user); err != nil {
 		return nil, errors.New("failed to update profile")
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) UpdatePaymentSettings(userID uint, req domain.UpdatePaymentRequest) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	user.Payment.StaticQRIS = req.StaticQRIS
+	user.Payment.Provider = req.Provider
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("failed to update payment")
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) UpdateConfig(userID uint, req domain.UpdateConfigRequest) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if req.MinDonation != nil {
+		user.Config.MinDonation = *req.MinDonation
+	}
+	if req.QuickAmounts != nil {
+		user.Config.QuickAmounts = *req.QuickAmounts
+	}
+	if req.CustomInputSchema != nil {
+		user.Config.CustomInputSchema = *req.CustomInputSchema
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("failed to update config")
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) UpdateDonationPackages(userID uint, packages []domain.DonationPackage) (*domain.User, error) {
+	if err := s.userRepo.ReplaceDonationPackages(userID, packages); err != nil {
+		return nil, errors.New("failed to update donation packages")
+	}
+	return s.userRepo.GetByID(userID)
+}
+func (s *AuthService) UpdateAlertConfig(userID uint, req domain.UpdateAlertConfigRequest) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("failed to update alert config")
+	}
+
+	return user, nil
+	}
+
+
+func (s *AuthService) UpdateQueueConfig(userID uint, req domain.UpdateQueueConfigRequest) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+	if req.QueueTitle != nil {
+		user.QueueConfig.QueueTitle = *req.QueueTitle
+	}
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("failed to update queue config")
+	}
+	return user, nil
+}
+
+func (s *AuthService) UpdateListConfig(userID uint, req domain.UpdateListConfigRequest) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Title != nil {
+		user.ListConfig.Title = *req.Title
+	}
+	if req.SortBy != nil {
+		user.ListConfig.SortBy = *req.SortBy
+	}
+	if req.Limit != nil {
+		user.ListConfig.Limit = *req.Limit
+	}
+	if req.AggrType != nil {
+		user.ListConfig.AggrType = *req.AggrType
+	}
+	if req.StartsAt != nil {
+		user.ListConfig.StartsAt = req.StartsAt
+	}
+	if req.EndsAt != nil {
+		user.ListConfig.EndsAt = req.EndsAt
+	}
+	if req.ClearStartsAt != nil && *req.ClearStartsAt {
+		user.ListConfig.StartsAt = nil
+	}
+	if req.ClearEndsAt != nil && *req.ClearEndsAt {
+		user.ListConfig.EndsAt = nil
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (s *AuthService) UpdateMediaConfig(userID uint, req domain.UpdateMediaConfigRequest) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if req.Enabled != nil {
+		user.MediaConfig.Enabled = *req.Enabled
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("failed to update media config")
+	}
+	return user, nil
+}
+
+func (s *AuthService) UpdateQRConfig(userID uint, req domain.UpdateQRConfigRequest) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	if req.TopText != nil {
+		user.QRConfig.TopText = *req.TopText
+	}
+	if req.BottomText != nil {
+		user.QRConfig.BottomText = *req.BottomText
+	}
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("failed to update QR config")
+	}
+
+	return user, nil
+}
+
+
+func (s *AuthService) UpdateAvatarURL(userID uint, url string) (*domain.User, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+
+	user.Profile.AvatarURL = url
+
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("failed to update avatar")
 	}
 
 	return user, nil
@@ -191,7 +413,7 @@ func (s *AuthService) GenerateRefreshToken(userID uint) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"exp":     time.Now().Add(s.config.RefreshTokenTTL).Unix(),
-		"type":    "refresh",
+		"type":    "REFRESH",
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -226,10 +448,53 @@ func (s *AuthService) ValidateRefreshToken(tokenString string) (uint, error) {
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || claims["type"] != "refresh" {
+	if !ok || claims["type"] != "REFRESH" {
 		return 0, errors.New("invalid claims")
 	}
 
 	userID := uint(claims["user_id"].(float64))
 	return userID, nil
+}
+
+func (s *AuthService) ListGoals(userID uint) ([]domain.DonationGoal, error) {
+	return s.userRepo.ListGoals(userID)
+}
+
+func (s *AuthService) CreateGoal(userID uint, req domain.CreateGoalRequest) (*domain.DonationGoal, error) {
+	if req.Title == "" || req.TargetAmount <= 0 {
+		return nil, errors.New("title and target_amount are required")
+	}
+	if req.StartsAt != nil && req.EndsAt != nil && req.StartsAt.After(*req.EndsAt) {
+		return nil, errors.New("starts_at must be before ends_at")
+	}
+
+	isActive := false
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	} else {
+		if _, err := s.userRepo.GetActiveGoal(userID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				isActive = true
+			} else {
+				return nil, err
+			}
+		}
+	}
+
+	return s.userRepo.CreateGoal(userID, req, isActive)
+}
+
+func (s *AuthService) UpdateGoal(userID uint, goalID uint, req domain.UpdateGoalRequest) (*domain.DonationGoal, error) {
+	if req.StartsAt != nil && req.EndsAt != nil && req.StartsAt.After(*req.EndsAt) {
+		return nil, errors.New("starts_at must be before ends_at")
+	}
+	return s.userRepo.UpdateGoal(userID, goalID, req)
+}
+
+func (s *AuthService) SetActiveGoal(userID uint, goalID uint) (*domain.DonationGoal, error) {
+	return s.userRepo.SetActiveGoal(userID, goalID)
+}
+
+func (s *AuthService) DeleteGoal(userID uint, goalID uint) error {
+	return s.userRepo.DeleteGoal(userID, goalID)
 }

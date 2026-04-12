@@ -48,9 +48,9 @@ func GetConfig() Config {
 		MinIOEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
 		MinIOAccessKey: getEnv("MINIO_ACCESS_KEY", ""),
 		MinIOSecretKey: getEnv("MINIO_SECRET_KEY", ""),
-		MinIOBucket:    getEnv("MINIO_BUCKET", "sawerduite-tts"),
+		MinIOBucket:    getEnv("MINIO_BUCKET", "sawerom-media"),
 		MinIOUseSSL:    getEnv("MINIO_USE_SSL", "false") == "true",
-		MinIOPublicURL: getEnv("MINIO_PUBLIC_URL", "http://localhost:9000/sawerduite-tts"),
+		MinIOPublicURL: getEnv("MINIO_PUBLIC_URL", "http://localhost:9000/sawerom-media"),
 	}
 }
 
