@@ -150,12 +150,17 @@ func (c *Client) ReadPump() {
 			break
 		}
 
-		// Handle ACK messages from client
+		// Handle messages from client
 		var clientMsg ClientMessage
 		if err := json.Unmarshal(message, &clientMsg); err == nil {
-			if clientMsg.Type == "ack" && clientMsg.AlertID != "" && c.QueueManager != nil {
-				log.Printf("[WS] Received ACK from client for alert %s", clientMsg.AlertID)
-				c.QueueManager.HandleACK(c.UserUUID, clientMsg.AlertID)
+			if clientMsg.Type == "FINISHED" && clientMsg.AlertID != "" && c.QueueManager != nil {
+				log.Printf("[WS] Received FINISHED from client for alert %s", clientMsg.AlertID)
+				c.QueueManager.HandleFinished(c.UserUUID, clientMsg.AlertID)
+			} else if clientMsg.Type == "LISTENER_READY" && c.QueueManager != nil {
+				// Signal that an AlertOverlay is open and ready
+				c.QueueManager.SetListenerActive(c.UserUUID)
+				// Immediately trigger next check in case items are pending
+				go c.QueueManager.SendNext(c.UserUUID)
 			}
 		}
 	}
