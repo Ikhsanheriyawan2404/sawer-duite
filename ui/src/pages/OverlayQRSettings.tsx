@@ -33,7 +33,7 @@ function OverlayQRSettings() {
       })
 
       const url = `${window.location.origin}/${parsed.username}`
-      QRCode.toDataURL(url, { margin: 0, width: 240 }).then(setQrDataUrl)
+      QRCode.toDataURL(url, { margin: 0, width: 240, errorCorrectionLevel: 'H' }).then(setQrDataUrl)
     }
 
     fetchWithAuth('/me')
@@ -49,7 +49,7 @@ function OverlayQRSettings() {
 
         // Generate QR for preview
         const url = `${window.location.origin}/${normalized.username}`
-        QRCode.toDataURL(url, { margin: 0, width: 240 }).then(setQrDataUrl)
+        QRCode.toDataURL(url, { margin: 0, width: 240, errorCorrectionLevel: 'H' }).then(setQrDataUrl)
       })
       .catch(() => {})
   }, [])
@@ -252,7 +252,10 @@ function OverlayQRSettings() {
               <p className="qr-preview-label">{formData.top_text || 'TOP TEXT'}</p>
               <div className="qr-preview-box">
                 {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="QR Preview" />
+                  <>
+                    <img src={qrDataUrl} alt="QR Preview" className="qr-code-img" />
+                    <img src="/logo.svg" alt="Logo" className="qr-logo" />
+                  </>
                 ) : (
                   <div className="qr-preview-placeholder" />
                 )}
@@ -331,6 +334,7 @@ function OverlayQRSettings() {
         }
 
         .qr-preview-box {
+          position: relative;
           width: 180px;
           height: 180px;
           margin: 0 auto 10px;
@@ -342,10 +346,21 @@ function OverlayQRSettings() {
           padding: 4px;
         }
 
-        .qr-preview-box img {
+        .qr-preview-box .qr-code-img {
           width: 100%;
           height: 100%;
           object-fit: contain;
+        }
+
+        .qr-logo {
+          position: absolute;
+          width: 44px;
+          height: 44px;
+          background: #fff;
+          padding: 4px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          z-index: 2;
         }
 
         .qr-preview-placeholder {

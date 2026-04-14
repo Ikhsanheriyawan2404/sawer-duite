@@ -24,7 +24,7 @@ function QROverlay() {
         } else {
           setConfig(prev => ({ ...prev, bottom_text: url }))
         }
-        return QRCode.toDataURL(url, { margin: 0, width: 240 })
+        return QRCode.toDataURL(url, { margin: 0, width: 240, errorCorrectionLevel: 'H' })
       })
       .then(dataUrl => setQrDataUrl(dataUrl))
       .catch(() => {})
@@ -35,7 +35,14 @@ function QROverlay() {
       <div className="qr-card">
         <p className="qr-label">{config.top_text}</p>
         <div className="qr-box">
-          {qrDataUrl ? <img src={qrDataUrl} alt="QR" /> : <div className="qr-placeholder" />}
+          {qrDataUrl ? (
+            <>
+              <img src={qrDataUrl} alt="QR" className="qr-code-img" />
+              <img src="/logo.svg" alt="Logo" className="qr-logo" />
+            </>
+          ) : (
+            <div className="qr-placeholder" />
+          )}
         </div>
         <p className="qr-link">{config.bottom_text || 'Memuat...'}</p>
       </div>
@@ -78,6 +85,7 @@ function QROverlay() {
         }
 
         .qr-box {
+          position: relative;
           width: 220px; /* Disesuaikan agar pas dengan card */
           height: 220px;
           margin: 0 auto 10px;
@@ -89,10 +97,21 @@ function QROverlay() {
           padding: 4px;
         }
 
-        .qr-box img {
+        .qr-box .qr-code-img {
           width: 100%;
           height: 100%;
           object-fit: contain;
+        }
+
+        .qr-logo {
+          position: absolute;
+          width: 54px;
+          height: 54px;
+          background: #fff;
+          padding: 6px;
+          border-radius: 10px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          z-index: 2;
         }
 
         .qr-placeholder {

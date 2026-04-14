@@ -43,7 +43,7 @@ function Header() {
     <header className="topbar">
       <Link to="/" className="brand">
         <div className="brand-mark">
-          <img src="/logo.png" alt="Sawer Duite" />
+          <img src="/logo.svg" alt="Sawer Duite" />
         </div>
         <span className="brand-name">Sawer Duite</span>
       </Link>
