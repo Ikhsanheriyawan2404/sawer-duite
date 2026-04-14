@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { fetchWithAuth } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { buildMenuItems } from '../lib/menu'
@@ -13,6 +14,7 @@ interface DonationPackage {
 
 function Home() {
   useDocumentTitle('Dashboard')
+  const navigate = useNavigate()
   const [user, setUser] = useState<NormalizedUser | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
@@ -87,6 +89,16 @@ function Home() {
       })
       .catch(err => console.error('Failed to fetch profile', err))
   }, [])
+
+  useEffect(() => {
+    if (!user || !profileLoaded) return
+    const dismissed = sessionStorage.getItem('onboarding_qris_dismissed')
+    const redirected = sessionStorage.getItem('onboarding_qris_redirected')
+    if (!user.static_qris && !dismissed && !redirected) {
+      sessionStorage.setItem('onboarding_qris_redirected', '1')
+      navigate('/settings/payment?onboarding=1')
+    }
+  }, [user, profileLoaded, navigate])
 
   function showToast(message: string) {
     setToastMessage(message)
