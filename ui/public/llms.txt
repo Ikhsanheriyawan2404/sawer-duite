@@ -1,0 +1,23 @@
+# Sawer Duite: Platform Donasi & Alert Real-time 0% Potongan
+
+> **Uang Anda, Milik Anda Sepenuhnya.** Tanpa Potongan Admin. Tanpa Drama Penarikan. 100% Langsung ke Dompet Anda.
+
+Sawer Duite adalah sistem notifikasi pembayaran modern yang dirancang untuk Streamer, Content Creator, dan Merchant yang menghargai transparansi dan keuntungan maksimal.
+
+## Kenapa Harus Sawer Duite?
+- **Potongan 0%**: Kami tidak mengambil sepeserpun dari kerja keras Anda. 100% donasi milik Anda.
+- **Instan & Langsung**: Uang masuk ke saldo DANA/GoPay Anda detik itu juga. Tidak ada perantara.
+- **Bebas Drama Penarikan**: Tidak perlu menunggu berhari-hari untuk mencairkan saldo. Uang sudah ada di tangan Anda sejak awal.
+- **Alert Real-time**: Notifikasi suara dan animasi muncul instan di OBS, TikTok Studio, atau Browser saat ada pembayaran masuk.
+
+## Cara Kerja Yang Sangat Mudah
+1. **Daftar & Setup**: Buat akun dan hubungkan QRIS DANA/GoPay Anda sendiri.
+2. **Pasang Listener**: Jalankan aplikasi pendeteksi pembayaran di HP Android Anda.
+3. **Mulai Live**: Pasang link overlay di OBS/Tiktok Studio, dan terima dukungan langsung dari fans Anda!
+
+## Keamanan Tanpa Kompromi
+- **Open Source**: Kami transparan. Anda bisa melihat cara kerja sistem kami kapan saja.
+- **Privasi Terjaga**: Kami tidak memiliki akses ke saldo atau rekening Anda. Kami hanya mengirimkan notifikasi pembayaran.
+
+---
+Copyright (c) 2026 Sawer Duite - Solusi Donasi Tanpa Potongan.

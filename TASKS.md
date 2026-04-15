@@ -35,4 +35,15 @@ Daftar fitur yang sudah diimplementasikan (done) dan rencana pengembangan ke dep
 - [ ] Support parsing notifikasi OVO Merchant.
 - [ ] Support parsing notifikasi ShopeePay Merchant.
 - [ ] Tema Overlay yang lebih bervariasi.
-- [ ] Dashboard Statistik & Analytics pendapatan.
+- [x] Design UI dashboard admin panel
+- [x] Dashboard Statistik & Analytics pendapatan.
+- [x] Default Alert
+- [ ] Alert Media Share
+- [x] List Top 10 Donors LIST
+- [x] Recent Donate LIST
+- [x] Queue Donate
+- [x] Milestone & Goals
+- [x] Qr Code
+- [ ] ~~Polling/Voting~~
+- [x] Running Text Horizontal LIST
+- [ ] Bio Link Customable Section 

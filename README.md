@@ -14,6 +14,21 @@ Kami memahami bahwa memberikan izin akses notifikasi adalah hal yang sensitif. O
 - **Direct to You**: Kami tidak memproses uang Anda. Uang masuk langsung ke saldo DANA/Gopay Anda.
 - **Privacy First**: Aplikasi hanya memfilter notifikasi spesifik dari aplikasi merchant yang didukung.
 
+## 🔐 Keamanan & Mekanisme Listener (Detail)
+Bagian ini menjelaskan bagaimana aplikasi Android bekerja agar transparan soal data yang dibaca dan dikirim.
+- **Cara kerja**: Android `NotificationListenerService` menerima semua notifikasi sistem, lalu **segera difilter** berdasarkan package yang didukung. Notifikasi dari aplikasi lain di-*skip*.
+- **Aplikasi yang didukung**: `id.dana`, `id.dana.business`, `com.gojek.gopaymerchant`.  
+- **Aplikasi yang tidak dibaca**: SMS, m-banking, email, dan aplikasi lain **tidak diproses** karena filter package sudah dipasang di awal.
+- **Data yang diproses**: judul notifikasi, isi notifikasi, waktu, dan package sumber.  
+- **Data yang dikirim ke backend**: hasil parsing nominal, bank, sumber, plus judul dan isi notifikasi yang relevan.  
+- **Tidak ada izin SMS**: aplikasi **tidak** meminta izin SMS/contacts/location.  
+- **Tracing/Log**: aplikasi menyimpan log lokal (`client_logs.jsonl`) dan mengunggahnya ke endpoint `/client-logs` untuk kebutuhan debugging.
+- **Keep-alive**: aplikasi menjalankan foreground service untuk mencegah sistem mematikan proses listener.
+
+### Versi Aplikasi Merchant yang Terbukti Jalan (Per Laporan Terakhir)
+- GoPay Merchant `1.23.0`
+- DANA Business `2.120.1`
+
 ---
 
 ## 🚀 Panduan Setup User (Langkah demi Langkah)
