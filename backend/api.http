@@ -4,7 +4,8 @@
 # Auto-populated after running login
 @accessToken = {{login.response.body.access_token}}
 @refreshToken = {{login.response.body.refresh_token}}
-@appToken = YOUR_ANDROID_APP_TOKEN_HERE
+@appToken = {{login.response.body.user.app_token}}
+
 
 ###########################################################
 ### SYSTEM & HEALTH
@@ -23,7 +24,7 @@ POST {{baseUrl}}/login
 Content-Type: application/json
 
 {
-  "email": "ikhsan@gmail.com",
+  "email": "admin@gmail.com",
   "password": "anone"
 }
 
@@ -39,8 +40,8 @@ Content-Type: application/json
 GET {{baseUrl}}/me
 Authorization: Bearer {{accessToken}}
 
-### Update Profile (Authenticated)
-POST {{baseUrl}}/me
+### Update Basic Profile (Authenticated)
+POST {{baseUrl}}/me/profile
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
@@ -48,16 +49,11 @@ Content-Type: application/json
   "name": "Ikhsan Heriyawan",
   "username": "ikhsan",
   "bio": "Streaming setiap malam Jumat",
-  "tiktok": "https://tiktok.com/@ikhsan",
-  "instagram": "https://instagram.com/ikhsan",
-  "youtube": "https://youtube.com/@ikhsan",
-  "min_donation": 10000,
-  "target_amount": 1000000,
-  "target_description": "Beli PC Baru",
-  "quick_amounts": [10000, 25000, 50000, 100000],
-  "custom_input_label": "Pesan Rahasia",
-  "custom_input_required": false,
-  "queue_title": "Antrian Donasi"
+  "social_links": {
+    "tiktok": "https://tiktok.com/@ikhsan",
+    "instagram": "https://instagram.com/ikhsan",
+    "youtube": "https://youtube.com/@ikhsan"
+  }
 }
 
 ###########################################################
@@ -68,7 +64,7 @@ Content-Type: application/json
 GET {{baseUrl}}/user/ikhsan
 
 ### Get Public User by UUID
-GET {{baseUrl}}/user/uuid/4c3bdbe2-b9a0-4be5-8116-63b9a7c4805c
+GET {{baseUrl}}/user/uuid/f9d34e24-58c5-441f-bdeb-bcfd0d987e6b
 
 ### List Public Users
 GET {{baseUrl}}/users?limit=10
@@ -81,13 +77,18 @@ GET {{baseUrl}}/users?limit=10
 # @name createTransaction
 POST {{baseUrl}}/transactions
 Content-Type: application/json
+Authorization: Bearer {{accessToken}}
 
 {
-  "username": "brogrammer",
+  "username": "ikhsan",
   "amount": 50000,
   "sender": "Donatur Budiman",
   "note": "Semangat bang streamingnya!",
-  "custom_input": "ini data tambahan"
+  "custom_input_json": {
+    "field_1775725636667": "brogrammer99"
+  },
+  "media_url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+  "supporter_id": "guest-uuid-local"
 }
 
 ### Get Transaction Details
@@ -97,7 +98,7 @@ GET {{baseUrl}}/transactions/{{createTransaction.response.body.uuid}}
 GET {{baseUrl}}/user/ikhsan/stats
 
 ### Get Queue List (Overlay)
-GET {{baseUrl}}/user/ikhsan/queue?status=paid&is_queue=true&sort_by=base_amount&order=desc
+GET {{baseUrl}}/user/ikhsan/queue?status=PAID&is_queue=true&order=desc
 
 ###########################################################
 ### NOTIFICATIONS & LOGS (From Android App)
@@ -109,10 +110,10 @@ X-App-Token: {{appToken}}
 Content-Type: application/json
 
 {
-  "title": "DANA",
-  "message": "Berhasil terima uang Rp 50.000 dari Donatur Budiman",
-  "amount": 50000,
-  "bank": "DANA",
+  "title": "GOPAY",
+  "message": "Pembayaran QRIS Rp 100063 di IKHSAN HERIYAWAN, Digital & Kreatif telah diterima.",
+  "amount": 100063,
+  "bank": "GOPAY",
   "source": "NotificationListener"
 }
 
@@ -137,6 +138,110 @@ Content-Type: application/json
 
 ### Trigger Test Alert
 POST {{baseUrl}}/user/{{login.response.body.user.uuid}}/test-alert
+Authorization: Bearer {{accessToken}}
+
+###########################################################
+### OVERLAY SETTINGS (Authenticated)
+###########################################################
+
+### Update Alert Config
+POST {{baseUrl}}/me/alert-config
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{}
+
+### Update Queue Config (Title Only)
+POST {{baseUrl}}/me/queue-config
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "queue_title": "Antrian Donasi"
+}
+
+### Update List Overlay Config
+POST {{baseUrl}}/me/list-config
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Daftar Donatur",
+  "starts_at": "2026-01-01T00:00:00+07:00",
+  "ends_at": "2026-12-31T23:59:59+07:00"
+}
+
+### Update Media Overlay Config
+POST {{baseUrl}}/me/media-config
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "enabled": true
+}
+
+### Update Donation Packages (Bulk)
+POST {{baseUrl}}/me/donation-packages
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+[
+  { "label": "Request Lagu", "amount": 25000 },
+  { "label": "Review Akun", "amount": 50000 }
+]
+
+### Update Payment Settings
+POST {{baseUrl}}/me/payment
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "provider": "DANA",
+  "static_qris": "PASTEKAN_QRIS_DISINI"
+}
+
+### Update Custom Input Schema
+POST {{baseUrl}}/me/config
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "custom_input_schema": [
+    { "key": "username_game", "label": "Username Game", "required": true }
+  ]
+}
+
+### Goals - List
+GET {{baseUrl}}/me/goals
+Authorization: Bearer {{accessToken}}
+
+### Goals - Create
+POST {{baseUrl}}/me/goals
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Beli Microphone",
+  "target_amount": 3000000,
+  "is_active": true
+}
+
+### Goals - Update
+PATCH {{baseUrl}}/me/goals/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Beli Microphone Pro",
+  "target_amount": 3500000
+}
+
+### Goals - Activate
+POST {{baseUrl}}/me/goals/1/activate
+Authorization: Bearer {{accessToken}}
+
+### Goals - Delete
+DELETE {{baseUrl}}/me/goals/1
 Authorization: Bearer {{accessToken}}
 
 ### Update Queue Status for Transaction
