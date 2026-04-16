@@ -117,9 +117,13 @@ function QueueOverlay() {
                 </span>
                 <div className="queue-info">
                   <span className="queue-name">
-                    {donor.sender}
-                    {donor.custom_input_display && (
-                      <span className="queue-custom"> ({donor.custom_input_display})</span>
+                    {donor.custom_input_display ? (
+                      <>
+                        {donor.custom_input_display}
+                        <span className="queue-custom"> ({donor.sender})</span>
+                      </>
+                    ) : (
+                      donor.sender
                     )}
                   </span>
                 </div>
