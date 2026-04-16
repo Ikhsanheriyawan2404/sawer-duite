@@ -4,14 +4,7 @@ import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { buildMenuItems } from '../lib/menu'
 import { MenuFab } from '../components/MenuFab'
 import { normalizeMeUser } from '../lib/normalizeUser'
-import type { NormalizedUser } from '../lib/normalizeUser'
-
-interface CustomField {
-  key: string
-  label: string
-  required: boolean
-  required_error?: string
-}
+import type { NormalizedUser, CustomField } from '../lib/normalizeUser'
 
 function Settings() {
   useDocumentTitle('Konfigurasi Global')
