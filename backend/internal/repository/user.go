@@ -97,13 +97,14 @@ func (r *UserRepository) baseQuery() *gorm.DB {
 	return r.db.Preload("Profile").Preload("Config").Preload("Payment").Preload("AlertConfig").Preload("QueueConfig").Preload("ListConfig").Preload("QRConfig").Preload("MediaConfig").Preload("DonationPackages")
 }
 
-func (r *UserRepository) ReplaceDonationPackages(userID uint, packages []domain.DonationPackage) error {
+func (r *UserRepository) ReplaceDonationPackages(userID uint, packages []domain.DonationPackage, category string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("user_id = ?", userID).Delete(&domain.DonationPackage{}).Error; err != nil {
+		if err := tx.Where("user_id = ? AND category = ?", userID, category).Delete(&domain.DonationPackage{}).Error; err != nil {
 			return err
 		}
 		for i := range packages {
 			packages[i].UserID = userID
+			packages[i].Category = category
 		}
 		if len(packages) == 0 {
 			return nil

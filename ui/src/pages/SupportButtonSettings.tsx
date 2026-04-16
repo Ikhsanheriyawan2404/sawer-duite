@@ -11,8 +11,8 @@ interface DonationPackage {
   category?: string
 }
 
-function DonationPackagesSettings() {
-  useDocumentTitle('Pilihan Dukungan')
+function SupportButtonSettings() {
+  useDocumentTitle('Tombol Dukungan')
   const [packages, setPackages] = useState<DonationPackage[]>([])
   const [newPackage, setNewPackage] = useState({ label: '', amount: '' })
   const [saving, setSaving] = useState(false)
@@ -20,20 +20,20 @@ function DonationPackagesSettings() {
   const [toastMessage, setToastMessage] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
 
-  const CATEGORY = 'default'
+  const CATEGORY = 'button'
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user')
     if (savedUser) {
       const parsed = normalizeMeUser(JSON.parse(savedUser))
-      setPackages((parsed.donation_packages || []).filter((p: any) => (p.category || 'default') === CATEGORY))
+      setPackages((parsed.donation_packages || []).filter((p: any) => p.category === CATEGORY))
     }
 
     fetchWithAuth('/me')
       .then(res => res.json())
       .then(data => {
         const normalized = normalizeMeUser(data)
-        setPackages((normalized.donation_packages || []).filter((p: any) => (p.category || 'default') === CATEGORY))
+        setPackages((normalized.donation_packages || []).filter((p: any) => p.category === CATEGORY))
         localStorage.setItem('user', JSON.stringify(normalized))
       })
       .catch(() => {})
@@ -61,9 +61,9 @@ function DonationPackagesSettings() {
       }
 
       const updated = normalizeMeUser(await res.json())
-      setPackages((updated.donation_packages || []).filter((p: any) => (p.category || 'default') === CATEGORY))
+      setPackages((updated.donation_packages || []).filter((p: any) => p.category === CATEGORY))
       localStorage.setItem('user', JSON.stringify(updated))
-      showToast('Pilihan dukungan diperbarui')
+      showToast('Tombol dukungan diperbarui')
     } catch {
       setError('Terjadi kesalahan')
     } finally {
@@ -106,8 +106,8 @@ function DonationPackagesSettings() {
 
       <section className="dashboard-header">
         <div>
-          <h2>Pilihan Dukungan</h2>
-          <p className="lead">Buat daftar pilihan nominal donasi favorit agar supporter tinggal klik.</p>
+          <h2>Tombol Dukungan</h2>
+          <p className="lead">Tambahkan tombol donasi cepat yang akan tampil di bawah foto profil kamu.</p>
         </div>
       </section>
 
@@ -116,20 +116,20 @@ function DonationPackagesSettings() {
       <section className="dashboard-grid">
         <article className="card">
           <div className="card-header">
-            <h3>Tambah Pilihan</h3>
+            <h3>Tambah Tombol</h3>
           </div>
 
           {error && <p className="error-text">{error}</p>}
 
           <div className="profile-form" style={{ gap: '12px' }}>
             <div className="form-group">
-              <label>Label</label>
+              <label>Teks Tombol</label>
               <input
                 type="text"
                 value={newPackage.label}
                 onChange={e => setNewPackage({ ...newPackage, label: e.target.value })}
                 className="input"
-                placeholder="Contoh: Review Akun"
+                placeholder="Contoh: Beli Kopi"
               />
             </div>
             <div className="form-group">
@@ -139,7 +139,7 @@ function DonationPackagesSettings() {
                 value={newPackage.amount}
                 onChange={e => setNewPackage({ ...newPackage, amount: e.target.value })}
                 className="input"
-                placeholder="50000"
+                placeholder="5000"
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -151,15 +151,15 @@ function DonationPackagesSettings() {
         <article className="card card-wide">
           <div className="card-header">
             <div>
-              <h3>Daftar Pilihan</h3>
-              <p className="muted" style={{ fontSize: '13px' }}>Klik tombol hapus untuk mengeluarkan paket dari daftar.</p>
+              <h3>Daftar Tombol</h3>
+              <p className="muted" style={{ fontSize: '13px' }}>Klik tombol hapus untuk mengeluarkan tombol dari daftar.</p>
             </div>
             {saving && <span className="chip chip-soft" style={{ fontSize: '11px' }}>Menyimpan...</span>}
           </div>
 
           {packages.length === 0 ? (
             <div className="empty-state">
-              <p className="muted">Belum ada pilihan dukungan yang dibuat.</p>
+              <p className="muted">Belum ada tombol dukungan yang dibuat.</p>
             </div>
           ) : (
             <div className="package-grid">
@@ -168,9 +168,8 @@ function DonationPackagesSettings() {
                   <div className="package-content">
                     <div className="package-icon">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="6" width="20" height="12" rx="2" />
-                        <circle cx="12" cy="12" r="2" />
-                        <path d="M6 12h.01M18 12h.01" />
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v8M8 12h8"/>
                       </svg>
                     </div>
                     <div className="package-info">
@@ -181,7 +180,7 @@ function DonationPackagesSettings() {
                   <button 
                     className="package-delete" 
                     onClick={() => removePackage(i)}
-                    title="Hapus paket"
+                    title="Hapus tombol"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 6L6 18M6 6l12 12" />
@@ -324,4 +323,4 @@ function DonationPackagesSettings() {
   )
 }
 
-export default DonationPackagesSettings
+export default SupportButtonSettings

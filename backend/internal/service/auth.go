@@ -193,7 +193,7 @@ func (s *AuthService) UpdateProfile(userID uint, req domain.UpdateProfileRequest
 	user.Payment.Provider = req.Provider
 
 	if len(req.DonationPackages) > 0 {
-		_ = s.userRepo.ReplaceDonationPackages(user.ID, req.DonationPackages)
+		_ = s.userRepo.ReplaceDonationPackages(user.ID, req.DonationPackages, "default")
 	}
 
 	if err := s.userRepo.Update(user); err != nil {
@@ -271,8 +271,11 @@ func (s *AuthService) UpdateConfig(userID uint, req domain.UpdateConfigRequest) 
 	return user, nil
 }
 
-func (s *AuthService) UpdateDonationPackages(userID uint, packages []domain.DonationPackage) (*domain.User, error) {
-	if err := s.userRepo.ReplaceDonationPackages(userID, packages); err != nil {
+func (s *AuthService) UpdateDonationPackages(userID uint, packages []domain.DonationPackage, category string) (*domain.User, error) {
+	if category == "" {
+		category = "default"
+	}
+	if err := s.userRepo.ReplaceDonationPackages(userID, packages, category); err != nil {
 		return nil, errors.New("failed to update donation packages")
 	}
 	return s.userRepo.GetByID(userID)

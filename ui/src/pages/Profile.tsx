@@ -96,6 +96,10 @@ function Profile() {
   const progressPercent = targetAmount > 0 ? Math.min(Math.round((totalAmount / targetAmount) * 100), 100) : 0
   const realPercent = targetAmount > 0 ? Math.round((totalAmount / targetAmount) * 100) : 0
 
+  // Filter paket donasi berdasarkan kategori
+  const defaultPackages = (user?.donation_packages || []).filter((p: any) => (p.category || 'default') === 'default')
+  const buttonPackages = (user?.donation_packages || []).filter((p: any) => p.category === 'button')
+
   return (
     <main className="page page-center">
       {/* CARD PROFILE */}
@@ -201,6 +205,31 @@ function Profile() {
           Donate Disini
         </Link>
 
+        {/* Support Buttons Category */}
+        {buttonPackages.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginBottom: '16px' }}>
+            {buttonPackages.map((p: any, i: number) => (
+              <Link
+                key={i}
+                to={`/${username}/donate?amount=${p.amount}&note=${encodeURIComponent(p.label)}&fixed=true`}
+                className="btn btn-primary w-full"
+                style={{
+                  textDecoration: 'none',
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  height: '48px',
+                  borderRadius: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {p.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
         {/* Bio */}
         {user.bio && (
           <p style={{
@@ -224,14 +253,14 @@ function Profile() {
       {/* SECTION BAWAH (SINGLE COLUMN) */}
       <div style={{ width: '100%', maxWidth: '1000px', display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
 
-        {/* BARIS 0: PILIHAN DUKUNGAN (PAKET) */}
-        {user?.donation_packages?.length > 0 && (
+        {/* BARIS 0: PILIHAN DUKUNGAN (PAKET DEFAULT) */}
+        {defaultPackages.length > 0 && (
           <article className="card" style={{ padding: '24px' }}>
             <p style={{ fontSize: '12px', fontWeight: 800, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', textAlign: 'center' }}>
-              Pilih Paket Dukungan
+              Pilihan Dukungan
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-              {user.donation_packages.map((p: any, i: number) => (
+              {defaultPackages.map((p: any, i: number) => (
                 <div
                   key={i}
                   style={{

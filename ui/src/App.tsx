@@ -9,6 +9,7 @@ import Settings from './pages/Settings'
 import OverlayAlertSettings from './pages/OverlayAlertSettings'
 import OverlayQueueSettings from './pages/OverlayQueueSettings'
 import DonationPackagesSettings from './pages/DonationPackagesSettings'
+import SupportButtonSettings from './pages/SupportButtonSettings'
 import OverlayGoalSettings from './pages/OverlayGoalSettings'
 import OverlayListSettings from './pages/OverlayListSettings'
 import OverlayMediaSettings from './pages/OverlayMediaSettings'
@@ -123,6 +124,14 @@ function AppShell() {
           element={
             <ProtectedRoute>
               <DonationPackagesSettings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/support-buttons"
+          element={
+            <ProtectedRoute>
+              <SupportButtonSettings />
             </ProtectedRoute>
           }
         />

@@ -373,13 +373,17 @@ func (h *AuthHandler) UpdateQRConfig(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) UpdateDonationPackages(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value("user_id").(uint)
+	category := r.URL.Query().Get("category")
+	if category == "" {
+		category = "default"
+	}
 
 	var packages []domain.DonationPackage
 	if !BindJSON(w, r, &packages) {
 		return
 	}
 
-	user, err := h.authService.UpdateDonationPackages(userID, packages)
+	user, err := h.authService.UpdateDonationPackages(userID, packages, category)
 	if err != nil {
 		JSONError(w, err.Error(), http.StatusInternalServerError)
 		return
