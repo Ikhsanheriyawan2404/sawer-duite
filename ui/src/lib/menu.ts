@@ -82,10 +82,18 @@ export function buildMenuItems(): MenuItem[] {
     },
     {
       key: 'donation-packages',
-      label: 'Paket Dukungan',
-      desc: 'Buat pilihan nominal donasi favorit',
+      label: 'Pilihan Dukungan',
+      desc: 'Buat daftar pilihan nominal donasi favorit',
       abbr: 'PD',
       to: '/settings/donation-packages',
+      status: 'live'
+    },
+    {
+      key: 'support-buttons',
+      label: 'Tombol Dukungan',
+      desc: 'Tambahkan tombol donasi cepat di profil',
+      abbr: 'TB',
+      to: '/settings/support-buttons',
       status: 'live'
     },
     {

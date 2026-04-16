@@ -291,16 +291,39 @@ function Payment() {
                 <span style={{ fontSize: '13px', fontWeight: '600' }}>{tx.sender || 'Seseorang'}</span>
               </div>
 
-              {/* Custom Input Details */}
-              {tx.custom_input_json && Object.keys(tx.custom_input_json).length > 0 && (
+              {/* Custom Input Details with Validation Alerts */}
+              {tx.target?.custom_input_schema && tx.target.custom_input_schema.length > 0 && (
                 <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px dashed var(--border)' }}>
-                  {Object.entries(tx.custom_input_json).map(([key, value]) => {
-                    const field = tx.target?.custom_input_schema?.find((f: any) => f.key === key)
-                    const label = field?.label || key
+                  {tx.target.custom_input_schema.map((field: any) => {
+                    const value = tx.custom_input_json?.[field.key]
+                    const isMissing = field.required && (!value || value.trim() === '')
+                    
                     return (
-                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span className="muted" style={{ fontSize: '13px' }}>{label}</span>
-                        <span style={{ fontSize: '13px', fontWeight: '600' }}>{value as string}</span>
+                      <div key={field.key} style={{ marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span className="muted" style={{ fontSize: '13px' }}>
+                            {field.label}
+                            {field.required && <span style={{ color: '#dc2626' }}>*</span>}
+                          </span>
+                          <span style={{ 
+                            fontSize: '13px', 
+                            fontWeight: '600',
+                            color: isMissing ? '#dc2626' : 'inherit'
+                          }}>
+                            {value || (isMissing ? 'Kosong' : '-')}
+                          </span>
+                        </div>
+                        {isMissing && (
+                          <p style={{ 
+                            color: '#dc2626', 
+                            fontSize: '11px', 
+                            fontWeight: '700', 
+                            margin: '2px 0 0 0',
+                            textAlign: 'right'
+                          }}>
+                            {field.required_error || 'Wajib diisi!'}
+                          </p>
+                        )}
                       </div>
                     )
                   })}

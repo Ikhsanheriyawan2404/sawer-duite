@@ -202,7 +202,7 @@ function Donate() {
               />
               {field.required && (!customInputs[field.key] || !customInputs[field.key].trim()) && (
                 <p style={{ color: '#dc2626', fontSize: '11px', fontWeight: 600, margin: 0 }}>
-                  Wajib diisi
+                  {field.required_error || 'Wajib diisi'}
                 </p>
               )}
             </div>

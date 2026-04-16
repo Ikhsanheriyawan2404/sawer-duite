@@ -47,10 +47,11 @@ type SocialLinks struct {
 }
 
 type DonationPackage struct {
-	ID     uint   `gorm:"primaryKey" json:"-"`
-	UserID uint   `gorm:"index;not null" json:"-"`
-	Label  string `json:"label"`
-	Amount int64  `json:"amount"`
+	ID       uint   `gorm:"primaryKey" json:"-"`
+	UserID   uint   `gorm:"index;not null" json:"-"`
+	Label    string `json:"label"`
+	Amount   int64  `json:"amount"`
+	Category string `gorm:"type:varchar(20);default:'default'" json:"category"`
 }
 
 type DonationConfig struct {
@@ -212,9 +213,10 @@ type UpdateGoalRequest struct {
 }
 
 type CustomInputField struct {
-	Key      string `json:"key"`
-	Label    string `json:"label"`
-	Required bool   `json:"required"`
+	Key           string `json:"key"`
+	Label         string `json:"label"`
+	Required      bool   `json:"required"`
+	RequiredError string `json:"required_error"`
 }
 
 type AlertConfig struct {

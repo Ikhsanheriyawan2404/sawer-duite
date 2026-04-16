@@ -59,6 +59,9 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 		for _, field := range target.Config.CustomInputSchema {
 			if field.Required {
 				if req.CustomInputJSON == nil || req.CustomInputJSON[field.Key] == "" {
+					if field.RequiredError != "" {
+						return nil, errors.New(field.RequiredError)
+					}
 					label := field.Label
 					if label == "" {
 						label = field.Key

@@ -95,6 +95,13 @@ function QueueOverlay() {
     return Object.values(groups).sort((a, b) => b.total_amount - a.total_amount)
   })()
 
+  const getRankDisplay = (index: number) => {
+    if (index === 0) return '👑'
+    if (index === 1) return '🥈'
+    if (index === 2) return '🥉'
+    return index + 1
+  }
+
   return (
     <main className="queue-overlay">
       <div className="queue-dialog">
@@ -104,13 +111,19 @@ function QueueOverlay() {
             <div className="queue-empty">Belum ada antrean</div>
           ) : (
             aggregatedDonors.slice(0, 15).map((donor, index) => (
-              <div key={donor.key} className="queue-item">
-                <span className="queue-rank">{index + 1}</span>
+              <div key={donor.key} className={`queue-item rank-${index + 1}`}>
+                <span className="queue-rank">
+                  {getRankDisplay(index)}
+                </span>
                 <div className="queue-info">
                   <span className="queue-name">
-                    {donor.sender}
-                    {donor.custom_input_display && (
-                      <span className="queue-custom"> ({donor.custom_input_display})</span>
+                    {donor.custom_input_display ? (
+                      <>
+                        {donor.custom_input_display}
+                        <span className="queue-custom"> ({donor.sender})</span>
+                      </>
+                    ) : (
+                      donor.sender
                     )}
                   </span>
                 </div>
@@ -129,43 +142,45 @@ function QueueOverlay() {
           display: flex;
           align-items: flex-start;
           justify-content: center;
-          padding: 20px; /* Dikurangi agar area kerja lebih luas */
+          padding: 20px;
           font-family: var(--font-main);
         }
 
         .queue-dialog {
           background: #ffffff;
           border-radius: 28px;
-          padding: 24px 32px; /* Rapatkan padding atas-bawah */
+          padding: 24px 32px;
           width: min(1200px, 98%);
           margin-top: 10px;
           animation: dialogFadeIn 0.5s ease-out both;
-          border: 5px solid #0052ff;
+          border: 6px solid #0052ff;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
 
         .queue-title {
-          font-size: 36px; /* Sedikit dikecilkan agar hemat ruang */
+          font-size: 32px;
           font-weight: 900;
           color: #0052ff;
-          text-align: left;
+          text-align: center;
           margin: 0 0 20px 0;
-          letter-spacing: -0.05em;
+          letter-spacing: -0.04em;
           text-transform: uppercase;
+          border-bottom: 3px solid #f1f5f9;
+          padding-bottom: 12px;
         }
 
         .queue-list {
           display: flex;
           flex-direction: column;
-          gap: 6px; /* Gap sangat rapat agar muat banyak */
+          gap: 10px;
         }
 
         .queue-empty {
           text-align: center;
-          color: #0052ff;
-          font-size: 24px;
+          color: #94a3b8;
+          font-size: 20px;
           padding: 30px 0;
-          font-weight: 600;
-          opacity: 0.7;
+          font-weight: 700;
         }
 
         .queue-item {
@@ -173,27 +188,58 @@ function QueueOverlay() {
           grid-template-columns: 50px 1fr auto;
           align-items: center;
           gap: 16px;
-          padding: 8px 24px; /* Padding vertical sangat tipis untuk menampung baris lebih banyak */
-          background: #f1f5f9;
-          border-radius: 14px;
+          padding: 12px 24px;
+          background: #f8fafc;
+          border-radius: 16px;
+          animation: rowSlideIn 0.4s ease-out both;
+          border: 2px solid transparent;
         }
 
         .queue-rank {
-          width: 38px;
-          height: 38px;
+          width: 40px;
+          height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
           background: #0052ff;
           color: #ffffff;
-          border-radius: 50%;
+          border-radius: 10px;
           font-weight: 900;
-          font-size: 20px;
+          font-size: 18px;
           flex-shrink: 0;
         }
 
+        /* Rank Special Styling */
+        .rank-1 {
+          background: #fffcf0;
+          border-color: #ffd700;
+        }
+        .rank-1 .queue-rank {
+          background: linear-gradient(135deg, #ffd700, #ffac00);
+          font-size: 24px;
+          box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+        }
+
+        .rank-2 {
+          background: #f8fafc;
+          border-color: #cbd5e1;
+        }
+        .rank-2 .queue-rank {
+          background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+          font-size: 24px;
+        }
+
+        .rank-3 {
+          background: #fff7ed;
+          border-color: #fb923c;
+        }
+        .rank-3 .queue-rank {
+          background: linear-gradient(135deg, #fb923c, #ea580c);
+          font-size: 24px;
+        }
+
         .queue-name {
-          font-size: 28px; /* Tetap besar, cuma turun sedikit agar proporsional */
+          font-size: 24px;
           font-weight: 800;
           color: #0f172a;
           white-space: nowrap;
@@ -206,13 +252,13 @@ function QueueOverlay() {
         }
 
         .queue-custom {
-          font-size: 20px;
+          font-size: 18px;
           color: #64748b;
           font-weight: 600;
         }
 
         .queue-amount {
-          font-size: 32px; /* Tetap besar agar nominal jelas */
+          font-size: 24px;
           font-weight: 900;
           color: #0052ff;
           white-space: nowrap;
@@ -225,6 +271,17 @@ function QueueOverlay() {
           }
           to {
             transform: scale(1) translateY(0);
+            opacity: 1;
+          }
+        }
+
+        @keyframes rowSlideIn {
+          from {
+            transform: translateX(-10px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
             opacity: 1;
           }
         }

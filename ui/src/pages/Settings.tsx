@@ -10,6 +10,7 @@ interface CustomField {
   key: string
   label: string
   required: boolean
+  required_error?: string
 }
 
 function Settings() {
@@ -27,7 +28,7 @@ function Settings() {
     custom_input_schema: [] as CustomField[]
   })
   const [newQuickAmount, setNewQuickAmount] = useState('')
-  const [newField, setNewField] = useState({ label: '', required: false })
+  const [newField, setNewField] = useState({ label: '', required: false, required_error: '' })
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user')
@@ -128,10 +129,11 @@ function Settings() {
     const field: CustomField = {
       key: `field_${Date.now()}`,
       label: newField.label,
-      required: newField.required
+      required: newField.required,
+      required_error: newField.required_error
     }
     setFormData({ ...formData, custom_input_schema: [...formData.custom_input_schema, field] })
-    setNewField({ label: '', required: false })
+    setNewField({ label: '', required: false, required_error: '' })
   }
 
   const removeField = (key: string) => {
@@ -237,25 +239,33 @@ function Settings() {
 
                   {isEditing ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'stretch' }}>
+                        <input
+                          type="text"
+                          placeholder="Label Input (misal: ID Roblox)"
+                          className="input"
+                          value={newField.label}
+                          onChange={e => setNewField({ ...newField, label: e.target.value })}
+                        />
+                        <div style={{ display: 'flex', gap: '8px' }}>
                           <input
                             type="text"
-                            placeholder="Label Input (misal: ID Roblox)"
+                            placeholder="Pesan Error Kustom (Opsional)"
                             className="input"
-                            value={newField.label}
-                            onChange={e => setNewField({ ...newField, label: e.target.value })}
+                            style={{ flex: 1 }}
+                            value={newField.required_error}
+                            onChange={e => setNewField({ ...newField, required_error: e.target.value })}
                           />
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, fontSize: '12px', cursor: 'pointer' }}>
-                            <input
-                              type="checkbox"
-                              checked={newField.required}
-                              onChange={e => setNewField({ ...newField, required: e.target.checked })}
-                              style={{ width: 'auto' }}
-                            /> Wajib diisi
-                          </label>
+                          <button className="btn btn-primary btn-sm" onClick={addField}>Tambah</button>
                         </div>
-                        <button className="btn btn-primary btn-sm" onClick={addField} style={{ marginTop: '4px' }}>Tambah</button>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0, fontSize: '12px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={newField.required}
+                            onChange={e => setNewField({ ...newField, required: e.target.checked })}
+                            style={{ width: 'auto' }}
+                          /> Wajib diisi
+                        </label>
                       </div>
 
                       <div className="feed" style={{ marginTop: '8px', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -265,7 +275,9 @@ function Settings() {
                           <div key={f.key} className="feed-row" style={{ padding: '10px 14px' }}>
                             <div style={{ flex: 1 }}>
                               <p style={{ fontWeight: 700, fontSize: '14px' }}>{f.label}</p>
-                              <p className="muted" style={{ fontSize: '11px' }}>{f.required ? 'Wajib' : 'Opsional'}</p>
+                              <p className="muted" style={{ fontSize: '11px' }}>
+                                {f.required ? (f.required_error || 'Wajib') : 'Opsional'}
+                              </p>
                             </div>
                             <button className="btn btn-ghost btn-sm" onClick={() => removeField(f.key)} style={{ color: '#dc2626' }}>Hapus</button>
                           </div>
@@ -278,7 +290,9 @@ function Settings() {
                         <div key={f.key} className="feed-row" style={{ padding: '10px 14px' }}>
                           <div style={{ flex: 1 }}>
                             <p style={{ fontWeight: 700, fontSize: '14px' }}>{f.label}</p>
-                            <p className="muted" style={{ fontSize: '11px' }}>{f.required ? 'Wajib' : 'Opsional'}</p>
+                            <p className="muted" style={{ fontSize: '11px' }}>
+                              {f.required ? (f.required_error || 'Wajib') : 'Opsional'}
+                            </p>
                           </div>
                         </div>
                       )) : <p className="muted text-center" style={{ padding: '12px' }}>Belum ada input kustom.</p>}
