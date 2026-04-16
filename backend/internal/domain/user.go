@@ -212,9 +212,10 @@ type UpdateGoalRequest struct {
 }
 
 type CustomInputField struct {
-	Key      string `json:"key"`
-	Label    string `json:"label"`
-	Required bool   `json:"required"`
+	Key           string `json:"key"`
+	Label         string `json:"label"`
+	Required      bool   `json:"required"`
+	RequiredError string `json:"required_error"`
 }
 
 type AlertConfig struct {
