@@ -22,7 +22,7 @@ class ListenerWatchdogWorker(appContext: Context, params: WorkerParameters) : Wo
 
         // Jika listener aktif tapi lama tidak ada notifikasi, coba rebind
         if (enabled) {
-            val thresholdMs = TimeUnit.HOURS.toMillis(12)
+            val thresholdMs = TimeUnit.HOURS.toMillis(1)
             if (sinceMs < 0 || sinceMs >= thresholdMs) {
                 NotificationListenerServiceCompat.requestRebind(applicationContext)
                 rebindTriggered = true
