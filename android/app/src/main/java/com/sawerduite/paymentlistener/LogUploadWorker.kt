@@ -26,12 +26,20 @@ class LogUploadWorker(appContext: Context, params: WorkerParameters) : Worker(ap
             return ListenableWorker.Result.success()
         }
 
-        val ok = NetworkClient.sendClientLogs(applicationContext, jsonArray)
-        return if (ok) {
-            ClientLogger.removeBatch(applicationContext, batch.size)
-            if (ClientLogger.hasMore(applicationContext)) ListenableWorker.Result.retry() else ListenableWorker.Result.success()
-        } else {
-            ListenableWorker.Result.retry()
+        val code = NetworkClient.sendClientLogs(applicationContext, jsonArray)
+        
+        return when {
+            code in 200..299 -> {
+                ClientLogger.removeBatch(applicationContext, batch.size)
+                if (ClientLogger.hasMore(applicationContext)) ListenableWorker.Result.retry() else ListenableWorker.Result.success()
+            }
+            code == 401 -> {
+                // Jangan retry jika token salah/unauthorized
+                ListenableWorker.Result.failure()
+            }
+            else -> {
+                ListenableWorker.Result.retry()
+            }
         }
     }
 }

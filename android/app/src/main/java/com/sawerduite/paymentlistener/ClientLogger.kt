@@ -123,7 +123,7 @@ object ClientLogger {
             .build()
 
         WorkManager.getInstance(context)
-            .enqueueUniqueWork("upload_client_logs", ExistingWorkPolicy.KEEP, work)
+            .enqueueUniqueWork("upload_client_logs", ExistingWorkPolicy.REPLACE, work)
     }
 
     object DeviceInfo {

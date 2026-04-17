@@ -105,7 +105,7 @@ object NetworkClient {
         }
     }
 
-    fun sendClientLogs(context: Context, logs: JSONArray): Boolean {
+    fun sendClientLogs(context: Context, logs: JSONArray): Int {
         val settings = SettingsManager(context)
         val baseUrl = settings.backendUrl
         val appToken = settings.appToken
@@ -128,11 +128,11 @@ object NetworkClient {
                 .build()
 
             client.newCall(request).execute().use { response ->
-                response.isSuccessful
+                response.code
             }
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to send client logs", e)
-            false
+            0
         }
     }
 }

@@ -11,11 +11,11 @@ object WatchdogScheduler {
 
     fun ensureScheduled(context: Context) {
         val request = PeriodicWorkRequestBuilder<ListenerWatchdogWorker>(
-            6, TimeUnit.HOURS,
-            1, TimeUnit.HOURS
+            1, TimeUnit.HOURS,
+            15, TimeUnit.MINUTES
         ).build()
 
         WorkManager.getInstance(context)
-            .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+            .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 }
