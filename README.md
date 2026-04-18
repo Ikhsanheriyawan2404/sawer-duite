@@ -62,7 +62,7 @@ Aplikasi Android ini adalah jantung dari sistem yang bertugas mengirim notifikas
 ### 4. Konfigurasi Aplikasi
 > [!TIP]
 > **Tempat Gambar: Tampilan Konfigurasi App Android**
-> ![App Configuration](docs/images/android-config.png)
+> ![App Configuration](ui/public/aplikasi-android.jpg)
 
 1. Buka aplikasi Sawer Duite di Android.
 2. Masukkan **Backend URL**: `https://sawer-api.duitebot.com` (atau URL server Anda jika self-host).

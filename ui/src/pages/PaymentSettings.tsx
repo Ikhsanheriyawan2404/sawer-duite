@@ -440,17 +440,17 @@ function PaymentSettings() {
                 <div className="onboarding-panel">
                   <div className="onboarding-video">
                     <a
-                      href="https://www.youtube.com/shorts/NzozHrZ0aDg"
+                      href="https://youtube.com/shorts/TZ-ab4GCblE"
                       target="_blank"
                       rel="noreferrer"
                       className="video-card"
                     >
                       <img
-                        src="https://i.ytimg.com/vi/NzozHrZ0aDg/hqdefault.jpg"
+                        src="https://i.ytimg.com/vi/TZ-ab4GCblE/oardefault.jpg"
                         alt="Tutorial QRIS"
                       />
                       <div className="video-overlay">
-                        <span>Putar Video 60 Detik</span>
+                        <span>Putar Video 3 Menit</span>
                       </div>
                     </a>
                     <div className="video-caption">
