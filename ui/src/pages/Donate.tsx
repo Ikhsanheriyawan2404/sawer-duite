@@ -69,7 +69,7 @@ function Donate() {
   }
 
   const isMinDonationMet = !user?.min_donation || parseInt(form.amount) >= user.min_donation
-  const isCustomInputMet = !user?.custom_input_schema || user.custom_input_schema.every((field: any) => 
+  const isCustomInputMet = !user?.custom_input_schema || user.custom_input_schema.every((field: any) =>
     !field.required || (customInputs[field.key] && customInputs[field.key].trim() !== '')
   )
   const hasQRIS = user?.has_qris !== false
@@ -290,7 +290,7 @@ function Donate() {
               required
             />
             <label htmlFor="terms" style={{ fontSize: '12px', lineHeight: '1.5', cursor: 'pointer', color: 'var(--foreground)', fontWeight: 500, margin: 0 }}>
-              Saya menyatakan transaksi ini adalah dukungan sukarela, bukan komersial, dan tidak dapat dikembalikan.
+              Dengan ini, aku menyatakan dukungan ini sukarela, non-komersial, dan bersifat final (non-refundable). Thank you for sharing the love! 🫶
             </label>
           </div>
 
