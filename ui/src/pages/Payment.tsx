@@ -82,7 +82,7 @@ function Payment() {
     if (tx?.qris_payload && canvasRef.current && !isExpired && !isPaid && !loading) {
       // Gunakan ukuran yang lebih masuk akal (300px) agar tidak memicu overflow pada container grid
       QRCode.toCanvas(canvasRef.current, tx.qris_payload, {
-        width: 300, 
+        width: 300,
         margin: 2,
         color: {
           dark: '#000000',
@@ -181,10 +181,14 @@ function Payment() {
             </div>
             <div className="payment-summary-row">
               <span className="payment-summary-label">Admin Fee</span>
-              <span className="payment-summary-value payment-summary-value--muted">{formatCurrency(0)}</span>
+              <span className="payment-summary-value payment-summary-value--muted">
+                <del style={{ opacity: 0.6, marginRight: '6px' }}>{formatCurrency(2500)}</del>
+                <span style={{ color: 'var(--foreground)', fontWeight: 'bold' }}>{formatCurrency(0)}</span>
+              </span>
+              <span className="payment-summary-value payment-summary-value--muted"></span>
             </div>
             <div className="payment-summary-row">
-              <span className="payment-summary-label">Dukungan Ekstra</span>
+              <span className="payment-summary-label">Kode Unik</span>
               <span className="payment-summary-value">{uniqueCodeDisplay}</span>
             </div>
           </div>
@@ -220,7 +224,7 @@ function Payment() {
               </div>
               <h3 style={{ color: '#16a34a', marginBottom: '8px', fontSize: '1.4rem' }}>Terima Kasih!</h3>
               <p className="muted" style={{ fontSize: '14px', marginBottom: '24px', lineHeight: '1.6' }}>
-                Pembayaran kamu telah berhasil diterima. Dukunganmu sangat berarti!
+                Terimaksih dukunganmu sangat berarti! Nama kamu akan segera diupdate kedalam leaderbaord map Indo Outfit Loader
               </p>
               <button
                 onClick={() => navigate(targetUsername ? `/${targetUsername}` : '/')}
@@ -261,14 +265,14 @@ function Payment() {
                   borderRadius: '12px'
                 }}
               >
-                <canvas 
-                  ref={canvasRef} 
-                  style={{ 
-                    maxWidth: '100%', 
+                <canvas
+                  ref={canvasRef}
+                  style={{
+                    maxWidth: '100%',
                     maxHeight: '100%',
-                    height: 'auto', 
+                    height: 'auto',
                     display: 'block'
-                  }} 
+                  }}
                 />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '16px' }}>
@@ -297,7 +301,7 @@ function Payment() {
                   {tx.target.custom_input_schema.map((field: any) => {
                     const value = tx.custom_input_json?.[field.key]
                     const isMissing = field.required && (!value || value.trim() === '')
-                    
+
                     return (
                       <div key={field.key} style={{ marginBottom: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -305,8 +309,8 @@ function Payment() {
                             {field.label}
                             {field.required && <span style={{ color: '#dc2626' }}>*</span>}
                           </span>
-                          <span style={{ 
-                            fontSize: '13px', 
+                          <span style={{
+                            fontSize: '13px',
                             fontWeight: '600',
                             color: isMissing ? '#dc2626' : 'inherit'
                           }}>
@@ -314,10 +318,10 @@ function Payment() {
                           </span>
                         </div>
                         {isMissing && (
-                          <p style={{ 
-                            color: '#dc2626', 
-                            fontSize: '11px', 
-                            fontWeight: '700', 
+                          <p style={{
+                            color: '#dc2626',
+                            fontSize: '11px',
+                            fontWeight: '700',
                             margin: '2px 0 0 0',
                             textAlign: 'right'
                           }}>
