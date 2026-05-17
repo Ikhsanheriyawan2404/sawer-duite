@@ -185,7 +185,6 @@ function Payment() {
                 <del style={{ opacity: 0.6, marginRight: '6px' }}>{formatCurrency(2500)}</del>
                 <span style={{ color: 'var(--foreground)', fontWeight: 'bold' }}>{formatCurrency(0)}</span>
               </span>
-              <span className="payment-summary-value payment-summary-value--muted"></span>
             </div>
             <div className="payment-summary-row">
               <span className="payment-summary-label">Kode Unik</span>

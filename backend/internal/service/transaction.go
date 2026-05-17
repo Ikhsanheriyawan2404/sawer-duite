@@ -20,6 +20,7 @@ type TransactionService struct {
 	notifRepo    *repository.NotificationRepository
 	qrisService  *QRISService
 	ttsService   *TTSService
+	filterService *FilterService
 	hub          *domain.Hub
 	queueManager *domain.AlertQueueManager
 }
@@ -30,6 +31,7 @@ func NewTransactionService(
 	notifRepo *repository.NotificationRepository,
 	qrisService *QRISService,
 	ttsService *TTSService,
+	filterService *FilterService,
 	hub *domain.Hub,
 	queueManager *domain.AlertQueueManager,
 ) *TransactionService {
@@ -39,6 +41,7 @@ func NewTransactionService(
 		notifRepo:    notifRepo,
 		qrisService:  qrisService,
 		ttsService:   ttsService,
+		filterService: filterService,
 		hub:          hub,
 		queueManager: queueManager,
 	}
@@ -163,11 +166,14 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 		Type:            "PAID",
 	})
 
+	filteredSender := s.filterService.Filter(tx.Sender)
+	filteredNote := s.filterService.Filter(tx.Note)
+
 	// Generate TTS audio
 	formatted := fmt.Sprintf("%d", tx.BaseAmount)
-	ttsText := fmt.Sprintf("%s rupiah dari %s", formatted, tx.Sender)
-	if tx.Note != "" {
-		ttsText += ". " + tx.Note
+	ttsText := fmt.Sprintf("%s rupiah dari %s", formatted, filteredSender.TTSText)
+	if filteredNote.TTSText != "" {
+		ttsText += ". " + filteredNote.TTSText
 	}
 	audioURL, err := s.ttsService.Generate(ttsText)
 	if err != nil {
@@ -180,8 +186,8 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 		TransactionUUID: tx.UUID,
 		Type:            "ALERT",
 		Amount:          tx.BaseAmount,
-		Sender:          tx.Sender,
-		Message:         tx.Note,
+		Sender:          filteredSender.CensoredText,
+		Message:         filteredNote.CensoredText,
 		AudioURL:        audioURL,
 		MediaURL:        tx.MediaURL,
 	})
@@ -221,6 +227,48 @@ func (s *TransactionService) TestAlert(userID uint, userUUID string) error {
 		Sender:   "Tester Ganteng",
 		Message:  "Ini adalah pesan uji coba dari dashboard!",
 		AudioURL: audioURL,
+	})
+
+	return nil
+}
+
+func (s *TransactionService) ReplayAlert(userID uint, userUUID string, txUUID string) error {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil || user.UUID != userUUID {
+		return errors.New("forbidden")
+	}
+
+	tx, err := s.txRepo.GetByUUID(txUUID)
+	if err != nil {
+		return errors.New("transaction not found")
+	}
+
+	if tx.TargetID != user.ID {
+		return errors.New("forbidden")
+	}
+
+	filteredSender := s.filterService.Filter(tx.Sender)
+	filteredNote := s.filterService.Filter(tx.Note)
+
+	formatted := fmt.Sprintf("%d", tx.BaseAmount)
+	ttsText := fmt.Sprintf("%s rupiah dari %s", formatted, filteredSender.TTSText)
+	if filteredNote.TTSText != "" {
+		ttsText += ". " + filteredNote.TTSText
+	}
+	audioURL, err := s.ttsService.Generate(ttsText)
+	if err != nil {
+		log.Printf("[Replay] TTS Generation Error: %v", err)
+	}
+
+	s.queueManager.Enqueue(domain.AlertMessage{
+		UserUUID:        user.UUID,
+		TransactionUUID: tx.UUID,
+		Type:            "ALERT",
+		Amount:          tx.BaseAmount,
+		Sender:          filteredSender.CensoredText,
+		Message:         filteredNote.CensoredText,
+		AudioURL:        audioURL,
+		MediaURL:        tx.MediaURL,
 	})
 
 	return nil
