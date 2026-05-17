@@ -46,9 +46,10 @@ func main() {
 
 	authService := service.NewAuthService(cfg, userRepo)
 	qrisService := service.NewQRISService()
+	filterService := service.NewFilterService()
 	ttsService := service.NewTTSService(ttsCacheRepo, rdb, cfg)
 	storageService := service.NewStorageService(cfg)
-	txService := service.NewTransactionService(txRepo, userRepo, notifRepo, qrisService, ttsService, hub, queueManager)
+	txService := service.NewTransactionService(txRepo, userRepo, notifRepo, qrisService, ttsService, filterService, hub, queueManager)
 	clientLogService := service.NewClientLogService(clientLogRepo)
 
 	r := chi.NewRouter()
@@ -112,6 +113,7 @@ func main() {
 		r.Get("/me/analytics", txHandler.GetAnalytics)
 
 		r.Post("/user/{uuid}/test-alert", txHandler.TestAlert)
+		r.Post("/user/{uuid}/replay-alert", txHandler.ReplayAlert)
 
 		r.Patch("/transactions/{uuid}/queue", txHandler.UpdateQueue)
 		r.Post("/transactions/{uuid}/queue/add", txHandler.AddToQueue)

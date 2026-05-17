@@ -148,6 +148,31 @@ func (h *TransactionHandler) TestAlert(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Test alert queued"))
 }
 
+func (h *TransactionHandler) ReplayAlert(w http.ResponseWriter, r *http.Request) {
+	userUUID := chi.URLParam(r, "uuid")
+	txUUID := r.URL.Query().Get("tx_uuid")
+	userID := r.Context().Value("user_id").(uint)
+
+	if txUUID == "" {
+		JSONError(w, "tx_uuid is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.txService.ReplayAlert(userID, userUUID, txUUID); err != nil {
+		status := http.StatusInternalServerError
+		if err.Error() == "forbidden" {
+			status = http.StatusForbidden
+		} else if err.Error() == "transaction not found" {
+			status = http.StatusNotFound
+		}
+		JSONError(w, err.Error(), status)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Replay alert queued"))
+}
+
 func (h *TransactionHandler) GetUserStats(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
 

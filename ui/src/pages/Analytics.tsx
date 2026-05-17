@@ -68,6 +68,41 @@ function Analytics() {
     fetchAnalytics()
   }, [fetchAnalytics])
 
+  const handleReplay = async (txUUID: string) => {
+    // Get target user UUID from localStorage session
+    const userStr = localStorage.getItem('user')
+    if (!userStr) {
+      alert('Sesi habis, silakan login kembali')
+      return
+    }
+    
+    let userUUID = ''
+    try {
+      const user = JSON.parse(userStr)
+      userUUID = user.uuid
+    } catch (e) {
+      console.error('Failed to parse user session', e)
+      return
+    }
+
+    if (!userUUID) return
+
+    try {
+      const res = await fetchWithAuth(`/user/${userUUID}/replay-alert?tx_uuid=${txUUID}`, {
+        method: 'POST'
+      })
+      if (res.ok) {
+        alert('Alert replay queued!')
+      } else {
+        const err = await res.json()
+        alert('Gagal: ' + (err.message || 'Terjadi kesalahan'))
+      }
+    } catch (err) {
+      console.error('Failed to replay alert', err)
+      alert('Gagal menghubungkan ke server')
+    }
+  }
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -157,14 +192,15 @@ function Analytics() {
                   <th>Waktu</th>
                   <th>Pengirim</th>
                   <th>Nominal</th>
+                  <th className="text-center">Aksi</th>
                   <th>Pesan</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={4} className="text-center">Memuat data...</td></tr>
+                  <tr><td colSpan={5} className="text-center">Memuat data...</td></tr>
                 ) : data?.transactions.length === 0 ? (
-                  <tr><td colSpan={4} className="text-center">Tidak ada transaksi ditemukan</td></tr>
+                  <tr><td colSpan={5} className="text-center">Tidak ada transaksi ditemukan</td></tr>
                 ) : data?.transactions.map(tx => (
                   <tr key={tx.uuid}>
                     <td className="mono" style={{ fontSize: '12px' }}>
@@ -172,6 +208,16 @@ function Analytics() {
                     </td>
                     <td style={{ fontWeight: 600 }}>{tx.sender}</td>
                     <td className="accent" style={{ fontWeight: 700 }}>{formatCurrency(tx.base_amount)}</td>
+                    <td className="text-center">
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleReplay(tx.uuid)}
+                        title="Putar Ulang Alert"
+                        style={{ padding: '4px 12px' }}
+                      >
+                        Replay
+                      </button>
+                    </td>
                     <td style={{ fontSize: '13px' }}>{tx.note || '-'}</td>
                   </tr>
                 ))}
