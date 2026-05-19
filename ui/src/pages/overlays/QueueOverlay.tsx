@@ -9,6 +9,7 @@ interface Transaction {
   base_amount: number
   note: string
   custom_input_json: Record<string, string>
+  created_at: string
 }
 
 function QueueOverlay() {
@@ -75,24 +76,35 @@ function QueueOverlay() {
   }
 
   const aggregatedDonors = (() => {
-    const groups: Record<string, { sender: string, custom_input_display: string, total_amount: number, key: string }> = {}
+    const groups: Record<string, { sender: string, custom_input_display: string, total_amount: number, key: string, earliest_created_at: number }> = {}
 
     donors.forEach(donor => {
       const customValues = donor.custom_input_json ? Object.values(donor.custom_input_json).filter(Boolean).join(', ') : ''
       const key = customValues ? `custom_${customValues.toLowerCase()}` : `single_${donor.uuid}`
+      const donorTime = new Date(donor.created_at).getTime()
 
       if (!groups[key]) {
         groups[key] = {
           sender: donor.sender,
           custom_input_display: customValues,
           total_amount: 0,
-          key: key
+          key: key,
+          earliest_created_at: donorTime
+        }
+      } else {
+        if (donorTime < groups[key].earliest_created_at) {
+          groups[key].earliest_created_at = donorTime
         }
       }
       groups[key].total_amount += donor.base_amount
     })
 
-    return Object.values(groups).sort((a, b) => b.total_amount - a.total_amount)
+    return Object.values(groups).sort((a, b) => {
+      if (b.total_amount !== a.total_amount) {
+        return b.total_amount - a.total_amount
+      }
+      return a.earliest_created_at - b.earliest_created_at
+    })
   })()
 
   const getRankDisplay = (index: number) => {

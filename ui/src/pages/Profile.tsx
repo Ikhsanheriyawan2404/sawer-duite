@@ -189,6 +189,36 @@ function Profile() {
             opacity: 1;
             transform: translateY(0);
           }
+          .support-options-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(1, 1fr);
+          }
+          @media (min-width: 480px) {
+            .support-options-grid {
+              grid-template-columns: repeat(2, 1fr);
+            }
+          }
+          @media (min-width: 768px) {
+            .support-options-grid {
+              grid-template-columns: repeat(3, 1fr);
+            }
+          }
+          @media (min-width: 1024px) {
+            .support-options-grid {
+              grid-template-columns: repeat(4, 1fr);
+            }
+          }
+          .support-option-item {
+            padding: 16px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: var(--shadow-sm);
+          }
         `}</style>
 
         {/* Social Media Links */}
@@ -259,20 +289,11 @@ function Profile() {
             <p style={{ fontSize: '12px', fontWeight: 800, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', textAlign: 'center' }}>
               Pilihan Dukungan
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            <div className="support-options-grid">
               {defaultPackages.map((p: any, i: number) => (
                 <div
                   key={i}
-                  style={{
-                    padding: '16px',
-                    borderRadius: '16px',
-                    border: '1px solid var(--border)',
-                    background: '#fff',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
+                  className="support-option-item"
                 >
                   <div>
                     <p style={{ margin: '6px 0 0 0', fontSize: '18px', fontWeight: 800, color: 'var(--accent)' }}>
