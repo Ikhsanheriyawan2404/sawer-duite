@@ -202,7 +202,7 @@ function Profile() {
 
         {/* Donate Button */}
         <Link to={`/${username}/donate`} className="btn btn-primary w-full" style={{ height: '52px', fontSize: '16px', borderRadius: '14px', marginBottom: '16px', textDecoration: 'none' }}>
-          Donate Disini
+          Donate Fast Track
         </Link>
 
         {/* Support Buttons Category */}
@@ -275,11 +275,8 @@ function Profile() {
                   }}
                 >
                   <div>
-                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--muted-foreground)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                      {p.label}
-                    </p>
                     <p style={{ margin: '6px 0 0 0', fontSize: '18px', fontWeight: 800, color: 'var(--accent)' }}>
-                      {formatCurrency(p.amount)}
+                      {p.label}
                     </p>
                   </div>
                   <Link
