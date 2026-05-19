@@ -46,7 +46,7 @@ function Header() {
         <div className="brand-mark">
           <img src="/logo.svg" alt="Sawer Duite" />
         </div>
-        <span className="brand-name">Sawer Duite</span>
+        <span className="brand-name">Sawer Blox</span>
       </Link>
       {accessToken && (
         <button onClick={handleLogout} className="btn btn-secondary">
