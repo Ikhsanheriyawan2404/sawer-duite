@@ -114,7 +114,7 @@ func (r *TransactionRepository) List(query domain.QueueListQuery, userID uint) (
 		order = "desc"
 	}
 
-	db = db.Order(sortBy + " " + order)
+	db = db.Order(sortBy + " " + order + ", created_at ASC")
 
 	var transactions []domain.Transaction
 	err := db.Find(&transactions).Error
