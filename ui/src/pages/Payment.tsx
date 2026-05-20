@@ -83,7 +83,7 @@ function Payment() {
       // Gunakan ukuran yang lebih masuk akal (300px) agar tidak memicu overflow pada container grid
       QRCode.toCanvas(canvasRef.current, tx.qris_payload, {
         width: 300,
-        margin: 2,
+        margin: 4,
         color: {
           dark: '#000000',
           light: '#ffffff',

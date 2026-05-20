@@ -30,6 +30,7 @@ import MediaOverlay from './pages/overlays/MediaOverlay'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { clearTokens, getTokens } from './lib/api'
 import './App.css'
+import logoSvg from './assets/logo.svg';
 
 function Header() {
   const navigate = useNavigate()
@@ -44,7 +45,7 @@ function Header() {
     <header className="topbar">
       <Link to="/" className="brand">
         <div className="brand-mark">
-          <img src="/logo.svg" alt="Sawer Duite" />
+          <img src={logoSvg} alt="Sawer Blox" />
         </div>
         <span className="brand-name">Sawer Blox</span>
       </Link>

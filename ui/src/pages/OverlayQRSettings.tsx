@@ -6,6 +6,7 @@ import { buildMenuItems } from '../lib/menu'
 import { MenuFab } from '../components/MenuFab'
 import { normalizeMeUser } from '../lib/normalizeUser'
 import type { NormalizedUser } from '../lib/normalizeUser'
+import logoSvg from '../assets/logo.svg';
 
 function OverlayQRSettings() {
   useDocumentTitle('QR Overlay Settings')
@@ -254,7 +255,7 @@ function OverlayQRSettings() {
                 {qrDataUrl ? (
                   <>
                     <img src={qrDataUrl} alt="QR Preview" className="qr-code-img" />
-                    <img src="/logo.svg" alt="Logo" className="qr-logo" />
+                    <img src={logoSvg} alt="Logo" className="qr-logo" />
                   </>
                 ) : (
                   <div className="qr-preview-placeholder" />

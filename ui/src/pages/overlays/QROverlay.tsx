@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import QRCode from 'qrcode'
 import { API_URL } from '../../lib/api'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
+import logoSvg from '../../assets/logo.svg';
 
 function QROverlay() {
   useDocumentTitle('QR Overlay')
@@ -38,7 +39,7 @@ function QROverlay() {
           {qrDataUrl ? (
             <>
               <img src={qrDataUrl} alt="QR" className="qr-code-img" />
-              <img src="/logo.svg" alt="Logo" className="qr-logo" />
+              <img src={logoSvg} alt="Logo" className="qr-logo" />
             </>
           ) : (
             <div className="qr-placeholder" />
