@@ -13,14 +13,16 @@ func NewQRISService() *QRISService {
 
 // GenerateDynamicQRIS converts static QRIS to dynamic with amount
 func (s *QRISService) GenerateDynamicQRIS(staticQRIS string, amount int) (string, error) {
+	if len(staticQRIS) < 8 {
+		return "", fmt.Errorf("invalid QRIS length")
+	}
+
 	// 1. Convert Static to Dynamic (Tag 01: 11 -> 12)
 	payload := strings.Replace(staticQRIS, "010211", "010212", 1)
 
 	// 2. Remove existing CRC (Tag 63)
-	// Tag 63 is always at the end: 6304 + 4 chars CRC
-	if index := strings.LastIndex(payload, "6304"); index != -1 {
-		payload = payload[:index]
-	}
+	// Tag 63 is always the last 8 characters: 6304 + 4 chars CRC
+	payload = payload[:len(payload)-8]
 
 	// 3. Inject Amount (Tag 54)
 	amountStr := fmt.Sprintf("%d", amount)
