@@ -404,9 +404,31 @@ function OverlayQueueSettings() {
                     <div className="feed-text" style={{ minWidth: 0, flex: 1 }}>
                       <p className="feed-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>{group.sender}</p>
                       {group.custom_input_display && (
-                        <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0', overflowWrap: 'anywhere' }}>
-                          {group.custom_input_display}
-                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <p style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 700, margin: '2px 0', overflowWrap: 'anywhere' }}>
+                            {group.custom_input_display}
+                          </p>
+                          <button
+                            title="Salin teks"
+                            style={{ 
+                              background: 'none', 
+                              border: 'none', 
+                              padding: '2px', 
+                              cursor: 'pointer', 
+                              color: 'var(--accent)', 
+                              display: 'flex', 
+                              alignItems: 'center',
+                              flexShrink: 0,
+                              opacity: 0.8
+                            }}
+                            onClick={() => {
+                              navigator.clipboard.writeText(group.custom_input_display)
+                              showToast('Teks disalin')
+                            }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
