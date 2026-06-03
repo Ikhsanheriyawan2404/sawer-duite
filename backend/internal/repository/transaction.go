@@ -11,6 +11,8 @@ type TransactionRepository struct {
 	db *gorm.DB
 }
 
+const donorIdentitySQL = "COALESCE('donor:' || CAST(donor_user_id AS TEXT), 'supporter:' || NULLIF(supporter_id, ''))"
+
 func NewTransactionRepository(db *gorm.DB) *TransactionRepository {
 	return &TransactionRepository{db: db}
 }
@@ -56,7 +58,7 @@ func (r *TransactionRepository) GetUserStats(userID uint) (int64, int64, error) 
 		TotalDonors int64 `json:"total_donors"`
 	}
 	err := r.db.Model(&domain.Transaction{}).
-		Select("SUM(base_amount) as total_amount, COUNT(DISTINCT sender) as total_donors").
+		Select("COALESCE(SUM(base_amount), 0) as total_amount, COUNT(DISTINCT "+donorIdentitySQL+") as total_donors").
 		Where("target_id = ? AND status = ?", userID, "PAID").
 		Scan(&stats).Error
 	return stats.TotalAmount, stats.TotalDonors, err
@@ -80,9 +82,9 @@ func (r *TransactionRepository) GetTopSupporters(userID uint, startTime time.Tim
 		Amount int    `json:"amount"`
 	}
 	query := r.db.Model(&domain.Transaction{}).
-		Select("sender, SUM(base_amount) as amount").
+		Select("(ARRAY_AGG(sender ORDER BY created_at DESC))[1] as sender, SUM(base_amount) as amount").
 		Where("target_id = ? AND status = ?", userID, "PAID").
-		Group("sender").
+		Group(donorIdentitySQL).
 		Order("amount DESC").
 		Limit(limit)
 
@@ -175,7 +177,7 @@ func (r *TransactionRepository) GetAnalyticsSummary(userID uint, start, end time
 
 	// Unique supporters: prefer donor_user_id, fallback supporter_id
 	err = r.db.Model(&domain.Transaction{}).
-		Select("COUNT(DISTINCT COALESCE(CAST(donor_user_id AS TEXT), NULLIF(supporter_id, ''))) AS total_supporters").
+		Select("COUNT(DISTINCT "+donorIdentitySQL+") AS total_supporters").
 		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "PAID", start, end).
 		Scan(&summary.TotalSupporters).Error
 	if err != nil {
