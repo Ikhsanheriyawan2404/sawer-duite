@@ -132,21 +132,22 @@ function Payment() {
   return (
     <main className="page page-center overlay-page">
       <section className="login-card" style={{ maxWidth: '500px', textAlign: 'center', alignItems: 'center' }}>
-        <p className="section-intro-label" style={{
-          color: isPaid ? '#16a34a' : isExpired ? '#dc2626' : '#0052ff',
-          position: 'relative',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          fontWeight: '700',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          fontSize: '12px',
-          marginBottom: '10px'
-        }}>
-          {!isPaid && !isExpired && <span className="status-pulse-dot" style={{ backgroundColor: '#0052ff' }} />}
-          {isPaid ? 'PEMBAYARAN BERHASIL' : isExpired ? 'SESSI KADALUARSA' : 'QRIS DINAMIS'}
-        </p>
+        {(isPaid || isExpired) && (
+          <p className="section-intro-label" style={{
+            color: isPaid ? '#16a34a' : '#dc2626',
+            position: 'relative',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: '700',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            fontSize: '12px',
+            marginBottom: '10px'
+          }}>
+            {isPaid ? 'PEMBAYARAN BERHASIL' : 'SESSI KADALUARSA'}
+          </p>
+        )}
 
         <div style={{ marginTop: '16px' }}>
           <p className="muted" style={{ fontSize: '14px' }}>Total Pembayaran</p>
