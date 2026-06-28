@@ -21,7 +21,7 @@ function Donate() {
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Ambil data dari URL jika ada
-  const initialAmount = searchParams.get('amount') || '10000'
+  const initialAmount = searchParams.get('amount') || '0'
   const initialNote = searchParams.get('note') || ''
   const isFixed = searchParams.get('fixed') === 'true'
 
@@ -274,24 +274,27 @@ function Donate() {
 
           <div style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: '12px',
             background: 'var(--muted)',
             padding: '16px',
             borderRadius: '16px',
-            border: '1px solid var(--border)'
-          }}>
+            border: '1px solid var(--border)',
+            cursor: 'pointer',
+            margin: 0
+          }} onClick={() => setAgreed(a => !a)}>
             <input
               type="checkbox"
               id="terms"
               checked={agreed}
               onChange={e => setAgreed(e.target.checked)}
+              onClick={e => e.stopPropagation()}
               style={{ width: '18px', height: '18px', marginTop: '2px', cursor: 'pointer', flexShrink: 0 }}
               required
             />
-            <label htmlFor="terms" style={{ fontSize: '12px', lineHeight: '1.5', cursor: 'pointer', color: 'var(--foreground)', fontWeight: 500, margin: 0 }}>
+            <span style={{ fontSize: '12px', lineHeight: '1.5', color: 'var(--foreground)', fontWeight: 500 }}>
               Dengan ini, aku menyatakan dukungan ini sukarela, non-komersial, dan bersifat final (non-refundable). Thank you for sharing the love! 🫶
-            </label>
+            </span>
           </div>
 
           {submitError && (
