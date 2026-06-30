@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import QRCode from 'qrcode'
 import { API_URL } from '../../lib/api'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
-import logoSvg from '../../assets/logo.svg';
+import logoSvg from '../../assets/logo.png';
 
 function QROverlay() {
   useDocumentTitle('QR Overlay')

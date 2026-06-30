@@ -6,7 +6,7 @@ import { buildMenuItems } from '../lib/menu'
 import { MenuFab } from '../components/MenuFab'
 import { normalizeMeUser } from '../lib/normalizeUser'
 import type { NormalizedUser } from '../lib/normalizeUser'
-import logoSvg from '../assets/logo.svg';
+import logoSvg from '../assets/logo.png';
 
 function OverlayQRSettings() {
   useDocumentTitle('QR Overlay Settings')

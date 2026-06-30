@@ -30,7 +30,7 @@ import MediaOverlay from './pages/overlays/MediaOverlay'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { clearTokens, getTokens } from './lib/api'
 import './App.css'
-import logoSvg from './assets/logo.svg';
+import logoSvg from './assets/logo.png';
 
 function Header() {
   const navigate = useNavigate()
