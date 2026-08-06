@@ -3,20 +3,41 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { API_URL, getTokens } from '../lib/api'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 
-function getSupporterId() {
-  const key = 'supporter_id'
-  const existing = localStorage.getItem(key)
-  if (existing) return existing
-  const generated = crypto.randomUUID()
-  localStorage.setItem(key, generated)
-  return generated
+type CustomInputField = {
+  key: string
+  label: string
+  required?: boolean
+  required_error?: string
+}
+
+type DonationUser = {
+  name?: string
+  min_donation?: number
+  quick_amounts?: number[]
+  custom_input_schema?: CustomInputField[]
+  has_qris?: boolean
+}
+
+type SavedUser = {
+  email?: string
+}
+
+function getSavedUserEmail() {
+  const savedUser = localStorage.getItem('user')
+  if (!savedUser) return ''
+  try {
+    const parsed = JSON.parse(savedUser) as SavedUser
+    return typeof parsed?.email === 'string' ? parsed.email : ''
+  } catch {
+    return ''
+  }
 }
 
 function Donate() {
   const { username } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<DonationUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -27,10 +48,10 @@ function Donate() {
 
   const [form, setForm] = useState({
     name: '',
+    email: getSavedUserEmail(),
     amount: initialAmount,
     note: initialNote,
   })
-  const [supporterId] = useState(() => getSupporterId())
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({})
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [agreed, setAgreed] = useState(false)
@@ -38,7 +59,7 @@ function Donate() {
   useDocumentTitle(user?.name ? `Dukung ${user.name}` : 'Kirim Dukungan')
 
   const defaultQuickAmounts = [10_000, 20_000, 50_000, 100_000, 500_000]
-  const quickAmounts = user?.quick_amounts?.length > 0 ? user.quick_amounts : defaultQuickAmounts
+  const quickAmounts = user?.quick_amounts && user.quick_amounts.length > 0 ? user.quick_amounts : defaultQuickAmounts
 
   useEffect(() => {
     setLoading(true)
@@ -69,14 +90,15 @@ function Donate() {
   }
 
   const isMinDonationMet = !user?.min_donation || parseInt(form.amount) >= user.min_donation
-  const isCustomInputMet = !user?.custom_input_schema || user.custom_input_schema.every((field: any) =>
+  const isCustomInputMet = !user?.custom_input_schema || user.custom_input_schema.every((field) =>
     !field.required || (customInputs[field.key] && customInputs[field.key].trim() !== '')
   )
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
   const hasQRIS = user?.has_qris !== false
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!agreed || !isMinDonationMet || !isCustomInputMet || !hasQRIS) return
+    if (!agreed || !isMinDonationMet || !isCustomInputMet || !isEmailValid || !hasQRIS) return
     setSubmitError(null)
 
     try {
@@ -90,10 +112,10 @@ function Donate() {
         body: JSON.stringify({
           username: username,
           sender: isAnonymous ? 'Seseorang' : form.name,
+          supporter_email: form.email.trim(),
           amount: parseInt(form.amount),
           note: form.note,
           custom_input_json: customInputs,
-          supporter_id: supporterId,
         }),
       })
 
@@ -110,7 +132,7 @@ function Donate() {
 
       const data = await response.json()
       navigate(`/payment/${data.uuid}`)
-    } catch (err) {
+    } catch {
       setSubmitError('Terjadi kesalahan, silakan coba lagi.')
     }
   }
@@ -184,8 +206,29 @@ function Donate() {
             </div>
           </label>
 
+          <label>
+            <div style={{ fontSize: '14px', fontWeight: 600 }}>
+              Email <span style={{ color: '#dc2626' }}>*</span>
+            </div>
+            <input
+              type="email"
+              placeholder="nama@email.com"
+              value={form.email}
+              onChange={e => setForm({...form, email: e.target.value})}
+              required
+              style={{
+                borderColor: form.email && !isEmailValid ? '#dc2626' : undefined
+              }}
+            />
+            {form.email && !isEmailValid && (
+              <p style={{ color: '#dc2626', fontSize: '11px', fontWeight: 600, margin: '4px 0 0 0' }}>
+                Format email tidak valid
+              </p>
+            )}
+          </label>
+
           {/* Custom Input Fields from Schema */}
-          {user?.custom_input_schema?.map((field: any) => (
+          {user?.custom_input_schema?.map((field) => (
             <div className="form-group" key={field.key}>
               <div style={{ fontSize: '14px', fontWeight: 600 }}>
                 {field.label} {field.required && <span style={{ color: '#dc2626' }}>*</span>}
@@ -215,6 +258,7 @@ function Donate() {
               <input
                 type="text"
                 value={formatIDR(form.amount)}
+                placeholder={`Masukkan nominal`}
                 onChange={handleAmountChange}
                 disabled={isFixed}
                 style={{
@@ -228,7 +272,7 @@ function Donate() {
             </div>
             {!isMinDonationMet && (
               <p style={{ color: '#dc2626', fontSize: '11px', marginTop: '4px', fontWeight: 600 }}>
-                Minimal dukungan adalah Rp{formatIDR(user.min_donation.toString())}
+                Minimal dukungan adalah Rp{formatIDR((user?.min_donation || 0).toString())}
               </p>
             )}
 
@@ -310,13 +354,13 @@ function Donate() {
               fontSize: '16px',
               fontWeight: '700',
               marginTop: '12px',
-              opacity: (agreed && isMinDonationMet && isCustomInputMet && hasQRIS) ? 1 : 0.5,
-              cursor: (agreed && isMinDonationMet && isCustomInputMet && hasQRIS) ? 'pointer' : 'not-allowed',
-              filter: (agreed && isMinDonationMet && isCustomInputMet && hasQRIS) ? 'none' : 'grayscale(0.5)',
+              opacity: (agreed && isMinDonationMet && isCustomInputMet && isEmailValid && hasQRIS) ? 1 : 0.5,
+              cursor: (agreed && isMinDonationMet && isCustomInputMet && isEmailValid && hasQRIS) ? 'pointer' : 'not-allowed',
+              filter: (agreed && isMinDonationMet && isCustomInputMet && isEmailValid && hasQRIS) ? 'none' : 'grayscale(0.5)',
               transition: 'all 0.2s ease'
             }}
             type="submit"
-            disabled={!agreed || !isMinDonationMet || !isCustomInputMet || !hasQRIS}
+            disabled={!agreed || !isMinDonationMet || !isCustomInputMet || !isEmailValid || !hasQRIS}
           >
             Lanjut Pembayaran
           </button>

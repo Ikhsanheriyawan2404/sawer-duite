@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, type CSSProperties } from 'react'
 import { useParams } from 'react-router-dom'
 import { WS_URL } from '../../lib/api'
 import { useDocumentTitle } from '../../lib/useDocumentTitle'
@@ -12,6 +12,8 @@ interface AlertData {
   message?: string
   audio_url?: string
 }
+
+const ALERT_DISPLAY_MS = 10000
 
 function AlertOverlay() {
   useDocumentTitle('Alert Overlay')
@@ -54,21 +56,10 @@ function AlertOverlay() {
         soundFxRef.current = sfx
         await sfx.play().catch(() => {})
 
-        await new Promise(r => {
-          timeoutRef.current = window.setTimeout(r, 2500)
-        })
-
-        if (isCancelled) return
-
         if (currentAlert.audio_url) {
           const tts = new Audio(currentAlert.audio_url)
           ttsAudioRef.current = tts
           await tts.play().catch(() => {})
-          
-          await new Promise(r => {
-            tts.onended = () => r(null)
-            timeoutRef.current = window.setTimeout(r, 10000) // Fallback max 10s
-          })
         }
       } catch (err) {
         console.error('[Alert] Error playing media:', err)
@@ -77,7 +68,7 @@ function AlertOverlay() {
       if (isCancelled) return
 
       await new Promise(r => {
-        timeoutRef.current = window.setTimeout(r, 3000)
+        timeoutRef.current = window.setTimeout(r, ALERT_DISPLAY_MS)
       })
 
       if (isCancelled) return
@@ -111,7 +102,7 @@ function AlertOverlay() {
       try {
         const payload = JSON.parse(e.data)
         const alertData = payload.alert_id ? { ...payload, ...payload.AlertMessage } : payload
-        
+
         if (alertData.type?.toUpperCase() === 'ALERT') {
           // If a new alert comes, it will overwrite the current one and restart the effect
           setCurrentAlert(alertData)
@@ -134,20 +125,25 @@ function AlertOverlay() {
   if (!currentAlert) return <main className="overlay-container" />
 
   const formattedAmount = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(currentAlert.amount).replace(/\s/g, '')
+    minimumFractionDigits: 0,
+  }).format(currentAlert.amount)
+  const alertContentStyle = {
+    '--alert-sweep-duration': `${ALERT_DISPLAY_MS}ms`,
+    } as CSSProperties
 
   return (
     <main className="overlay-container">
       {/* Key ensures the DOM node is recreated, re-triggering the CSS animation on overwrite */}
       <div key={currentAlert.alert_id} className="alert-wrapper animate-alert">
-        <img src="/alert.gif" alt="thanks" className="alert-gif" />
+        {/* <img src="/alert.gif" alt="thanks" className="alert-gif" />  */}
 
-        <div className="alert-content">
+        <div className="alert-content" style={alertContentStyle}>
           <div className="alert-main-text">
-            {formattedAmount} dari {currentAlert.sender || 'Seseorang'}
+            <span className="alert-currency">IDR</span>
+            {' '}
+            <span className="alert-highlight">{formattedAmount}</span>
+            {' '}dari{' '}
+            <span className="alert-highlight">{currentAlert.sender || 'Seseorang'}</span>
           </div>
 
           {currentAlert.message && (
@@ -176,13 +172,29 @@ function AlertOverlay() {
         }
 
         .alert-content {
-          background: var(--accent);
+          background: #3f4650;
           padding: 28px 44px;
           border-radius: 28px;
           color: #ffffff;
           display: flex; flex-direction: column; gap: 8px;
           max-width: 850px;
-          border: 3px solid rgba(255, 255, 255, 0.1);
+          border: 4px solid #111827;
+          box-shadow: 10px 10px 0 #111827;
+          position: relative;
+          overflow: hidden;
+          isolation: isolate;
+        }
+
+        .alert-content::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: #56606d;
+          transform: scaleX(0);
+          transform-origin: left center;
+          animation: alertBackgroundFill var(--alert-sweep-duration) linear forwards;
+          pointer-events: none;
+          z-index: 0;
         }
 
         .alert-main-text {
@@ -191,6 +203,16 @@ function AlertOverlay() {
           line-height: 1.1;
           letter-spacing: -0.03em;
           word-wrap: break-word;
+          position: relative;
+          z-index: 1;
+        }
+
+        .alert-highlight {
+          color: #35f5d0;
+        }
+
+        .alert-currency {
+          color: #f4e96b;
         }
 
         .alert-message-text {
@@ -200,6 +222,8 @@ function AlertOverlay() {
           opacity: 0.9;
           word-wrap: break-word;
           margin-top: 4px;
+          position: relative;
+          z-index: 1;
         }
 
         .animate-alert {
@@ -209,6 +233,11 @@ function AlertOverlay() {
         @keyframes alertEnter {
           0% { transform: scale(0.8) translateY(50px); opacity: 0; }
           100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        @keyframes alertBackgroundFill {
+          0% { transform: scaleX(0); }
+          100% { transform: scaleX(1); }
         }
       `}</style>
     </main>

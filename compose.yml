@@ -20,9 +20,10 @@ services:
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 2s
-      timeout: 2s
-      retries: 5
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     stop_grace_period: 30s
     labels:
       - "traefik.enable=true"
@@ -33,7 +34,8 @@ services:
       - "traefik.http.services.backend.loadbalancer.sticky.cookie=true"
       - "traefik.http.services.backend.loadbalancer.sticky.cookie.name=backend_sticky"
       - "traefik.http.services.backend.loadbalancer.healthcheck.path=/health"
-      - "traefik.http.services.backend.loadbalancer.healthcheck.interval=2s"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.backend.loadbalancer.healthcheck.timeout=5s"
 
   frontend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ikhsanheriyawan2404}/sawer-duite-frontend:latest
@@ -43,9 +45,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]
-      interval: 2s
-      timeout: 2s
-      retries: 5
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     stop_grace_period: 15s
     labels:
       - "traefik.enable=true"
@@ -56,4 +59,5 @@ services:
       - "traefik.http.services.frontend.loadbalancer.sticky.cookie=true"
       - "traefik.http.services.frontend.loadbalancer.sticky.cookie.name=frontend_sticky"
       - "traefik.http.services.frontend.loadbalancer.healthcheck.path=/"
-      - "traefik.http.services.frontend.loadbalancer.healthcheck.interval=2s"
+      - "traefik.http.services.frontend.loadbalancer.healthcheck.interval=30s"
+      - "traefik.http.services.frontend.loadbalancer.healthcheck.timeout=5s"
