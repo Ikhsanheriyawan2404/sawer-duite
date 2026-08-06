@@ -21,6 +21,7 @@ function Home() {
     name: '',
     username: '',
     bio: '',
+    donate_button_text: '',
     tiktok: '',
     instagram: '',
     youtube: '',
@@ -51,6 +52,7 @@ function Home() {
         name: parsed.name || '',
         username: parsed.username || '',
         bio: parsed.bio || '',
+        donate_button_text: parsed.donate_button_text || '',
         tiktok: parsed.tiktok || '',
         instagram: parsed.instagram || '',
         youtube: parsed.youtube || '',
@@ -74,6 +76,7 @@ function Home() {
           name: normalized.name || '',
           username: normalized.username || '',
           bio: normalized.bio || '',
+          donate_button_text: normalized.donate_button_text || '',
           tiktok: normalized.tiktok || '',
           instagram: normalized.instagram || '',
           youtube: normalized.youtube || '',
@@ -165,6 +168,7 @@ function Home() {
           name: formData.name,
           username: formData.username,
           bio: formData.bio,
+          donate_button_text: formData.donate_button_text,
           social_links: {
             tiktok: formData.tiktok,
             instagram: formData.instagram,
@@ -207,6 +211,7 @@ function Home() {
         name: user.name || '',
         username: user.username || '',
         bio: user.bio || '',
+        donate_button_text: user.donate_button_text || '',
         tiktok: user.tiktok || '',
         instagram: user.instagram || '',
         youtube: user.youtube || '',
@@ -317,6 +322,17 @@ function Home() {
                       style={{ minHeight: '80px', resize: 'none' }}
                     />
                   </div>
+                  <div className="form-group">
+                    <label>Teks Tombol Donasi</label>
+                    <input
+                      type="text"
+                      value={formData.donate_button_text}
+                      onChange={e => setFormData({ ...formData, donate_button_text: e.target.value })}
+                      className="input"
+                      maxLength={50}
+                      placeholder="Donate Disini"
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -371,6 +387,10 @@ function Home() {
                   <div className="profile-field">
                     <p className="profile-label">Bio</p>
                     <p className="profile-value" style={{ fontSize: '14px', fontWeight: 500 }}>{user?.bio || 'Belum ada bio'}</p>
+                  </div>
+                  <div className="profile-field">
+                    <p className="profile-label">Teks Tombol Donasi</p>
+                    <p className="profile-value" style={{ fontSize: '14px', fontWeight: 500 }}>{user?.donate_button_text || 'Donate Disini'}</p>
                   </div>
                 </div>
 

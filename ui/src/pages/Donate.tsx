@@ -21,7 +21,7 @@ function Donate() {
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Ambil data dari URL jika ada
-  const initialAmount = searchParams.get('amount') || '0'
+  const initialAmount = searchParams.get('amount') || ''
   const initialNote = searchParams.get('note') || ''
   const isFixed = searchParams.get('fixed') === 'true'
 
