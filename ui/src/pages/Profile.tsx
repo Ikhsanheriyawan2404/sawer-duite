@@ -253,6 +253,12 @@ function Profile() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  ...(p.color ? {
+                    background: p.color,
+                    borderColor: p.color,
+                    boxShadow: `0 10px 20px ${p.color}33`,
+                    color: '#fff',
+                  } : {}),
                 }}
               >
                 {p.label}

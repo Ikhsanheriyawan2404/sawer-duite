@@ -49,11 +49,12 @@ type SocialLinks struct {
 }
 
 type DonationPackage struct {
-	ID       uint   `gorm:"primaryKey" json:"-"`
-	UserID   uint   `gorm:"index;not null" json:"-"`
-	Label    string `json:"label"`
-	Amount   int64  `json:"amount"`
-	Category string `gorm:"type:varchar(20);default:'default'" json:"category"`
+	ID       uint    `gorm:"primaryKey" json:"-"`
+	UserID   uint    `gorm:"index;not null" json:"-"`
+	Label    string  `json:"label"`
+	Amount   int64   `json:"amount"`
+	Color    *string `gorm:"type:varchar(7)" json:"color,omitempty"`
+	Category string  `gorm:"type:varchar(20);default:'default'" json:"category"`
 }
 
 type DonationConfig struct {

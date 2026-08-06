@@ -22,7 +22,7 @@ interface MeResponse {
   config?: {
     min_donation?: number
     quick_amounts?: number[]
-    donation_packages?: { label: string; amount: number }[]
+    donation_packages?: { label: string; amount: number; color?: string | null; category?: string }[]
     custom_input_schema?: CustomField[]
     custom_input_label?: string
     custom_input_required?: boolean
@@ -65,7 +65,7 @@ export interface NormalizedUser {
     ends_at?: string | null
   } | null
   quick_amounts: number[]
-  donation_packages: { label: string; amount: number }[]
+  donation_packages: { label: string; amount: number; color?: string | null; category?: string }[]
   custom_input_schema: CustomField[]
   queue_title: string
   static_qris: string

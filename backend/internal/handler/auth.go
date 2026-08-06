@@ -387,7 +387,11 @@ func (h *AuthHandler) UpdateDonationPackages(w http.ResponseWriter, r *http.Requ
 
 	user, err := h.authService.UpdateDonationPackages(userID, packages, category)
 	if err != nil {
-		JSONError(w, err.Error(), http.StatusInternalServerError)
+		status := http.StatusInternalServerError
+		if err.Error() == "package color must be a valid hex color" {
+			status = http.StatusBadRequest
+		}
+		JSONError(w, err.Error(), status)
 		return
 	}
 

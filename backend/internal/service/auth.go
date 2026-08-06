@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,8 @@ type AuthService struct {
 	config   domain.Config
 	userRepo *repository.UserRepository
 }
+
+var hexColorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 
 func NewAuthService(config domain.Config, userRepo *repository.UserRepository) *AuthService {
 	return &AuthService{
@@ -304,6 +307,20 @@ func (s *AuthService) UpdateConfig(userID uint, req domain.UpdateConfigRequest) 
 func (s *AuthService) UpdateDonationPackages(userID uint, packages []domain.DonationPackage, category string) (*domain.User, error) {
 	if category == "" {
 		category = "default"
+	}
+	for i := range packages {
+		if packages[i].Color == nil {
+			continue
+		}
+		color := strings.TrimSpace(*packages[i].Color)
+		if color == "" {
+			packages[i].Color = nil
+			continue
+		}
+		if !hexColorPattern.MatchString(color) {
+			return nil, errors.New("package color must be a valid hex color")
+		}
+		packages[i].Color = &color
 	}
 	if err := s.userRepo.ReplaceDonationPackages(userID, packages, category); err != nil {
 		return nil, errors.New("failed to update donation packages")
