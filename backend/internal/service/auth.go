@@ -159,9 +159,28 @@ func (s *AuthService) GetUserByAppToken(token string) (*domain.User, error) {
 	return s.userRepo.GetByAppToken(token)
 }
 
+func normalizeDonateButtonText(value *string) (*string, error) {
+	if value == nil {
+		return nil, nil
+	}
+	text := strings.TrimSpace(*value)
+	if len(text) > 50 {
+		return nil, errors.New("donate button text must be at most 50 characters")
+	}
+	if text == "" {
+		return nil, nil
+	}
+	return &text, nil
+}
+
 func (s *AuthService) UpdateProfile(userID uint, req domain.UpdateProfileRequest) (*domain.User, error) {
 	if req.Name == "" || req.Username == "" {
 		return nil, errors.New("name and username are required")
+	}
+
+	donateButtonText, err := normalizeDonateButtonText(req.DonateButtonText)
+	if err != nil {
+		return nil, err
 	}
 
 	user, err := s.userRepo.GetByID(userID)
@@ -180,6 +199,9 @@ func (s *AuthService) UpdateProfile(userID uint, req domain.UpdateProfileRequest
 
 	user.Profile.Name = req.Name
 	user.Profile.Bio = req.Bio
+	if req.DonateButtonText != nil {
+		user.Profile.DonateButtonText = donateButtonText
+	}
 	user.Profile.SocialLinks = req.SocialLinks
 
 	user.Config.MinDonation = req.MinDonation
@@ -208,6 +230,11 @@ func (s *AuthService) UpdateProfileBasic(userID uint, req domain.UpdateProfileBa
 		return nil, errors.New("name and username are required")
 	}
 
+	donateButtonText, err := normalizeDonateButtonText(req.DonateButtonText)
+	if err != nil {
+		return nil, err
+	}
+
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		return nil, errors.New("user not found")
@@ -223,6 +250,9 @@ func (s *AuthService) UpdateProfileBasic(userID uint, req domain.UpdateProfileBa
 	user.Username = req.Username
 	user.Profile.Name = req.Name
 	user.Profile.Bio = req.Bio
+	if req.DonateButtonText != nil {
+		user.Profile.DonateButtonText = donateButtonText
+	}
 	user.Profile.SocialLinks = req.SocialLinks
 
 	if err := s.userRepo.Update(user); err != nil {
@@ -291,8 +321,7 @@ func (s *AuthService) UpdateAlertConfig(userID uint, req domain.UpdateAlertConfi
 	}
 
 	return user, nil
-	}
-
+}
 
 func (s *AuthService) UpdateQueueConfig(userID uint, req domain.UpdateQueueConfigRequest) (*domain.User, error) {
 	user, err := s.userRepo.GetByID(userID)
@@ -380,7 +409,6 @@ func (s *AuthService) UpdateQRConfig(userID uint, req domain.UpdateQRConfigReque
 
 	return user, nil
 }
-
 
 func (s *AuthService) UpdateAvatarURL(userID uint, url string) (*domain.User, error) {
 	user, err := s.userRepo.GetByID(userID)

@@ -16,6 +16,7 @@ interface MeResponse {
   profile?: {
     name?: string
     bio?: string
+    donate_button_text?: string
     social_links?: SocialLinks
   }
   config?: {
@@ -49,6 +50,7 @@ export interface NormalizedUser {
   name: string
   bio: string
   avatar_url: string
+  donate_button_text: string
   tiktok: string
   instagram: string
   youtube: string
@@ -100,6 +102,7 @@ const emptyUser: NormalizedUser = {
   name: '',
   bio: '',
   avatar_url: '',
+  donate_button_text: '',
   tiktok: '',
   instagram: '',
   youtube: '',
@@ -149,6 +152,7 @@ export function normalizeMeUser(raw: MeResponse | any): NormalizedUser {
     name: raw.name ?? raw.profile?.name ?? '',
     bio: raw.bio ?? raw.profile?.bio ?? '',
     avatar_url: raw.avatar_url ?? raw.profile?.avatar_url ?? '',
+    donate_button_text: raw.donate_button_text ?? raw.profile?.donate_button_text ?? '',
     tiktok: raw.tiktok ?? social.tiktok ?? '',
     instagram: raw.instagram ?? social.instagram ?? '',
     youtube: raw.youtube ?? social.youtube ?? '',

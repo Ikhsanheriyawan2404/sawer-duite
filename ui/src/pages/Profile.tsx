@@ -99,6 +99,7 @@ function Profile() {
   // Filter paket donasi berdasarkan kategori
   const defaultPackages = (user?.donation_packages || []).filter((p: any) => (p.category || 'default') === 'default')
   const buttonPackages = (user?.donation_packages || []).filter((p: any) => p.category === 'button')
+  const donateButtonText = user?.donate_button_text?.trim() || 'Donate Disini'
 
   return (
     <main className="page page-center">
@@ -232,7 +233,7 @@ function Profile() {
 
         {/* Donate Button */}
         <Link to={`/${username}/donate`} className="btn btn-primary w-full" style={{ height: '52px', fontSize: '16px', borderRadius: '14px', marginBottom: '16px', textDecoration: 'none' }}>
-          Donate Fast Track
+          {donateButtonText}
         </Link>
 
         {/* Support Buttons Category */}

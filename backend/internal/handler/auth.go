@@ -100,6 +100,8 @@ func (h *AuthHandler) UpdateProfileBasic(w http.ResponseWriter, r *http.Request)
 		status := http.StatusInternalServerError
 		if err.Error() == "name and username are required" {
 			status = http.StatusBadRequest
+		} else if err.Error() == "donate button text must be at most 50 characters" {
+			status = http.StatusBadRequest
 		} else if err.Error() == "username already taken" {
 			status = http.StatusConflict
 		} else if err.Error() == "user not found" {
@@ -439,14 +441,14 @@ func (h *AuthHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	ext := strings.ToLower(filepath.Ext(header.Filename))
 	if ext == "" {
-    switch contentType {
-    case "image/png":
-      ext = ".png"
-    case "image/webp":
-      ext = ".webp"
-    default:
-      ext = ".jpg"
-    }
+		switch contentType {
+		case "image/png":
+			ext = ".png"
+		case "image/webp":
+			ext = ".webp"
+		default:
+			ext = ".jpg"
+		}
 	}
 	fileName := "avatars/" + user.UUID + "-" + strconv.FormatInt(time.Now().UnixNano(), 10) + ext
 
