@@ -22,15 +22,6 @@ type SavedUser = {
   email?: string
 }
 
-function getSupporterId() {
-  const key = 'supporter_id'
-  const existing = localStorage.getItem(key)
-  if (existing) return existing
-  const generated = crypto.randomUUID()
-  localStorage.setItem(key, generated)
-  return generated
-}
-
 function getSavedUserEmail() {
   const savedUser = localStorage.getItem('user')
   if (!savedUser) return ''
@@ -61,7 +52,6 @@ function Donate() {
     amount: initialAmount,
     note: initialNote,
   })
-  const [supporterId] = useState(() => getSupporterId())
   const [customInputs, setCustomInputs] = useState<Record<string, string>>({})
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [agreed, setAgreed] = useState(false)
@@ -126,7 +116,6 @@ function Donate() {
           amount: parseInt(form.amount),
           note: form.note,
           custom_input_json: customInputs,
-          supporter_id: supporterId,
         }),
       })
 

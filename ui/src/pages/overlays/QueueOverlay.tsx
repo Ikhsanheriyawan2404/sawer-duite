@@ -5,6 +5,7 @@ import { useDocumentTitle } from '../../lib/useDocumentTitle'
 
 interface Transaction {
   uuid: string
+  supporter_key?: string
   sender: string
   base_amount: number
   note: string
@@ -19,6 +20,7 @@ function QueueOverlay() {
   const [username, setUsername] = useState<string | null>(null)
   const [queueTitle, setQueueTitle] = useState<string>('Antrean Donasi')
   const socketRef = useRef<WebSocket | null>(null)
+  const reconnectRef = useRef<() => void>(() => {})
 
   const fetchQueue = useCallback(async (targetUsername: string) => {
     try {
@@ -29,7 +31,9 @@ function QueueOverlay() {
         const data = await res.json()
         setDonors(data || [])
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error('Failed to fetch queue', err)
+    }
   }, [])
 
   const connectWS = useCallback(() => {
@@ -44,10 +48,16 @@ function QueueOverlay() {
         if (payload.type === 'ALERT' || payload.type === 'REFRESH') {
           fetchQueue(username)
         }
-      } catch (err) {}
+      } catch (err) {
+        console.error('Failed to parse queue message', err)
+      }
     }
-    socket.onclose = () => setTimeout(() => connectWS(), 5000)
+    socket.onclose = () => setTimeout(() => reconnectRef.current(), 5000)
   }, [uuid, username, fetchQueue])
+
+  useEffect(() => {
+    reconnectRef.current = connectWS
+  }, [connectWS])
 
   useEffect(() => {
     if (!uuid) return
@@ -57,7 +67,9 @@ function QueueOverlay() {
         setUsername(user.username)
         setQueueTitle(user.queue_title || 'Antrean Donasi')
         fetchQueue(user.username)
-      }).catch(() => {})
+      }).catch(err => {
+        console.error('Failed to fetch queue owner', err)
+      })
   }, [uuid, fetchQueue])
 
   useEffect(() => {
@@ -80,7 +92,7 @@ function QueueOverlay() {
 
     donors.forEach(donor => {
       const customValues = donor.custom_input_json ? Object.values(donor.custom_input_json).filter(Boolean).join(', ') : ''
-      const key = customValues ? `custom_${customValues.toLowerCase()}` : `single_${donor.uuid}`
+      const key = donor.supporter_key || `single_${donor.uuid}`
       const donorTime = new Date(donor.created_at).getTime()
 
       if (!groups[key]) {

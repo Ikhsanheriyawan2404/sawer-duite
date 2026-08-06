@@ -1,6 +1,10 @@
 package domain
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -70,6 +74,7 @@ type PublicTransaction struct {
 	Target          PublicUser        `json:"target"`
 	DonorUserID     *uint             `json:"donor_user_id,omitempty"`
 	SupporterID     string            `json:"supporter_id,omitempty"`
+	SupporterKey    string            `json:"supporter_key,omitempty"`
 	Sender          string            `json:"sender"`
 	Amount          int               `json:"amount"`
 	BaseAmount      int               `json:"base_amount"`
@@ -115,6 +120,7 @@ func ToPublicTransaction(tx Transaction) PublicTransaction {
 		Target:          tx.Target.ToPublic(),
 		DonorUserID:     tx.DonorUserID,
 		SupporterID:     tx.SupporterID,
+		SupporterKey:    tx.SupporterKey(),
 		Sender:          tx.Sender,
 		Amount:          tx.Amount,
 		BaseAmount:      tx.BaseAmount,
@@ -128,4 +134,33 @@ func ToPublicTransaction(tx Transaction) PublicTransaction {
 		UpdatedAt:       tx.UpdatedAt,
 		ExpiredAt:       tx.ExpiredAt,
 	}
+}
+
+func (tx Transaction) SupporterKey() string {
+	identity := tx.supporterIdentity()
+	if identity == "" {
+		return ""
+	}
+
+	sum := sha256.Sum256([]byte(identity))
+	return "sk_" + hex.EncodeToString(sum[:])[:16]
+}
+
+func (tx Transaction) supporterIdentity() string {
+	if tx.DonorUserID != nil {
+		return fmt.Sprintf("donor:%d", *tx.DonorUserID)
+	}
+	if tx.SupporterEmail != nil {
+		email := strings.ToLower(strings.TrimSpace(*tx.SupporterEmail))
+		if email != "" {
+			return "email:" + email
+		}
+	}
+	if strings.TrimSpace(tx.SupporterID) != "" {
+		return "legacy:" + strings.TrimSpace(tx.SupporterID)
+	}
+	if tx.UUID != "" {
+		return "tx:" + tx.UUID
+	}
+	return ""
 }

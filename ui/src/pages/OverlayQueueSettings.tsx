@@ -9,6 +9,7 @@ import type { NormalizedUser } from '../lib/normalizeUser'
 interface Transaction {
   id: number
   uuid: string
+  supporter_key?: string
   sender: string
   amount: number
   base_amount: number
@@ -151,7 +152,7 @@ function OverlayQueueSettings() {
 
     filteredQueue.forEach(tx => {
       const customValues = tx.custom_input_json ? Object.values(tx.custom_input_json).filter(Boolean).join(', ') : ''
-      const key = customValues ? `custom_${customValues.toLowerCase()}` : `single_${tx.uuid}`
+      const key = tx.supporter_key || `single_${tx.uuid}`
 
       if (!groups[key]) {
         groups[key] = {

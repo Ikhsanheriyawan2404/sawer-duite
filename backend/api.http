@@ -83,12 +83,12 @@ Authorization: Bearer {{accessToken}}
   "username": "ikhsan",
   "amount": 50000,
   "sender": "Donatur Budiman",
+  "supporter_email": "donatur@example.com",
   "note": "Semangat bang streamingnya!",
   "custom_input_json": {
     "field_1775725636667": "brogrammer99"
   },
-  "media_url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
-  "supporter_id": "guest-uuid-local"
+  "media_url": "https://youtube.com/watch?v=dQw4w9WgXcQ"
 }
 
 ### Get Transaction Details

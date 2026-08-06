@@ -11,7 +11,7 @@ type TransactionRepository struct {
 	db *gorm.DB
 }
 
-const donorIdentitySQL = "COALESCE('donor:' || CAST(donor_user_id AS TEXT), 'supporter:' || NULLIF(supporter_id, ''))"
+const donorIdentitySQL = "COALESCE('donor:' || CAST(donor_user_id AS TEXT), 'email:' || LOWER(NULLIF(supporter_email, '')), 'legacy:' || NULLIF(supporter_id, ''), 'tx:' || uuid)"
 
 func NewTransactionRepository(db *gorm.DB) *TransactionRepository {
 	return &TransactionRepository{db: db}
@@ -135,11 +135,8 @@ func (r *TransactionRepository) GetOverlayList(userID uint, config domain.ListOv
 	}
 
 	if config.AggrType == "supporter" {
-		// Aggregate by supporter identity (donor_user_id or supporter_id)
-		// We use COALESCE to group by either user id or the unique supporter id string
-		// and pick the LATEST sender name for display
 		query := db.Select("MAX(sender) as sender, SUM(base_amount) as amount").
-			Group("COALESCE(CAST(donor_user_id AS TEXT), NULLIF(supporter_id, ''))")
+			Group(donorIdentitySQL)
 
 		if config.SortBy == "amount_desc" {
 			query = query.Order("amount DESC")
@@ -175,7 +172,6 @@ func (r *TransactionRepository) GetAnalyticsSummary(userID uint, start, end time
 		return summary, err
 	}
 
-	// Unique supporters: prefer donor_user_id, fallback supporter_id
 	err = r.db.Model(&domain.Transaction{}).
 		Select("COUNT(DISTINCT "+donorIdentitySQL+") AS total_supporters").
 		Where("target_id = ? AND status = ? AND created_at BETWEEN ? AND ?", userID, "PAID", start, end).
@@ -185,7 +181,6 @@ func (r *TransactionRepository) GetAnalyticsSummary(userID uint, start, end time
 	}
 	return summary, err
 }
-
 
 func (r *TransactionRepository) GetAnalyticsTransactions(userID uint, start, end time.Time, search string, page, limit int) ([]domain.Transaction, int64, error) {
 	var transactions []domain.Transaction
