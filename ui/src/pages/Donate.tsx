@@ -215,6 +215,7 @@ function Donate() {
               <input
                 type="text"
                 value={formatIDR(form.amount)}
+                placeholder={`Masukkan nominal`}
                 onChange={handleAmountChange}
                 disabled={isFixed}
                 style={{

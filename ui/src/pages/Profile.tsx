@@ -31,19 +31,44 @@ function Profile() {
 
   useEffect(() => {
     if (!username) return
-    setLoading(true)
-    fetch(`${API_URL}/user/${username}`)
-      .then(res => res.json())
-      .then(data => setUser(data))
-      .catch(console.error)
 
-    fetch(`${API_URL}/user/${username}/stats`)
-      .then(res => res.json())
-      .then(data => {
-        setStats(data)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    let cancelled = false
+
+    async function loadProfile() {
+      setLoading(true)
+      setUser(null)
+      setStats(null)
+
+      try {
+        const userRes = await fetch(`${API_URL}/user/${username}`)
+        if (!userRes.ok) {
+          return
+        }
+
+        const userData = await userRes.json()
+        if (cancelled) return
+        setUser(userData)
+
+        const statsRes = await fetch(`${API_URL}/user/${username}/stats`)
+        if (!statsRes.ok) {
+          return
+        }
+
+        const statsData = await statsRes.json()
+        if (cancelled) return
+        setStats(statsData)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadProfile()
+
+    return () => {
+      cancelled = true
+    }
   }, [username])
 
   const formatCurrency = (val: number) => {
