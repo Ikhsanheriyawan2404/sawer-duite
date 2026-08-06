@@ -54,6 +54,9 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 			status = http.StatusNotFound
 		} else if err.Error() == "nominal donasi di bawah batas minimal" ||
 			err.Error() == "penerima belum menyetel QRIS" ||
+			err.Error() == "email wajib diisi" ||
+			err.Error() == "email maksimal 254 karakter" ||
+			err.Error() == "format email tidak valid" ||
 			err.Error() == "link media tidak valid" ||
 			err.Error() == "hanya link YouTube, TikTok, atau Instagram yang diizinkan" ||
 			(err.Error() != "" && err.Error()[len(err.Error())-12:] == " wajib diisi") {
@@ -252,9 +255,9 @@ func (h *TransactionHandler) GetQueueList(w http.ResponseWriter, r *http.Request
 	username := chi.URLParam(r, "username")
 
 	query := domain.QueueListQuery{
-		Status:  r.URL.Query().Get("status"),
-		SortBy:  r.URL.Query().Get("sort_by"),
-		Order:   r.URL.Query().Get("order"),
+		Status: r.URL.Query().Get("status"),
+		SortBy: r.URL.Query().Get("sort_by"),
+		Order:  r.URL.Query().Get("order"),
 	}
 
 	isQueueStr := r.URL.Query().Get("is_queue")

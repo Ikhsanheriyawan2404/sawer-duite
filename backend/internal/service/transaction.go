@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/mail"
 	"net/url"
 	"strings"
 	"time"
@@ -15,14 +16,14 @@ import (
 )
 
 type TransactionService struct {
-	txRepo       *repository.TransactionRepository
-	userRepo     *repository.UserRepository
-	notifRepo    *repository.NotificationRepository
-	qrisService  *QRISService
-	ttsService   *TTSService
+	txRepo        *repository.TransactionRepository
+	userRepo      *repository.UserRepository
+	notifRepo     *repository.NotificationRepository
+	qrisService   *QRISService
+	ttsService    *TTSService
 	filterService *FilterService
-	hub          *domain.Hub
-	queueManager *domain.AlertQueueManager
+	hub           *domain.Hub
+	queueManager  *domain.AlertQueueManager
 }
 
 func NewTransactionService(
@@ -36,14 +37,14 @@ func NewTransactionService(
 	queueManager *domain.AlertQueueManager,
 ) *TransactionService {
 	return &TransactionService{
-		txRepo:       txRepo,
-		userRepo:     userRepo,
-		notifRepo:    notifRepo,
-		qrisService:  qrisService,
-		ttsService:   ttsService,
+		txRepo:        txRepo,
+		userRepo:      userRepo,
+		notifRepo:     notifRepo,
+		qrisService:   qrisService,
+		ttsService:    ttsService,
 		filterService: filterService,
-		hub:          hub,
-		queueManager: queueManager,
+		hub:           hub,
+		queueManager:  queueManager,
 	}
 }
 
@@ -51,6 +52,11 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 	target, err := s.userRepo.GetByUsername(req.Username)
 	if err != nil {
 		return nil, errors.New("recipient not found")
+	}
+
+	supporterEmail, err := normalizeSupporterEmail(req.SupporterEmail)
+	if err != nil {
+		return nil, err
 	}
 
 	if target.Config.MinDonation > 0 && int64(req.Amount) < target.Config.MinDonation {
@@ -98,20 +104,21 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 	}
 
 	tx := domain.Transaction{
-		UUID:        uuid.New().String(),
-		TargetID:    target.ID,
-		DonorUserID: req.DonorUserID,
-		SupporterID: req.SupporterID,
-		Sender:      req.Sender,
-		Amount:      totalAmount,
-		BaseAmount:  req.Amount,
-		Note:        req.Note,
+		UUID:            uuid.New().String(),
+		TargetID:        target.ID,
+		DonorUserID:     req.DonorUserID,
+		SupporterID:     req.SupporterID,
+		SupporterEmail:  &supporterEmail,
+		Sender:          req.Sender,
+		Amount:          totalAmount,
+		BaseAmount:      req.Amount,
+		Note:            req.Note,
 		CustomInputJSON: req.CustomInputJSON,
-		MediaURL:    req.MediaURL,
-		QRISPayload: qrisPayload,
-		Status:      "PENDING",
-		IsQueue:     true,
-		ExpiredAt:   time.Now().Add(5 * time.Minute),
+		MediaURL:        req.MediaURL,
+		QRISPayload:     qrisPayload,
+		Status:          "PENDING",
+		IsQueue:         true,
+		ExpiredAt:       time.Now().Add(5 * time.Minute),
 	}
 
 	if err := s.txRepo.Create(&tx); err != nil {
@@ -125,6 +132,21 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 		QRISPayload: tx.QRISPayload,
 		ExpiredAt:   tx.ExpiredAt,
 	}, nil
+}
+
+func normalizeSupporterEmail(value string) (string, error) {
+	email := strings.TrimSpace(value)
+	if email == "" {
+		return "", errors.New("email wajib diisi")
+	}
+	if len(email) > 254 {
+		return "", errors.New("email maksimal 254 karakter")
+	}
+	parsed, err := mail.ParseAddress(email)
+	if err != nil || !strings.EqualFold(parsed.Address, email) {
+		return "", errors.New("format email tidak valid")
+	}
+	return strings.ToLower(parsed.Address), nil
 }
 
 func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
