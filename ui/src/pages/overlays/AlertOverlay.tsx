@@ -14,6 +14,8 @@ interface AlertData {
 }
 
 const ALERT_DISPLAY_MS = 10000
+const ALERT_TTS_DELAY_MS = 2500
+const ALERT_SWEEP_DURATION_MS = ALERT_DISPLAY_MS + ALERT_TTS_DELAY_MS
 
 function AlertOverlay() {
   useDocumentTitle('Alert Overlay')
@@ -50,11 +52,18 @@ function AlertOverlay() {
 
     let isCancelled = false
 
+    const wait = (ms: number) => new Promise<void>(resolve => {
+      timeoutRef.current = window.setTimeout(resolve, ms)
+    })
+
     const runAlert = async () => {
       try {
         const sfx = new Audio('/money-soundfx.mp3')
         soundFxRef.current = sfx
         await sfx.play().catch(() => {})
+
+        await wait(ALERT_TTS_DELAY_MS)
+        if (isCancelled) return
 
         if (currentAlert.audio_url) {
           const tts = new Audio(currentAlert.audio_url)
@@ -67,9 +76,7 @@ function AlertOverlay() {
 
       if (isCancelled) return
 
-      await new Promise(r => {
-        timeoutRef.current = window.setTimeout(r, ALERT_DISPLAY_MS)
-      })
+      await wait(ALERT_DISPLAY_MS)
 
       if (isCancelled) return
 
@@ -128,7 +135,7 @@ function AlertOverlay() {
     minimumFractionDigits: 0,
   }).format(currentAlert.amount)
   const alertContentStyle = {
-    '--alert-sweep-duration': `${ALERT_DISPLAY_MS}ms`,
+    '--alert-sweep-duration': `${ALERT_SWEEP_DURATION_MS}ms`,
     } as CSSProperties
 
   return (
