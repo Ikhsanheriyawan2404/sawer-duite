@@ -235,6 +235,13 @@
 .payment-summary-label { font-size: 11px; font-weight: 700; color: var(--muted-foreground); text-transform: uppercase; }
 .payment-summary-value { font-weight: 700; font-size: 14px; }
 .payment-summary-value--accent { color: var(--accent); }
+.payment-scan-warning {
+  width: 100%; margin: -2px 0 16px; padding: 12px 14px; border-radius: 14px;
+  border: 1px solid rgba(217, 119, 6, 0.24); background: #fffbeb;
+  color: #92400e; text-align: left; display: grid; gap: 4px;
+}
+.payment-scan-warning strong { font-size: 13px; line-height: 1.35; }
+.payment-scan-warning span { font-size: 12px; line-height: 1.45; }
 
 /* Dashboard Header */
 .dashboard-header {
