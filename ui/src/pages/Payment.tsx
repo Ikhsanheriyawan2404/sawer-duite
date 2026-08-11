@@ -285,6 +285,11 @@ function Payment() {
 
         {!isExpired && !isPaid && (
           <>
+            <div className="payment-scan-warning">
+              <strong>Bayar 1x saja</strong>
+              <span>Jangan scan ulang QR yang sama setelah pembayaran berhasil.</span>
+            </div>
+
             <div style={{ textAlign: 'left', width: '100%', background: 'var(--muted)', padding: '16px', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span className="muted" style={{ fontSize: '13px' }}>ID Transaksi</span>
