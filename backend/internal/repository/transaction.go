@@ -29,13 +29,20 @@ func (r *TransactionRepository) UpdateStatus(uuid string, status string) error {
 	return r.db.Model(&domain.Transaction{}).Where("uuid = ?", uuid).Update("status", status).Error
 }
 
+func (r *TransactionRepository) MarkPaidIfPending(uuid string, amount int) (int64, error) {
+	res := r.db.Model(&domain.Transaction{}).
+		Where("uuid = ? AND amount = ? AND status = ?", uuid, amount, "PENDING").
+		Update("status", "PAID")
+	return res.RowsAffected, res.Error
+}
+
 func (r *TransactionRepository) UpdateQueueStatus(uuid string, isQueue bool) error {
 	return r.db.Model(&domain.Transaction{}).Where("uuid = ?", uuid).Update("is_queue", isQueue).Error
 }
 
 func (r *TransactionRepository) GetByUUID(uuid string) (*domain.Transaction, error) {
 	var tx domain.Transaction
-	if err := r.db.Preload("Target").Where("uuid = ?", uuid).First(&tx).Error; err != nil {
+	if err := r.db.Preload("Target").Preload("Target.Payment").Where("uuid = ?", uuid).First(&tx).Error; err != nil {
 		return nil, err
 	}
 	return &tx, nil

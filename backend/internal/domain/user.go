@@ -66,10 +66,12 @@ type DonationConfig struct {
 }
 
 type PaymentAccount struct {
-	ID         uint   `gorm:"primaryKey" json:"-"`
-	UserID     uint   `gorm:"uniqueIndex;not null" json:"-"`
-	StaticQRIS string `gorm:"type:text" json:"static_qris"`
-	Provider   string `gorm:"type:varchar(20)" json:"provider"` // GOPAY, DANA
+	ID              uint   `gorm:"primaryKey" json:"-"`
+	UserID          uint   `gorm:"uniqueIndex;not null" json:"-"`
+	StaticQRIS      string `gorm:"type:text" json:"static_qris"`
+	Provider        string `gorm:"type:varchar(20)" json:"provider"` // GOPAY, DANA
+	MutasiHubURL    string `gorm:"type:text" json:"-"`
+	MutasiHubAPIKey string `gorm:"type:text" json:"-"`
 }
 
 type DonationGoal struct {

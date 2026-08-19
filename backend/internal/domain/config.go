@@ -10,11 +10,11 @@ import (
 )
 
 type Config struct {
-	DBURL             string
-	JWTSecret          string
-	JWTRefreshSecret   string
-	AccessTokenTTL     time.Duration
-	RefreshTokenTTL    time.Duration
+	DBURL            string
+	JWTSecret        string
+	JWTRefreshSecret string
+	AccessTokenTTL   time.Duration
+	RefreshTokenTTL  time.Duration
 
 	RedisURL          string
 	RateLimitRequests int
