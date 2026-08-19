@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -47,7 +48,7 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	resp, err := h.txService.CreateTransaction(req)
+	resp, err := h.txService.CreateTransaction(req, publicBaseURL(r))
 	if err != nil {
 		status := http.StatusInternalServerError
 		if err.Error() == "recipient not found" {
@@ -67,6 +68,34 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 	}
 
 	JSONResponse(w, http.StatusOK, resp)
+}
+
+func publicBaseURL(r *http.Request) string {
+	proto := firstForwardedValue(r.Header.Get("X-Forwarded-Proto"))
+	if proto == "" {
+		if r.TLS != nil {
+			proto = "https"
+		} else {
+			proto = "http"
+		}
+	}
+
+	host := firstForwardedValue(r.Header.Get("X-Forwarded-Host"))
+	if host == "" {
+		host = r.Host
+	}
+	if host == "" {
+		return ""
+	}
+
+	return proto + "://" + host
+}
+
+func firstForwardedValue(value string) string {
+	if idx := strings.Index(value, ","); idx >= 0 {
+		value = value[:idx]
+	}
+	return strings.TrimSpace(value)
 }
 
 func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +129,49 @@ func (h *TransactionHandler) ProcessNotification(w http.ResponseWriter, r *http.
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *TransactionHandler) ProcessMutasiHubWebhook(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+    JSONError(w, "failed to read webhook body", http.StatusBadRequest)
+		return
+	}
+
+	var req service.MutasiHubWebhookRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		JSONError(w, "invalid webhook payload", http.StatusBadRequest)
+		return
+	}
+
+	processed, err := h.txService.ProcessMutasiHubWebhook(req, bearerToken(r.Header.Get("Authorization")))
+	if err != nil {
+		status := http.StatusBadRequest
+		if err.Error() == "transaction not found" {
+			status = http.StatusNotFound
+		} else if err.Error() == "unauthorized webhook" {
+			status = http.StatusUnauthorized
+		}
+		JSONError(w, err.Error(), status)
+		return
+	}
+
+	JSONResponse(w, http.StatusOK, map[string]any{
+		"ok":        true,
+		"processed": processed,
+	})
+}
+
+func bearerToken(authHeader string) string {
+	authHeader = strings.TrimSpace(authHeader)
+	if authHeader == "" {
+		return ""
+	}
+	token, ok := strings.CutPrefix(authHeader, "Bearer ")
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(token)
 }
 
 func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Request) {

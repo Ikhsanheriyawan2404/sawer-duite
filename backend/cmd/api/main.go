@@ -83,6 +83,7 @@ func main() {
 
 	// Webhook & Logs
 	r.Post("/notifications", txHandler.ProcessNotification)
+	r.Post("/internal/mutasi-hub/webhook", txHandler.ProcessMutasiHubWebhook)
 	r.Post("/client-logs", clientLogHandler.Create)
 
 	// WebSocket
@@ -120,7 +121,7 @@ func main() {
 		r.Post("/transactions/{uuid}/queue/remove", txHandler.RemoveFromQueue)
 	})
 
-	log.Println("Server starting on :3000")
+  log.Println("Server starting on :3000")
 	if err := http.ListenAndServe(":3000", r); err != nil {
 		log.Fatal(err)
 	}

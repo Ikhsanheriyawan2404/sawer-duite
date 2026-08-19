@@ -1,10 +1,14 @@
 package service
 
 import (
+	"bytes"
+	"crypto/subtle"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"net/mail"
 	"net/url"
 	"strings"
@@ -24,6 +28,7 @@ type TransactionService struct {
 	filterService *FilterService
 	hub           *domain.Hub
 	queueManager  *domain.AlertQueueManager
+	httpClient    *http.Client
 }
 
 func NewTransactionService(
@@ -45,10 +50,11 @@ func NewTransactionService(
 		filterService: filterService,
 		hub:           hub,
 		queueManager:  queueManager,
+		httpClient:    &http.Client{Timeout: 5 * time.Second},
 	}
 }
 
-func (s *TransactionService) CreateTransaction(req domain.CreateTransactionRequest) (*domain.CreateTransactionResponse, error) {
+func (s *TransactionService) CreateTransaction(req domain.CreateTransactionRequest, publicBaseURL string) (*domain.CreateTransactionResponse, error) {
 	target, err := s.userRepo.GetByUsername(req.Username)
 	if err != nil {
 		return nil, errors.New("recipient not found")
@@ -124,6 +130,7 @@ func (s *TransactionService) CreateTransaction(req domain.CreateTransactionReque
 	if err := s.txRepo.Create(&tx); err != nil {
 		return nil, errors.New("failed to create transaction")
 	}
+	s.registerMutasiHubIntent(target, tx, publicBaseURL)
 
 	return &domain.CreateTransactionResponse{
 		UUID:        tx.UUID,
@@ -173,15 +180,146 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 		return nil // No matching transaction, but not an error to return to client
 	}
 
-	// 3. Update status to PAID
-	_ = s.txRepo.UpdateStatus(tx.UUID, "PAID")
+	rows, err := s.txRepo.MarkPaidIfPending(tx.UUID, req.Amount)
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return nil
+	}
 
 	logEntry.Processed = true
 	logEntry.TransactionID = &tx.ID
 	logEntry.TransactionUUID = tx.UUID
 	_ = s.notifRepo.Update(&logEntry)
 
-	// Broadcast immediate PAID status
+	s.dispatchPaidEffects(user, tx)
+
+	return nil
+}
+
+type MutasiHubWebhookRequest struct {
+	Event                 string `json:"event"`
+	IntentID              int64  `json:"intent_id"`
+	Platform              string `json:"platform"`
+	ExternalID            string `json:"external_id"`
+	MerchantID            string `json:"merchant_id"`
+	Amount                int    `json:"amount"`
+	PaidAt                string `json:"paid_at"`
+	ProviderTransactionID string `json:"provider_transaction_id"`
+}
+
+func (s *TransactionService) ProcessMutasiHubWebhook(req MutasiHubWebhookRequest, bearerToken string) (bool, error) {
+	if req.Event != "payment.paid" {
+		return false, errors.New("unsupported event")
+	}
+	if req.Platform != "sawerblox" {
+		return false, errors.New("invalid platform")
+	}
+	if strings.TrimSpace(req.ExternalID) == "" || req.Amount <= 0 {
+		return false, errors.New("invalid webhook payload")
+	}
+
+	tx, err := s.txRepo.GetByUUID(req.ExternalID)
+	if err != nil {
+		return false, errors.New("transaction not found")
+	}
+	expectedAPIKey := strings.TrimSpace(tx.Target.Payment.MutasiHubAPIKey)
+	if expectedAPIKey == "" || !constantTimeEqual(expectedAPIKey, strings.TrimSpace(bearerToken)) {
+		return false, errors.New("unauthorized webhook")
+	}
+	if tx.Amount != req.Amount {
+		return false, errors.New("amount mismatch")
+	}
+	if strings.TrimSpace(req.PaidAt) != "" {
+		paidAt, err := time.Parse(time.RFC3339, req.PaidAt)
+		if err != nil {
+			return false, errors.New("invalid paid_at")
+		}
+		if paidAt.Before(tx.CreatedAt) || paidAt.After(tx.ExpiredAt) {
+			return false, errors.New("paid_at outside transaction window")
+		}
+	}
+
+	rows, err := s.txRepo.MarkPaidIfPending(tx.UUID, req.Amount)
+	if err != nil {
+		return false, err
+	}
+	if rows == 0 {
+		return false, nil
+	}
+
+	s.dispatchPaidEffects(&tx.Target, tx)
+	return true, nil
+}
+
+func (s *TransactionService) registerMutasiHubIntent(user *domain.User, tx domain.Transaction, publicBaseURL string) {
+	mutasiHubURL := strings.TrimSpace(user.Payment.MutasiHubURL)
+	apiKey := strings.TrimSpace(user.Payment.MutasiHubAPIKey)
+	publicBaseURL = strings.TrimSpace(publicBaseURL)
+	if mutasiHubURL == "" || apiKey == "" || publicBaseURL == "" {
+		return
+	}
+
+	payload := map[string]any{
+		"platform":    "sawerblox",
+		"external_id": tx.UUID,
+		"amount":      tx.Amount,
+		"created_at":  tx.CreatedAt.Format(time.RFC3339),
+		"expires_at":  tx.ExpiredAt.Format(time.RFC3339),
+		"webhook_url": strings.TrimRight(publicBaseURL, "/") + "/internal/mutasi-hub/webhook",
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("[MutasiHub] Failed to encode payment intent for %s: %v", tx.UUID, err)
+		return
+	}
+
+	endpoint, err := mutasiHubPaymentIntentURL(mutasiHubURL)
+	if err != nil {
+		log.Printf("[MutasiHub] Invalid URL for user %d: %v", user.ID, err)
+		return
+	}
+
+	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		log.Printf("[MutasiHub] Invalid URL for user %d: %v", user.ID, err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		log.Printf("[MutasiHub] Failed to register payment intent %s: %v", tx.UUID, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Printf("[MutasiHub] Register payment intent %s returned status %d", tx.UUID, resp.StatusCode)
+	}
+}
+
+func mutasiHubPaymentIntentURL(rawURL string) (string, error) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return "", errors.New("invalid mutasi hub URL")
+	}
+	if strings.Trim(parsed.Path, "/") == "" {
+		parsed.Path = "/payment-intents"
+	}
+	return parsed.String(), nil
+}
+
+func constantTimeEqual(expected, actual string) bool {
+	if expected == "" || actual == "" || len(expected) != len(actual) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) == 1
+}
+
+func (s *TransactionService) dispatchPaidEffects(user *domain.User, tx *domain.Transaction) {
 	_ = s.queueManager.PublishAlertMessage(domain.AlertMessage{
 		UserUUID:        user.UUID,
 		TransactionUUID: tx.UUID,
@@ -191,7 +329,6 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 	filteredSender := s.filterService.Filter(tx.Sender)
 	filteredNote := s.filterService.Filter(tx.Note)
 
-	// Generate TTS audio
 	formatted := fmt.Sprintf("%d", tx.BaseAmount)
 	ttsText := fmt.Sprintf("%s rupiah dari %s", formatted, filteredSender.TTSText)
 	if filteredNote.TTSText != "" {
@@ -202,7 +339,6 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 		log.Printf("[Alert] TTS Generation Error: %v", err)
 	}
 
-	// 4. Enqueue alert
 	s.queueManager.Enqueue(domain.AlertMessage{
 		UserUUID:        user.UUID,
 		TransactionUUID: tx.UUID,
@@ -213,8 +349,6 @@ func (s *TransactionService) ProcessNotification(user *domain.User, req struct {
 		AudioURL:        audioURL,
 		MediaURL:        tx.MediaURL,
 	})
-
-	return nil
 }
 
 func validateMediaURL(value string) error {
